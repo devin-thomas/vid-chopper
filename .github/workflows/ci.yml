@@ -18,6 +18,9 @@ jobs:
       - name: Set up CMake
         uses: lukka/get-cmake@latest
 
+      - name: Install FFmpeg
+        run: choco install ffmpeg --yes --no-progress
+
       - name: Configure core-only build
         run: cmake --preset core-release
 
