@@ -1,6 +1,7 @@
 #include "qt/ui/main_window.h"
 
 #include "core/chapter_plan.h"
+#include "core/command_builder.h"
 #include "core/timecode.h"
 #include "qt/app_settings.h"
 #include "qt/services/export_coordinator.h"
@@ -74,21 +75,28 @@ auto MainWindow::create_menus() -> void {
     advanced_menu->addAction("&Settings...", this, &MainWindow::open_advanced_settings);
     advanced_menu->addAction("&Re-detect GPU", this, &MainWindow::redetect_gpu);
     advanced_menu->addAction("&Reset Output Directory", this, &MainWindow::reset_output_directory);
-    advanced_menu->addAction("Open Output &Folder", this, [this]() {
+    auto* open_output_folder_action = new QAction {"Open Output &Folder", this};
+    connect(open_output_folder_action, &QAction::triggered, this, [this]() {
         if (!output_directory_edit_->text().isEmpty()) {
             QDesktopServices::openUrl(QUrl::fromLocalFile(output_directory_edit_->text()));
         }
     });
+    advanced_menu->addAction(open_output_folder_action);
 
     auto* help_menu = menuBar()->addMenu("&Help");
-    help_menu->addAction("&About VidChopper", this, [this]() {
+    auto* about_vidchopper_action = new QAction {"&About VidChopper", this};
+    connect(about_vidchopper_action, &QAction::triggered, this, [this]() {
         QMessageBox::about(
             this,
             "About VidChopper",
             "VidChopper is a Windows-first Qt desktop application for turning one source video into chapter clips with ffmpeg."
         );
     });
-    help_menu->addAction("About &Qt", qApp, &QApplication::aboutQt);
+    help_menu->addAction(about_vidchopper_action);
+
+    auto* about_qt_action = new QAction {"About &Qt", this};
+    connect(about_qt_action, &QAction::triggered, qApp, &QApplication::aboutQt);
+    help_menu->addAction(about_qt_action);
 }
 
 auto MainWindow::build_ui() -> void {

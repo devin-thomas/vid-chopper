@@ -22,7 +22,8 @@
       "inherits": "core-release",
       "binaryDir": "${sourceDir}/build/windows-gui-release",
       "cacheVariables": {
-        "VIDCHOPPER_BUILD_GUI": "ON"
+        "VIDCHOPPER_BUILD_GUI": "ON",
+        "VIDCHOPPER_BUILD_TESTS": "OFF"
       }
     }
   ],
