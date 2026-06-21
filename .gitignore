@@ -30,6 +30,7 @@ dist/
 artifacts/
 coverage/
 .qt/
+.venv-tools/
 CODEX.md
 PUBLISH.md
 .codex/
