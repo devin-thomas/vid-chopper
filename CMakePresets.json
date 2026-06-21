@@ -1,0 +1,41 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 28,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "core-release",
+      "displayName": "Core Release",
+      "generator": "Visual Studio 17 2022",
+      "binaryDir": "${sourceDir}/build/core-release",
+      "cacheVariables": {
+        "VIDCHOPPER_BUILD_GUI": "OFF",
+        "VIDCHOPPER_BUILD_TESTS": "ON"
+      }
+    },
+    {
+      "name": "windows-gui-release",
+      "displayName": "Windows GUI Release",
+      "inherits": "core-release",
+      "binaryDir": "${sourceDir}/build/windows-gui-release",
+      "cacheVariables": {
+        "VIDCHOPPER_BUILD_GUI": "ON"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "core-release",
+      "configurePreset": "core-release",
+      "configuration": "Release"
+    },
+    {
+      "name": "windows-gui-release",
+      "configurePreset": "windows-gui-release",
+      "configuration": "Release"
+    }
+  ]
+}

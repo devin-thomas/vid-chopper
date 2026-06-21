@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - app-foundation
+  pull_request:
+
+jobs:
+  core-tests:
+    runs-on: windows-2022
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up CMake
+        uses: lukka/get-cmake@latest
+
+      - name: Configure core-only build
+        run: cmake --preset core-release
+
+      - name: Build core-only targets
+        run: cmake --build --preset core-release
+
+      - name: Run fast tests
+        run: ctest --test-dir build/core-release -C Release -L fast --output-on-failure
+
+      - name: Run slow tests
+        run: ctest --test-dir build/core-release -C Release -L slow --output-on-failure
+
+  gui-build:
+    runs-on: windows-2022
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up CMake
+        uses: lukka/get-cmake@latest
+
+      - name: Install Qt 6.9
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: 6.9.0
+          host: windows
+          target: desktop
+
+      - name: Configure GUI build
+        run: cmake --preset windows-gui-release
+
+      - name: Build VidChopper
+        run: cmake --build --preset windows-gui-release

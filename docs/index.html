@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>VidChopper</title>
+    <meta
+      name="description"
+      content="VidChopper is a Windows desktop application for splitting source videos into chapter clips with ffmpeg, built in C++ with Qt 6."
+    >
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <main class="page">
+      <section class="hero">
+        <p class="eyebrow">Qt 6 Desktop Utility</p>
+        <h1>VidChopper</h1>
+        <p class="lede">
+          VidChopper turns a single source video into chapter clips with a focused Windows desktop workflow,
+          precise timestamp editing, GPU-aware encoding defaults, and a testable native C++ core.
+        </p>
+        <div class="hero-actions">
+          <a class="button button-primary" href="https://github.com/devin-thomas/vid-chopper">View Repository</a>
+          <a class="button" href="https://github.com/devin-thomas/vid-chopper/tree/main#build-and-test">Build Notes</a>
+        </div>
+      </section>
+
+      <section class="grid">
+        <article class="card">
+          <h2>What It Does</h2>
+          <p>
+            Load a video, start from embedded chapters or a six-part starter layout, edit names and boundaries,
+            and export each chapter through <code>ffmpeg</code>.
+          </p>
+        </article>
+        <article class="card">
+          <h2>Why It Exists</h2>
+          <p>
+            The project was built as a practical personal tool and a portfolio-grade desktop application:
+            native code, explicit tradeoffs, and a repository meant to be reviewed, discussed, and reused.
+          </p>
+        </article>
+        <article class="card">
+          <h2>Encoding Defaults</h2>
+          <p>
+            VidChopper prefers HEVC NVENC when both an NVIDIA GPU and <code>hevc_nvenc</code> are available.
+            Otherwise it falls back to x264 for predictable compatibility.
+          </p>
+        </article>
+        <article class="card">
+          <h2>Timestamp Modes</h2>
+          <p>
+            Edit boundaries in milliseconds or in frame notation. Frame-mode inputs use the source video’s
+            probed frame rate and are meant for tight chapter cuts without mental conversion.
+          </p>
+        </article>
+      </section>
+
+      <section class="details">
+        <div class="details-card">
+          <h2>Repository Highlights</h2>
+          <ul>
+            <li>Qt 6 Widgets interface with a dark-only workflow</li>
+            <li>Pure C++ core for chapter planning and command generation</li>
+            <li>Fast unit tests plus slower ffmpeg-backed integration coverage</li>
+            <li>GitHub Actions CI for both the core and GUI build paths</li>
+          </ul>
+        </div>
+        <div class="details-card">
+          <h2>Important Constraints</h2>
+          <ul>
+            <li>Windows is the primary target in the current repository state</li>
+            <li>Full GUI builds require a Qt 6 SDK</li>
+            <li>Exports are sequential to keep validation and progress tracking clear</li>
+            <li>Qt and FFmpeg licensing obligations remain separate from the repo license</li>
+          </ul>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>
