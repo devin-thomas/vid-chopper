@@ -1,0 +1,70 @@
+name: Release
+
+on:
+  release:
+    types:
+      - published
+
+permissions:
+  contents: write
+
+jobs:
+  windows-release:
+    runs-on: windows-2022
+    env:
+      RELEASE_ASSET_NAME: VidChopper-windows-x64.zip
+      RELEASE_DIR: dist\VidChopper
+
+    steps:
+      - name: Checkout tagged source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name }}
+
+      - name: Set up CMake
+        uses: lukka/get-cmake@latest
+
+      - name: Install Qt 6.9
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: 6.9.0
+          host: windows
+          target: desktop
+
+      - name: Configure GUI build
+        run: cmake --preset windows-gui-release
+
+      - name: Build VidChopper
+        run: cmake --build --preset windows-gui-release
+
+      - name: Package portable Windows zip
+        shell: pwsh
+        run: |
+          $appDir = Join-Path $PWD $env:RELEASE_DIR
+          $exePath = Join-Path $PWD "build/windows-gui-release/Release/VidChopper.exe"
+          $zipPath = Join-Path $PWD ("dist/" + $env:RELEASE_ASSET_NAME)
+
+          if (!(Test-Path $exePath)) {
+            throw "Built executable not found at $exePath"
+          }
+
+          New-Item -ItemType Directory -Force -Path $appDir | Out-Null
+          Copy-Item $exePath -Destination $appDir -Force
+          Copy-Item "packaging/windows/README.txt" -Destination (Join-Path $appDir "README.txt") -Force
+          Copy-Item "packaging/windows/THIRD_PARTY_NOTICES.txt" -Destination $appDir -Force
+          Copy-Item "LICENSE" -Destination $appDir -Force
+
+          windeployqt --release --compiler-runtime --no-translations --dir $appDir (Join-Path $appDir "VidChopper.exe")
+          Compress-Archive -Path (Join-Path $appDir "*") -DestinationPath $zipPath -Force
+
+      - name: Upload packaged zip as workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: vidchopper-windows-x64
+          path: dist\VidChopper-windows-x64.zip
+
+      - name: Attach zip to GitHub release
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: gh release upload "${{ github.event.release.tag_name }}" "dist\VidChopper-windows-x64.zip" --clobber

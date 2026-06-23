@@ -2,10 +2,26 @@
 
 VidChopper is a Windows desktop application for turning one source video into chapter clips with `ffmpeg`. It is built in modern C++ on Qt 6 Widgets, with fast native execution, a dark-first interface, GPU-aware encoder selection, and a testable core that stays usable even when the full Qt SDK is not installed locally.
 
+## Windows Download
+
+If you want to run VidChopper on Windows 10/11 x64 without building from source, use the latest GitHub release zip:
+
+- [Download the latest Windows x64 release zip](https://github.com/devin-thomas/vid-chopper/releases/latest/download/VidChopper-windows-x64.zip)
+- [Browse all GitHub releases](https://github.com/devin-thomas/vid-chopper/releases)
+
+The release zip is a portable build that includes `VidChopper.exe`, the required Qt runtime files, and the Microsoft Visual C++ runtime. It does **not** bundle `ffmpeg` or `ffprobe`, so those still need to be on `PATH` or configured in the advanced settings dialog.
+
+### Quick Start
+
+1. Download and unzip `VidChopper-windows-x64.zip`.
+2. Launch `VidChopper.exe`.
+3. Install `ffmpeg` and `ffprobe` separately, or point VidChopper at custom tool paths in Advanced Settings.
+
 ## Project Status
 
 The repository is structured as a production-oriented desktop application rather than a tutorial exercise. The current codebase includes:
 
+- A GitHub Releases workflow that packages the Windows GUI build into a portable `VidChopper-windows-x64.zip` asset
 - A Qt 6 desktop shell for loading a video, importing embedded chapters, editing chapter timing and names, choosing output locations, and exporting clips
 - A C++ core library for chapter validation, timestamp parsing and formatting, file naming, output planning, and `ffmpeg` command construction
 - Automatic preference for HEVC NVENC when an NVIDIA GPU and `hevc_nvenc` support are both detected, with x264 used otherwise
@@ -24,9 +40,9 @@ The repository is structured as a production-oriented desktop application rather
 - Detailed advanced settings for encoding, naming, container choice, seek mode, manifest output, metadata handling, and tool paths
 - Always-dark interface without exposing theme switching
 
-## Build and Test
+## Build and Test From Source
 
-### Prerequisites
+### Source Build Prerequisites
 
 - Windows 10 or newer
 - C++20-capable MSVC toolchain
@@ -53,6 +69,17 @@ The GUI target is enabled when Qt 6 is available to CMake.
 cmake --preset windows-gui-release
 cmake --build --preset windows-gui-release
 ```
+
+### GitHub Release Packaging
+
+Published GitHub releases trigger a Windows packaging workflow that:
+
+- builds the `windows-gui-release` preset on `windows-2022`
+- runs `windeployqt` to bundle the required Qt runtime and VC++ runtime beside `VidChopper.exe`
+- zips the portable folder as `VidChopper-windows-x64.zip`
+- uploads that zip back onto the GitHub release as the installable asset
+
+That release asset is the intended end-user download. Building from source is only necessary for development, debugging, or local modification work.
 
 ## Test Strategy
 
@@ -90,7 +117,8 @@ Chapter boundaries can fall between keyframes. Re-encoding with x264 or HEVC NVE
 - `src/qt/`: Qt application shell, settings persistence, chapter table model, ffprobe integration, GPU detection, and export coordination
 - `tests/`: staged native tests
 - `docs/`: GitHub Pages content
-- `.github/workflows/`: CI definitions
+- `packaging/windows/`: bundled release notes and third-party runtime notices for the portable zip
+- `.github/workflows/`: CI and release packaging definitions
 
 ## Licensing
 
