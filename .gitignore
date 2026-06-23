@@ -29,6 +29,8 @@ cmake-build-*/
 dist/
 artifacts/
 coverage/
+output/
+tmp/
 .qt/
 .venv-tools/
 CODEX.md
