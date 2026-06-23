@@ -1,0 +1,26 @@
+Third-party runtime notice for the Windows release zip
+======================================================
+
+This release bundle is assembled from the VidChopper repository and the Windows runtime files copied by Qt's deployment tooling.
+
+Bundled with the release zip
+----------------------------
+- VidChopper application binaries from this repository
+- Required Qt 6 runtime files deployed by windeployqt
+- Microsoft Visual C++ runtime files deployed by windeployqt
+
+Not bundled with the release zip
+--------------------------------
+- ffmpeg
+- ffprobe
+
+Licensing notes
+---------------
+- VidChopper source code in this repository is released under the MIT License. See LICENSE.
+- Qt runtime files remain subject to Qt's own licensing terms and redistribution obligations.
+- FFmpeg and ffprobe have their own licenses and are intentionally not redistributed in this zip.
+
+Before redistributing this bundle or a modified version of it, review the current Qt and FFmpeg license terms yourself:
+- https://www.qt.io/licensing/open-source-lgpl-obligations
+- https://doc.qt.io/qt-6/windows-deployment.html
+- https://ffmpeg.org/legal.html
