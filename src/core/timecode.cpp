@@ -4,6 +4,7 @@
 
 #include <cmath>
 #include <iomanip>
+#include <limits>
 #include <sstream>
 #include <vector>
 
@@ -40,7 +41,11 @@ auto parse_unsigned(std::string_view value) -> std::optional<u64> {
             return std::nullopt;
         }
 
-        result = (result * 10) + static_cast<u64>(character - '0');
+        const auto digit = static_cast<u64>(character - '0');
+        if (result > (std::numeric_limits<u64>::max() - digit) / 10) {
+            return std::nullopt;
+        }
+        result = (result * 10) + digit;
     }
 
     return result;

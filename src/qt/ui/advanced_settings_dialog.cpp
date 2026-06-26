@@ -9,7 +9,21 @@
 #include <QTabWidget>
 #include <QVBoxLayout>
 
+#include <algorithm>
+
 namespace vidchopper {
+
+namespace {
+
+template <typename Enum>
+auto safe_enum_cast(int index, Enum max_valid, Enum fallback) -> Enum {
+    if (index < 0 || index > static_cast<int>(max_valid)) {
+        return fallback;
+    }
+    return static_cast<Enum>(index);
+}
+
+} // namespace
 
 AdvancedSettingsDialog::AdvancedSettingsDialog(QWidget* parent)
     : QDialog(parent) {
@@ -164,12 +178,12 @@ auto AdvancedSettingsDialog::set_settings(const ExportSettings& settings) -> voi
 auto AdvancedSettingsDialog::settings() const -> ExportSettings {
     auto values = ExportSettings {};
 
-    values.encoder_kind = static_cast<EncoderKind>(encoder_combo_->currentIndex());
-    values.audio_mode = static_cast<AudioMode>(audio_combo_->currentIndex());
-    values.container_mode = static_cast<ContainerMode>(container_combo_->currentIndex());
-    values.overwrite_mode = static_cast<OverwriteMode>(overwrite_combo_->currentIndex());
-    values.seek_mode = static_cast<SeekMode>(seek_combo_->currentIndex());
-    values.display_mode = static_cast<TimestampDisplayMode>(display_combo_->currentIndex());
+    values.encoder_kind = safe_enum_cast(encoder_combo_->currentIndex(), EncoderKind::HevcNvenc, EncoderKind::Auto);
+    values.audio_mode = safe_enum_cast(audio_combo_->currentIndex(), AudioMode::Aac, AudioMode::Copy);
+    values.container_mode = safe_enum_cast(container_combo_->currentIndex(), ContainerMode::Mkv, ContainerMode::Source);
+    values.overwrite_mode = safe_enum_cast(overwrite_combo_->currentIndex(), OverwriteMode::Skip, OverwriteMode::Ask);
+    values.seek_mode = safe_enum_cast(seek_combo_->currentIndex(), SeekMode::Fast, SeekMode::Accurate);
+    values.display_mode = safe_enum_cast(display_combo_->currentIndex(), TimestampDisplayMode::Frames, TimestampDisplayMode::Milliseconds);
 
     values.default_chapter_count = static_cast<u8>(default_chapter_spin_->value());
     values.index_padding = static_cast<u8>(index_padding_spin_->value());
