@@ -9,8 +9,6 @@
 #include <QTabWidget>
 #include <QVBoxLayout>
 
-#include <algorithm>
-
 namespace vidchopper {
 
 namespace {
