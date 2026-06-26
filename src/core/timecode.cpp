@@ -2,10 +2,10 @@
 
 #include "core/string_utils.h"
 
+#include <charconv>
 #include <cmath>
-#include <iomanip>
-#include <limits>
-#include <sstream>
+#include <format>
+#include <system_error>
 #include <vector>
 
 namespace vidchopper {
@@ -31,21 +31,12 @@ auto split_timecode(std::string_view value, const char delimiter) -> std::vector
 }
 
 auto parse_unsigned(std::string_view value) -> std::optional<u64> {
-    if (value.empty()) {
-        return std::nullopt;
-    }
-
     auto result = u64 {0};
-    for (const auto character : value) {
-        if (character < '0' || character > '9') {
-            return std::nullopt;
-        }
-
-        const auto digit = static_cast<u64>(character - '0');
-        if (result > (std::numeric_limits<u64>::max() - digit) / 10) {
-            return std::nullopt;
-        }
-        result = (result * 10) + digit;
+    const auto* const first = value.data();
+    const auto* const last = first + value.size();
+    const auto [parse_end, error] = std::from_chars(first, last, result);
+    if (error != std::errc {} || parse_end != last) {
+        return std::nullopt;
     }
 
     return result;
@@ -208,12 +199,7 @@ auto format_millisecond_timecode(const u64 milliseconds) -> std::string {
     const auto hms = decompose_total_seconds(milliseconds / 1000);
     const auto remaining_ms = milliseconds % 1000;
 
-    auto builder = std::ostringstream {};
-    builder << std::setw(2) << std::setfill('0') << hms.hours << ':'
-            << std::setw(2) << std::setfill('0') << hms.minutes << ':'
-            << std::setw(2) << std::setfill('0') << hms.seconds << '.'
-            << std::setw(3) << std::setfill('0') << remaining_ms;
-    return builder.str();
+    return std::format("{:02}:{:02}:{:02}.{:03}", hms.hours, hms.minutes, hms.seconds, remaining_ms);
 }
 
 auto format_frame_timecode(const u64 milliseconds, const FrameRate& frame_rate) -> std::string {
@@ -226,12 +212,7 @@ auto format_frame_timecode(const u64 milliseconds, const FrameRate& frame_rate) 
     const auto frames = total_frames % fps;
     const auto hms = decompose_total_seconds(total_frames / fps);
 
-    auto builder = std::ostringstream {};
-    builder << std::setw(2) << std::setfill('0') << hms.hours << ':'
-            << std::setw(2) << std::setfill('0') << hms.minutes << ':'
-            << std::setw(2) << std::setfill('0') << hms.seconds << ':'
-            << std::setw(2) << std::setfill('0') << frames;
-    return builder.str();
+    return std::format("{:02}:{:02}:{:02}:{:02}", hms.hours, hms.minutes, hms.seconds, frames);
 }
 
 } // namespace vidchopper

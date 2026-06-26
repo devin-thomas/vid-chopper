@@ -2,8 +2,7 @@
 
 #include <algorithm>
 #include <cctype>
-#include <iomanip>
-#include <sstream>
+#include <format>
 
 namespace vidchopper {
 
@@ -122,9 +121,7 @@ auto sanitize_file_component(std::string_view value) -> std::string {
 }
 
 auto zero_padded_index(const u16 index, const u8 width) -> std::string {
-    auto builder = std::ostringstream {};
-    builder << std::setw(width) << std::setfill('0') << index;
-    return builder.str();
+    return std::format("{:0{}}", index, static_cast<int>(width));
 }
 
 } // namespace vidchopper

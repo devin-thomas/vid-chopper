@@ -58,6 +58,7 @@ if(VIDCHOPPER_BUILD_TESTS)
 
     add_vidchopper_test(vidchopper_test_timecode tests/test_timecode.cpp fast)
     add_vidchopper_test(vidchopper_test_timecode_extended tests/test_timecode_extended.cpp fast)
+    add_vidchopper_test(vidchopper_test_format_parse_golden tests/test_format_parse_golden.cpp fast)
     add_vidchopper_test(vidchopper_test_chapter_plan tests/test_chapter_plan.cpp fast)
     add_vidchopper_test(vidchopper_test_chapter_plan_extended tests/test_chapter_plan_extended.cpp fast)
     add_vidchopper_test(vidchopper_test_command_builder tests/test_command_builder.cpp fast)
