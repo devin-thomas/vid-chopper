@@ -37,9 +37,16 @@ jobs:
       - name: Build VidChopper
         run: cmake --build --preset windows-gui-release
 
+      - name: Run tests before packaging
+        run: |
+          cmake --preset core-release
+          cmake --build --preset core-release
+          ctest --test-dir build/core-release -C Release -L fast --output-on-failure
+
       - name: Package portable Windows zip
         shell: pwsh
         run: |
+          $ErrorActionPreference = "Stop"
           $appDir = Join-Path $PWD $env:RELEASE_DIR
           $exePath = Join-Path $PWD "build/windows-gui-release/Release/VidChopper.exe"
           $zipPath = Join-Path $PWD ("dist/" + $env:RELEASE_ASSET_NAME)

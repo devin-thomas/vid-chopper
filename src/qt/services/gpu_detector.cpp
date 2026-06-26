@@ -7,15 +7,17 @@ namespace vidchopper {
 auto GpuDetector::detect(const QString& ffmpeg_path) -> EncoderEnvironment {
     auto environment = EncoderEnvironment {};
 
+    const auto ps_args = QStringList {
+        "-NoProfile",
+        "-Command",
+        "(Get-CimInstance Win32_VideoController | Select-Object -ExpandProperty Name) -join \"`n\"",
+    };
+
     auto gpu_process = QProcess {};
-    gpu_process.start(
-        "powershell",
-        {
-            "-NoProfile",
-            "-Command",
-            "(Get-CimInstance Win32_VideoController | Select-Object -ExpandProperty Name) -join \"`n\"",
-        }
-    );
+    gpu_process.start("pwsh", ps_args);
+    if (!gpu_process.waitForStarted(1000)) {
+        gpu_process.start("powershell", ps_args);
+    }
 
     if (gpu_process.waitForFinished(3000)) {
         const auto gpu_names = QString::fromLocal8Bit(gpu_process.readAllStandardOutput()).toLower();
