@@ -3,8 +3,6 @@
 #include "core/string_utils.h"
 #include "core/timecode.h"
 
-#include <algorithm>
-
 namespace vidchopper {
 
 namespace {
@@ -19,9 +17,7 @@ auto safe_source_extension(const VideoMetadata& metadata) -> std::string {
         return ".mp4";
     }
 
-    std::ranges::transform(extension, extension.begin(), [](const unsigned char character) {
-        return static_cast<char>(std::tolower(character));
-    });
+    extension = to_lower_copy(std::move(extension));
 
     if (extension != ".mp4" && extension != ".mkv" && extension != ".mov") {
         return ".mp4";
@@ -46,15 +42,13 @@ auto append_audio_arguments(std::vector<std::string>& command, const ExportSetti
 } // namespace
 
 auto resolve_encoder(const ExportSettings& settings, const EncoderEnvironment& environment) -> ResolvedEncoder {
-    if (settings.encoder_kind == EncoderKind::HevcNvenc) {
-        return ResolvedEncoder {
-            .kind = EncoderKind::HevcNvenc,
-            .video_codec = "hevc_nvenc",
-            .arguments = {"-preset", settings.nvenc_preset, "-cq", std::to_string(settings.nvenc_cq), "-rc", "vbr_hq"},
-        };
-    }
+    const auto use_nvenc = settings.encoder_kind == EncoderKind::HevcNvenc
+        || (settings.encoder_kind == EncoderKind::Auto
+            && settings.auto_detect_gpu
+            && environment.has_nvidia_gpu
+            && environment.has_hevc_nvenc_encoder);
 
-    if (settings.encoder_kind == EncoderKind::Auto && settings.auto_detect_gpu && environment.has_nvidia_gpu && environment.has_hevc_nvenc_encoder) {
+    if (use_nvenc) {
         return ResolvedEncoder {
             .kind = EncoderKind::HevcNvenc,
             .video_codec = "hevc_nvenc",

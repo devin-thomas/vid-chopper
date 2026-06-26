@@ -22,6 +22,13 @@ auto trim_copy(std::string_view value) -> std::string {
     return std::string {value.substr(start, end - start)};
 }
 
+auto to_lower_copy(std::string value) -> std::string {
+    std::ranges::transform(value, value.begin(), [](const unsigned char character) {
+        return static_cast<char>(std::tolower(character));
+    });
+    return value;
+}
+
 auto replace_all_copy(std::string value, std::string_view from, std::string_view to) -> std::string {
     if (from.empty()) {
         return value;
@@ -107,7 +114,11 @@ auto sanitize_file_component(std::string_view value) -> std::string {
         sanitized.pop_back();
     }
 
-    return sanitized.empty() ? "chapter" : sanitized;
+    if (sanitized.empty() || sanitized == "." || sanitized == "..") {
+        return "chapter";
+    }
+
+    return sanitized;
 }
 
 auto zero_padded_index(const u16 index, const u8 width) -> std::string {

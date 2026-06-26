@@ -38,6 +38,7 @@ private slots:
     void handle_ready_read_stdout();
     void handle_ready_read_stderr();
     void handle_process_finished(int exit_code, QProcess::ExitStatus exit_status);
+    void handle_process_error(QProcess::ProcessError error);
 
 private:
     struct PendingExport {

@@ -4,6 +4,7 @@
 
 #include <cmath>
 #include <iomanip>
+#include <limits>
 #include <sstream>
 #include <vector>
 
@@ -40,10 +41,87 @@ auto parse_unsigned(std::string_view value) -> std::optional<u64> {
             return std::nullopt;
         }
 
-        result = (result * 10) + static_cast<u64>(character - '0');
+        const auto digit = static_cast<u64>(character - '0');
+        if (result > (std::numeric_limits<u64>::max() - digit) / 10) {
+            return std::nullopt;
+        }
+        result = (result * 10) + digit;
     }
 
     return result;
+}
+
+struct HmsComponents {
+    u64 hours;
+    u64 minutes;
+    u64 seconds;
+};
+
+auto decompose_total_seconds(const u64 total_seconds) -> HmsComponents {
+    return HmsComponents {
+        .hours = total_seconds / 3600,
+        .minutes = (total_seconds / 60) % 60,
+        .seconds = total_seconds % 60,
+    };
+}
+
+struct ParsedHmsSegments {
+    u64 hours;
+    u64 minutes;
+    u64 seconds;
+    std::string trailing_segment;
+};
+
+auto parse_hms_segments(std::string_view value, const usize min_segments, const usize max_segments) -> std::optional<ParsedHmsSegments> {
+    const auto trimmed = trim_copy(value);
+    if (trimmed.empty()) {
+        return std::nullopt;
+    }
+
+    const auto segments = split_timecode(trimmed, ':');
+    if (segments.size() < min_segments || segments.size() > max_segments) {
+        return std::nullopt;
+    }
+
+    const auto has_hours = segments.size() == max_segments;
+    const auto hours = has_hours ? parse_unsigned(segments[0]) : std::optional<u64> {0};
+    const auto minutes = parse_unsigned(segments[has_hours ? 1 : 0]);
+    const auto seconds_index = has_hours ? 2 : 1;
+
+    if (!hours.has_value() || !minutes.has_value()) {
+        return std::nullopt;
+    }
+
+    if (*minutes >= 60) {
+        return std::nullopt;
+    }
+
+    const auto seconds_str = (static_cast<usize>(seconds_index) < segments.size() - 1)
+        ? segments[seconds_index]
+        : std::string {};
+
+    const auto& trailing = segments.back();
+
+    if (seconds_str.empty()) {
+        return ParsedHmsSegments {
+            .hours = *hours,
+            .minutes = *minutes,
+            .seconds = 0,
+            .trailing_segment = trailing,
+        };
+    }
+
+    const auto seconds = parse_unsigned(seconds_str);
+    if (!seconds.has_value() || *seconds >= 60) {
+        return std::nullopt;
+    }
+
+    return ParsedHmsSegments {
+        .hours = *hours,
+        .minutes = *minutes,
+        .seconds = *seconds,
+        .trailing_segment = trailing,
+    };
 }
 
 } // namespace
@@ -105,26 +183,21 @@ auto parse_frame_timecode(std::string_view value, const FrameRate& frame_rate) -
         return std::nullopt;
     }
 
-    const auto trimmed = trim_copy(value);
-    const auto segments = split_timecode(trimmed, ':');
-    if (segments.size() < 3 || segments.size() > 4) {
+    const auto parsed = parse_hms_segments(value, 3, 4);
+    if (!parsed.has_value()) {
         return std::nullopt;
     }
 
-    const auto hours = segments.size() == 4 ? parse_unsigned(segments[0]) : std::optional<u64> {0};
-    const auto minutes = parse_unsigned(segments[segments.size() == 4 ? 1 : 0]);
-    const auto seconds = parse_unsigned(segments[segments.size() == 4 ? 2 : 1]);
-    const auto frames = parse_unsigned(segments.back());
-
-    if (!hours.has_value() || !minutes.has_value() || !seconds.has_value() || !frames.has_value()) {
+    const auto frames = parse_unsigned(parsed->trailing_segment);
+    if (!frames.has_value() || *frames >= fps) {
         return std::nullopt;
     }
 
-    if (*minutes >= 60 || *seconds >= 60 || *frames >= fps) {
+    if (parsed->seconds >= 60) {
         return std::nullopt;
     }
 
-    const auto base_seconds = ((*hours * 60) + *minutes) * 60 + *seconds;
+    const auto base_seconds = ((parsed->hours * 60) + parsed->minutes) * 60 + parsed->seconds;
     const auto total_frames = (base_seconds * fps) + *frames;
     const auto milliseconds = static_cast<u64>(std::llround((static_cast<f64>(total_frames) * 1000.0) / static_cast<f64>(fps)));
 
@@ -132,16 +205,13 @@ auto parse_frame_timecode(std::string_view value, const FrameRate& frame_rate) -
 }
 
 auto format_millisecond_timecode(const u64 milliseconds) -> std::string {
-    const auto total_seconds = milliseconds / 1000;
+    const auto hms = decompose_total_seconds(milliseconds / 1000);
     const auto remaining_ms = milliseconds % 1000;
-    const auto seconds = total_seconds % 60;
-    const auto minutes = (total_seconds / 60) % 60;
-    const auto hours = total_seconds / 3600;
 
     auto builder = std::ostringstream {};
-    builder << std::setw(2) << std::setfill('0') << hours << ':'
-            << std::setw(2) << std::setfill('0') << minutes << ':'
-            << std::setw(2) << std::setfill('0') << seconds << '.'
+    builder << std::setw(2) << std::setfill('0') << hms.hours << ':'
+            << std::setw(2) << std::setfill('0') << hms.minutes << ':'
+            << std::setw(2) << std::setfill('0') << hms.seconds << '.'
             << std::setw(3) << std::setfill('0') << remaining_ms;
     return builder.str();
 }
@@ -154,15 +224,12 @@ auto format_frame_timecode(const u64 milliseconds, const FrameRate& frame_rate) 
 
     const auto total_frames = static_cast<u64>(std::llround((static_cast<f64>(milliseconds) * static_cast<f64>(fps)) / 1000.0));
     const auto frames = total_frames % fps;
-    const auto total_seconds = total_frames / fps;
-    const auto seconds = total_seconds % 60;
-    const auto minutes = (total_seconds / 60) % 60;
-    const auto hours = total_seconds / 3600;
+    const auto hms = decompose_total_seconds(total_frames / fps);
 
     auto builder = std::ostringstream {};
-    builder << std::setw(2) << std::setfill('0') << hours << ':'
-            << std::setw(2) << std::setfill('0') << minutes << ':'
-            << std::setw(2) << std::setfill('0') << seconds << ':'
+    builder << std::setw(2) << std::setfill('0') << hms.hours << ':'
+            << std::setw(2) << std::setfill('0') << hms.minutes << ':'
+            << std::setw(2) << std::setfill('0') << hms.seconds << ':'
             << std::setw(2) << std::setfill('0') << frames;
     return builder.str();
 }
