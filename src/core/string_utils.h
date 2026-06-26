@@ -9,6 +9,7 @@
 namespace vidchopper {
 
 [[nodiscard]] auto trim_copy(std::string_view value) -> std::string;
+[[nodiscard]] auto to_lower_copy(std::string value) -> std::string;
 [[nodiscard]] auto replace_all_copy(std::string value, std::string_view from, std::string_view to) -> std::string;
 [[nodiscard]] auto split_quoted_arguments(std::string_view value) -> std::vector<std::string>;
 [[nodiscard]] auto sanitize_file_component(std::string_view value) -> std::string;
