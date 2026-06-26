@@ -9,6 +9,8 @@
 #include <QJsonObject>
 #include <QTextStream>
 
+#include <system_error>
+
 namespace vidchopper {
 
 ExportCoordinator::ExportCoordinator(QObject* parent)
@@ -16,6 +18,7 @@ ExportCoordinator::ExportCoordinator(QObject* parent)
     connect(&process_, &QProcess::readyReadStandardOutput, this, &ExportCoordinator::handle_ready_read_stdout);
     connect(&process_, &QProcess::readyReadStandardError, this, &ExportCoordinator::handle_ready_read_stderr);
     connect(&process_, &QProcess::finished, this, &ExportCoordinator::handle_process_finished);
+    connect(&process_, &QProcess::errorOccurred, this, &ExportCoordinator::handle_process_error);
 }
 
 auto ExportCoordinator::busy() const -> bool {
@@ -30,6 +33,7 @@ auto ExportCoordinator::start_export(
     const EncoderEnvironment& environment
 ) -> void {
     if (busy_) {
+        emit log_message("Export is already running.");
         return;
     }
 
@@ -45,7 +49,16 @@ auto ExportCoordinator::start_export(
     completed_duration_ms_ = 0;
     total_duration_ms_ = 0;
 
-    std::filesystem::create_directories(output_directory_);
+    auto directory_error = std::error_code {};
+    std::filesystem::create_directories(output_directory_, directory_error);
+    if (directory_error) {
+        busy_ = false;
+        const auto message = QStringLiteral("Failed to create output directory: %1")
+            .arg(QString::fromStdString(directory_error.message()));
+        emit log_message(message);
+        emit finished(false, QStringList {message});
+        return;
+    }
 
     for (auto index = u16 {0}; index < chapters.size(); ++index) {
         const auto output_path = output_path_for(metadata, chapters[index], index, output_directory_, settings);
@@ -140,6 +153,14 @@ auto ExportCoordinator::handle_ready_read_stderr() -> void {
     }
 }
 
+auto ExportCoordinator::handle_process_error(const QProcess::ProcessError error) -> void {
+    if (error == QProcess::FailedToStart) {
+        const auto message = QStringLiteral("Failed to start ffmpeg (%1). Check that the path is correct in Advanced Settings.")
+            .arg(exports_[current_index_].program);
+        handle_failure(message);
+    }
+}
+
 auto ExportCoordinator::handle_process_finished(const int exit_code, const QProcess::ExitStatus exit_status) -> void {
     if (cancel_requested_) {
         busy_ = false;
@@ -213,15 +234,20 @@ auto ExportCoordinator::write_manifests() -> void {
             {"chapters", chapter_array},
         };
 
-        auto file = QFile(QString::fromStdWString((output_directory_ / "vidchopper-manifest.json").wstring()));
+        const auto json_path = QString::fromStdWString((output_directory_ / "vidchopper-manifest.json").wstring());
+        auto file = QFile(json_path);
         if (file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
             file.write(QJsonDocument(root).toJson(QJsonDocument::Indented));
+        } else {
+            emit log_message(QStringLiteral("Could not write JSON manifest: %1").arg(file.errorString()));
         }
     }
 
     if (settings_.write_csv_manifest) {
-        auto file = QFile(QString::fromStdWString((output_directory_ / "vidchopper-manifest.csv").wstring()));
+        const auto csv_path = QString::fromStdWString((output_directory_ / "vidchopper-manifest.csv").wstring());
+        auto file = QFile(csv_path);
         if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text)) {
+            emit log_message(QStringLiteral("Could not write CSV manifest: %1").arg(file.errorString()));
             return;
         }
 

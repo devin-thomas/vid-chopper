@@ -7,6 +7,7 @@
 #include <QProcess>
 
 #include <algorithm>
+#include <optional>
 
 namespace vidchopper {
 
@@ -30,11 +31,11 @@ auto rational_from_string(const QString& value) -> FrameRate {
     return FrameRate {.numerator = numerator, .denominator = denominator};
 }
 
-auto seconds_string_to_ms(const QString& value) -> u64 {
+auto seconds_string_to_ms(const QString& value) -> std::optional<u64> {
     auto ok = false;
     const auto seconds = value.toDouble(&ok);
     if (!ok || seconds < 0.0) {
-        return 0;
+        return std::nullopt;
     }
 
     return static_cast<u64>((seconds * 1000.0) + 0.5);
@@ -84,7 +85,8 @@ auto FfprobeService::probe_video(const QString& ffprobe_path, const QString& sou
 
     auto metadata = VideoMetadata {};
     metadata.source_path = std::filesystem::path(source_path.toStdWString());
-    metadata.duration_ms = seconds_string_to_ms(format["duration"].toString());
+    const auto parsed_duration = seconds_string_to_ms(format["duration"].toString());
+    metadata.duration_ms = parsed_duration.value_or(0);
 
     for (const auto stream_value : streams) {
         const auto stream = stream_value.toObject();
@@ -108,10 +110,15 @@ auto FfprobeService::probe_video(const QString& ffprobe_path, const QString& sou
         const auto chapter = chapters[index].toObject();
         const auto tags = chapter["tags"].toObject();
         const auto title = tags["title"].toString(QStringLiteral("Chapter %1").arg(index + 1));
+        const auto start = seconds_string_to_ms(chapter["start_time"].toString());
+        const auto end = seconds_string_to_ms(chapter["end_time"].toString());
+        if (!start.has_value() || !end.has_value()) {
+            continue;
+        }
         metadata.embedded_chapters.push_back(ChapterSegment {
             .name = title.toStdString(),
-            .start_ms = seconds_string_to_ms(chapter["start_time"].toString()),
-            .end_ms = seconds_string_to_ms(chapter["end_time"].toString()),
+            .start_ms = *start,
+            .end_ms = *end,
         });
     }
 
