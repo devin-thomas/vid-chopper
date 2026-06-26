@@ -2,7 +2,21 @@
 
 #include <QSettings>
 
+#include <algorithm>
+
 namespace vidchopper {
+
+namespace {
+
+template<typename Enum>
+auto clamped_enum(int value, Enum max_value) -> Enum {
+    if (value < 0 || value > static_cast<int>(max_value)) {
+        return Enum {0};
+    }
+    return static_cast<Enum>(value);
+}
+
+} // namespace
 
 auto load_export_settings(QSettings& settings) -> ExportSettings {
     auto values = ExportSettings {};
@@ -15,12 +29,12 @@ auto load_export_settings(QSettings& settings) -> ExportSettings {
     values.nvenc_preset = settings.value("encoding/nvencPreset", QString::fromStdString(values.nvenc_preset)).toString().toStdString();
     values.extra_ffmpeg_args = settings.value("tools/extraFfmpegArgs", QString::fromStdString(values.extra_ffmpeg_args)).toString().toStdString();
 
-    values.encoder_kind = static_cast<EncoderKind>(settings.value("encoding/encoderKind", static_cast<int>(values.encoder_kind)).toInt());
-    values.audio_mode = static_cast<AudioMode>(settings.value("encoding/audioMode", static_cast<int>(values.audio_mode)).toInt());
-    values.container_mode = static_cast<ContainerMode>(settings.value("output/containerMode", static_cast<int>(values.container_mode)).toInt());
-    values.overwrite_mode = static_cast<OverwriteMode>(settings.value("output/overwriteMode", static_cast<int>(values.overwrite_mode)).toInt());
-    values.seek_mode = static_cast<SeekMode>(settings.value("precision/seekMode", static_cast<int>(values.seek_mode)).toInt());
-    values.display_mode = static_cast<TimestampDisplayMode>(settings.value("precision/displayMode", static_cast<int>(values.display_mode)).toInt());
+    values.encoder_kind = clamped_enum(settings.value("encoding/encoderKind", static_cast<int>(values.encoder_kind)).toInt(), EncoderKind::HevcNvenc);
+    values.audio_mode = clamped_enum(settings.value("encoding/audioMode", static_cast<int>(values.audio_mode)).toInt(), AudioMode::Aac);
+    values.container_mode = clamped_enum(settings.value("output/containerMode", static_cast<int>(values.container_mode)).toInt(), ContainerMode::Mkv);
+    values.overwrite_mode = clamped_enum(settings.value("output/overwriteMode", static_cast<int>(values.overwrite_mode)).toInt(), OverwriteMode::Skip);
+    values.seek_mode = clamped_enum(settings.value("precision/seekMode", static_cast<int>(values.seek_mode)).toInt(), SeekMode::Fast);
+    values.display_mode = clamped_enum(settings.value("precision/displayMode", static_cast<int>(values.display_mode)).toInt(), TimestampDisplayMode::Frames);
 
     values.default_chapter_count = static_cast<u8>(settings.value("precision/defaultChapterCount", values.default_chapter_count).toUInt());
     values.max_chapters = static_cast<u8>(settings.value("precision/maxChapters", values.max_chapters).toUInt());
