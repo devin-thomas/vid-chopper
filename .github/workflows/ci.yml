@@ -16,7 +16,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up CMake
-        uses: lukka/get-cmake@latest
+        uses: lukka/get-cmake@v4.3.3
 
       - name: Install FFmpeg
         run: choco install ffmpeg --yes --no-progress
@@ -41,7 +41,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up CMake
-        uses: lukka/get-cmake@latest
+        uses: lukka/get-cmake@v4.3.3
 
       - name: Install Qt 6.9
         uses: jurplel/install-qt-action@v4

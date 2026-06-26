@@ -107,7 +107,11 @@ auto sanitize_file_component(std::string_view value) -> std::string {
         sanitized.pop_back();
     }
 
-    return sanitized.empty() ? "chapter" : sanitized;
+    if (sanitized.empty() || sanitized == "." || sanitized == "..") {
+        return "chapter";
+    }
+
+    return sanitized;
 }
 
 auto zero_padded_index(const u16 index, const u8 width) -> std::string {
