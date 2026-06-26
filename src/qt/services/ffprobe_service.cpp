@@ -6,8 +6,8 @@
 #include <QJsonObject>
 #include <QProcess>
 
-#include <algorithm>
 #include <optional>
+#include <vector>
 
 namespace vidchopper {
 
@@ -122,16 +122,9 @@ auto FfprobeService::probe_video(const QString& ffprobe_path, const QString& sou
         });
     }
 
-    metadata.embedded_chapters.erase(
-        std::remove_if(
-            metadata.embedded_chapters.begin(),
-            metadata.embedded_chapters.end(),
-            [](const ChapterSegment& chapter) {
-                return chapter.end_ms <= chapter.start_ms;
-            }
-        ),
-        metadata.embedded_chapters.end()
-    );
+    std::erase_if(metadata.embedded_chapters, [](const ChapterSegment& chapter) {
+        return chapter.end_ms <= chapter.start_ms;
+    });
 
     return VideoProbeResult {
         .success = metadata.duration_ms > 0,

@@ -19,6 +19,7 @@ add_library(vidchopper_core
     src/core/chapter_plan.h
     src/core/command_builder.cpp
     src/core/command_builder.h
+    src/core/enum_utils.h
     src/core/models.h
     src/core/string_utils.cpp
     src/core/string_utils.h
@@ -65,6 +66,7 @@ if(VIDCHOPPER_BUILD_TESTS)
     add_vidchopper_test(vidchopper_test_string_utils tests/test_string_utils.cpp fast)
     add_vidchopper_test(vidchopper_test_string_utils_extended tests/test_string_utils_extended.cpp fast)
     add_vidchopper_test(vidchopper_test_models tests/test_models.cpp fast)
+    add_vidchopper_test(vidchopper_test_enum_clamp tests/test_enum_clamp.cpp fast)
     add_vidchopper_test(vidchopper_test_ffmpeg_integration tests/test_ffmpeg_integration.cpp slow)
 endif()
 
