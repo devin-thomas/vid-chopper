@@ -3,9 +3,40 @@
 #include "core/string_utils.h"
 #include "core/timecode.h"
 
+#include <initializer_list>
+#include <string_view>
+
 namespace vidchopper {
 
+// Centralised ffmpeg flag names so the long command builder cannot drift on a
+// mistyped literal and future refactors have a single source of truth.
+namespace ffmpeg_arg {
+
+constexpr std::string_view overwrite = "-y";
+constexpr std::string_view no_overwrite = "-n";
+constexpr std::string_view seek = "-ss";
+constexpr std::string_view input = "-i";
+constexpr std::string_view duration = "-t";
+constexpr std::string_view video_codec = "-c:v";
+constexpr std::string_view audio_codec = "-c:a";
+constexpr std::string_view audio_bitrate = "-b:a";
+constexpr std::string_view threads = "-threads";
+constexpr std::string_view map_metadata = "-map_metadata";
+constexpr std::string_view metadata = "-metadata";
+constexpr std::string_view movflags = "-movflags";
+
+} // namespace ffmpeg_arg
+
 namespace {
+
+// Append a run of tokens in one call, replacing the long paired emplace_back
+// sequences. string_view arguments bind to both the ffmpeg_arg constants and
+// freshly built std::string values without forcing the caller to spell types.
+auto append(std::vector<std::string>& command, std::initializer_list<std::string_view> tokens) -> void {
+    for (const auto token : tokens) {
+        command.emplace_back(token);
+    }
+}
 
 auto safe_source_extension(const VideoMetadata& metadata) -> std::string {
     auto extension = metadata.source_extension;
@@ -28,15 +59,12 @@ auto safe_source_extension(const VideoMetadata& metadata) -> std::string {
 
 auto append_audio_arguments(std::vector<std::string>& command, const ExportSettings& settings) -> void {
     if (settings.audio_mode == AudioMode::Copy) {
-        command.emplace_back("-c:a");
-        command.emplace_back("copy");
+        append(command, {ffmpeg_arg::audio_codec, "copy"});
         return;
     }
 
-    command.emplace_back("-c:a");
-    command.emplace_back("aac");
-    command.emplace_back("-b:a");
-    command.emplace_back(std::to_string(settings.aac_bitrate_kbps) + "k");
+    append(command, {ffmpeg_arg::audio_codec, "aac"});
+    append(command, {ffmpeg_arg::audio_bitrate, std::to_string(settings.aac_bitrate_kbps) + "k"});
 }
 
 } // namespace
@@ -98,62 +126,45 @@ auto build_ffmpeg_command(
     const ExportSettings& settings,
     const EncoderEnvironment& environment
 ) -> std::vector<std::string> {
-    auto command = std::vector<std::string> {
-        settings.ffmpeg_path,
-    };
+    auto command = std::vector<std::string> {};
+    command.reserve(32);
+    command.emplace_back(settings.ffmpeg_path);
 
-    if (settings.overwrite_mode == OverwriteMode::Overwrite) {
-        command.emplace_back("-y");
-    } else {
-        command.emplace_back("-n");
-    }
+    append(command, {settings.overwrite_mode == OverwriteMode::Overwrite
+            ? ffmpeg_arg::overwrite
+            : ffmpeg_arg::no_overwrite});
 
     const auto start_time = format_millisecond_timecode(chapter.start_ms);
     const auto duration_ms = chapter.end_ms - chapter.start_ms;
     const auto duration = format_millisecond_timecode(duration_ms);
 
     if (settings.seek_mode == SeekMode::Fast) {
-        command.emplace_back("-ss");
-        command.emplace_back(start_time);
+        append(command, {ffmpeg_arg::seek, start_time});
     }
 
-    command.emplace_back("-i");
-    command.emplace_back(metadata.source_path.string());
+    append(command, {ffmpeg_arg::input, metadata.source_path.string()});
 
     if (settings.seek_mode == SeekMode::Accurate) {
-        command.emplace_back("-ss");
-        command.emplace_back(start_time);
+        append(command, {ffmpeg_arg::seek, start_time});
     }
 
-    command.emplace_back("-t");
-    command.emplace_back(duration);
+    append(command, {ffmpeg_arg::duration, duration});
 
     const auto resolved_encoder = resolve_encoder(settings, environment);
-    command.emplace_back("-c:v");
-    command.emplace_back(resolved_encoder.video_codec);
+    append(command, {ffmpeg_arg::video_codec, resolved_encoder.video_codec});
     command.insert(command.end(), resolved_encoder.arguments.begin(), resolved_encoder.arguments.end());
 
     if (settings.ffmpeg_threads > 0) {
-        command.emplace_back("-threads");
-        command.emplace_back(std::to_string(settings.ffmpeg_threads));
+        append(command, {ffmpeg_arg::threads, std::to_string(settings.ffmpeg_threads)});
     }
 
     append_audio_arguments(command, settings);
 
-    if (settings.copy_source_metadata) {
-        command.emplace_back("-map_metadata");
-        command.emplace_back("0");
-    } else {
-        command.emplace_back("-map_metadata");
-        command.emplace_back("-1");
-    }
-
-    command.emplace_back("-metadata");
-    command.emplace_back("title=" + trim_copy(chapter.name));
+    append(command, {ffmpeg_arg::map_metadata, settings.copy_source_metadata ? "0" : "-1"});
+    append(command, {ffmpeg_arg::metadata, "title=" + trim_copy(chapter.name)});
 
     if (output_path.extension() == ".mp4") {
-        command.emplace_back("-movflags");
-        command.emplace_back("+faststart");
+        append(command, {ffmpeg_arg::movflags, "+faststart"});
     }
 
     const auto extra_arguments = split_quoted_arguments(settings.extra_ffmpeg_args);
