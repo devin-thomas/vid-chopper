@@ -10,7 +10,7 @@ zoom persists into the INI. Release is penultimate; the Pages rewrite is last.
 
 ---
 
-## Task 0 — enum→bool underlying type — `IN PROGRESS`
+## Task 0 — enum→bool underlying type — `DONE (PR #14 merged)`
 Branch: `devin/enum-bool-underlying`
 - Any `enum class` with exactly **two** enumerators that currently has underlying type `u8` is
   switched to underlying type `bool`. Values stay `0`/`1`, so `QSettings`/INI persistence is
@@ -20,7 +20,7 @@ Branch: `devin/enum-bool-underlying`
 - Add `static_assert(std::is_same_v<std::underlying_type_t<E>, bool>)` locks; document the
   two-state-enum rule in `CODING_STYLE.md` §12.
 
-## Task 1 — Export button styling — `TODO`
+## Task 1 — Export button styling — `IN PROGRESS`
 - `Export Chapters` = bold, prominent **blue** (white text, larger); flips to **red**
   `Cancel Export` while exporting. Styled for the dark theme.
 
