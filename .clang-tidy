@@ -1,0 +1,38 @@
+# clang-tidy configuration for vid-chopper.
+#
+# Scope: the Qt-free core (src/core) is linted in CI. The Qt layer is compiled
+# but not tidied, because clang-tidy without the Qt SDK headers cannot parse it
+# and several core-guideline checks fight Qt's signal/slot + moc patterns.
+#
+# Philosophy: enforce the modern C++17/20 idioms this codebase already adopts
+# (trailing return types, std::format/from_chars, ranges, const-correctness)
+# and catch real bugs, without drowning the deliberate style in stylistic noise.
+Checks: >
+  clang-diagnostic-*,
+  bugprone-*,
+  performance-*,
+  modernize-*,
+  readability-*,
+  cppcoreguidelines-*,
+  -bugprone-easily-swappable-parameters,
+  -modernize-use-nodiscard,
+  -modernize-avoid-c-arrays,
+  -readability-identifier-length,
+  -readability-magic-numbers,
+  -readability-function-cognitive-complexity,
+  -readability-named-parameter,
+  -readability-redundant-access-specifiers,
+  -readability-uppercase-literal-suffix,
+  -readability-braces-around-statements,
+  -cppcoreguidelines-avoid-magic-numbers,
+  -cppcoreguidelines-avoid-do-while,
+  -cppcoreguidelines-pro-bounds-pointer-arithmetic,
+  -cppcoreguidelines-pro-bounds-array-to-pointer-decay,
+  -cppcoreguidelines-pro-bounds-constant-array-index,
+  -cppcoreguidelines-pro-bounds-avoid-unchecked-container-access,
+  -cppcoreguidelines-pro-type-vararg,
+  -cppcoreguidelines-avoid-c-arrays
+
+WarningsAsErrors: '*'
+HeaderFilterRegex: 'src/core/.*\.h$'
+FormatStyle: file

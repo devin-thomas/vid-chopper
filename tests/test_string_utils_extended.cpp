@@ -15,11 +15,15 @@ auto main() -> int {
 
     // replace_all_copy: edge cases
     {
-        test_support::expect_eq(replace_all_copy("hello", "", "world"), std::string {"hello"}, "empty 'from' should return original");
+        test_support::expect_eq(
+            replace_all_copy("hello", "", "world"), std::string {"hello"}, "empty 'from' should return original");
         test_support::expect_eq(replace_all_copy("", "a", "b"), std::string {""}, "empty input returns empty");
-        test_support::expect_eq(replace_all_copy("aaa", "a", "bb"), std::string {"bbbbbb"}, "multiple consecutive replacements");
-        test_support::expect_eq(replace_all_copy("abc", "abc", ""), std::string {""}, "replacing entire string with empty");
-        test_support::expect_eq(replace_all_copy("no match", "xyz", "replaced"), std::string {"no match"}, "no match returns original");
+        test_support::expect_eq(
+            replace_all_copy("aaa", "a", "bb"), std::string {"bbbbbb"}, "multiple consecutive replacements");
+        test_support::expect_eq(
+            replace_all_copy("abc", "abc", ""), std::string {""}, "replacing entire string with empty");
+        test_support::expect_eq(
+            replace_all_copy("no match", "xyz", "replaced"), std::string {"no match"}, "no match returns original");
         test_support::expect_eq(replace_all_copy("a.b.c", ".", "-"), std::string {"a-b-c"}, "dot replacement");
     }
 
@@ -46,7 +50,8 @@ auto main() -> int {
         test_support::expect_eq(mixed[1], std::string {"quoted part"}, "quoted token preserves spaces");
 
         const auto adjacent_quotes = split_quoted_arguments("\"first\"\"second\"");
-        test_support::expect_eq(adjacent_quotes.size(), static_cast<usize>(1), "adjacent quoted strings merge into one token");
+        test_support::expect_eq(
+            adjacent_quotes.size(), static_cast<usize>(1), "adjacent quoted strings merge into one token");
         test_support::expect_eq(adjacent_quotes[0], std::string {"firstsecond"}, "adjacent quotes merge content");
     }
 
@@ -58,7 +63,8 @@ auto main() -> int {
         test_support::expect_eq(sanitize_file_component("a\"b"), std::string {"a_b"}, "double quote replaced");
         test_support::expect_eq(sanitize_file_component("a/b\\c"), std::string {"a_b_c"}, "slashes replaced");
         test_support::expect_eq(sanitize_file_component("a|b"), std::string {"a_b"}, "pipe replaced");
-        test_support::expect_eq(sanitize_file_component("a?b*c"), std::string {"a_b_c"}, "question mark and asterisk replaced");
+        test_support::expect_eq(
+            sanitize_file_component("a?b*c"), std::string {"a_b_c"}, "question mark and asterisk replaced");
     }
 
     // sanitize_file_component: control characters stripped
@@ -72,25 +78,32 @@ auto main() -> int {
 
     // sanitize_file_component: consecutive spaces collapsed
     {
-        test_support::expect_eq(sanitize_file_component("a   b   c"), std::string {"a b c"}, "consecutive spaces should be collapsed");
+        test_support::expect_eq(
+            sanitize_file_component("a   b   c"), std::string {"a b c"}, "consecutive spaces should be collapsed");
     }
 
     // sanitize_file_component: trailing dots removed
     {
-        test_support::expect_eq(sanitize_file_component("file..."), std::string {"file"}, "trailing dots should be removed");
-        test_support::expect_eq(sanitize_file_component("file. ."), std::string {"file"}, "trailing dots and spaces should be removed");
+        test_support::expect_eq(
+            sanitize_file_component("file..."), std::string {"file"}, "trailing dots should be removed");
+        test_support::expect_eq(
+            sanitize_file_component("file. ."), std::string {"file"}, "trailing dots and spaces should be removed");
     }
 
     // sanitize_file_component: empty / all-forbidden input
     {
-        test_support::expect_eq(sanitize_file_component(""), std::string {"chapter"}, "empty input should default to 'chapter'");
-        test_support::expect_eq(sanitize_file_component("   "), std::string {"chapter"}, "whitespace-only should default to 'chapter'");
-        test_support::expect_eq(sanitize_file_component("???"), std::string {"___"}, "all-forbidden non-whitespace should be replaced");
+        test_support::expect_eq(
+            sanitize_file_component(""), std::string {"chapter"}, "empty input should default to 'chapter'");
+        test_support::expect_eq(
+            sanitize_file_component("   "), std::string {"chapter"}, "whitespace-only should default to 'chapter'");
+        test_support::expect_eq(
+            sanitize_file_component("???"), std::string {"___"}, "all-forbidden non-whitespace should be replaced");
     }
 
     // sanitize_file_component: surrounding whitespace trimmed
     {
-        test_support::expect_eq(sanitize_file_component("  hello  "), std::string {"hello"}, "surrounding whitespace should be trimmed");
+        test_support::expect_eq(
+            sanitize_file_component("  hello  "), std::string {"hello"}, "surrounding whitespace should be trimmed");
     }
 
     // zero_padded_index: various widths and values

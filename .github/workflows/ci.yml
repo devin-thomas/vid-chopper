@@ -8,6 +8,38 @@ on:
   pull_request:
 
 jobs:
+  lint:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install GCC 13 (libstdc++ with std::format)
+        run: sudo apt-get update && sudo apt-get install -y g++-13
+
+      - name: Install clang-format and clang-tidy (pinned)
+        run: python -m pip install "clang-format==18.1.8" "clang-tidy==18.1.8"
+
+      - name: Check formatting (clang-format)
+        run: |
+          mapfile -t files < <(find src tests -name '*.cpp' -o -name '*.h')
+          clang-format --dry-run --Werror "${files[@]}"
+
+      - name: Lint core (clang-tidy)
+        run: |
+          for f in src/core/*.cpp; do
+            echo "::group::clang-tidy $f"
+            clang-tidy "$f" -- -std=c++20 -Isrc \
+              --gcc-install-dir=/usr/lib/gcc/x86_64-linux-gnu/13
+            echo "::endgroup::"
+          done
+
   core-tests:
     runs-on: windows-2022
 

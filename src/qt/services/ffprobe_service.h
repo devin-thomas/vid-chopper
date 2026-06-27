@@ -18,7 +18,8 @@ struct VideoProbeResult {
 class FfprobeService final {
 public:
     [[nodiscard]] static auto probe_video(const QString& ffprobe_path, const QString& source_path) -> VideoProbeResult;
-    [[nodiscard]] static auto probe_duration_ms(const QString& ffprobe_path, const QString& source_path) -> std::optional<u64>;
+    [[nodiscard]] static auto probe_duration_ms(
+        const QString& ffprobe_path, const QString& source_path) -> std::optional<u64>;
 };
 
 } // namespace vidchopper

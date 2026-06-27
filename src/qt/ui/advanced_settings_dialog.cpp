@@ -38,7 +38,8 @@ AdvancedSettingsDialog::AdvancedSettingsDialog(QWidget* parent)
     threads_spin_ = new QSpinBox {encoding_tab};
     threads_spin_->setRange(0, 64);
     threads_spin_->setSpecialValueText("Auto");
-    auto_gpu_checkbox_ = new QCheckBox {"Automatically switch to HEVC NVENC when NVIDIA hardware is detected", encoding_tab};
+    auto_gpu_checkbox_ =
+        new QCheckBox {"Automatically switch to HEVC NVENC when NVIDIA hardware is detected", encoding_tab};
 
     encoding_form->addRow("Video encoder", encoder_combo_);
     encoding_form->addRow("Audio handling", audio_combo_);
@@ -85,7 +86,8 @@ AdvancedSettingsDialog::AdvancedSettingsDialog(QWidget* parent)
     default_chapter_spin_->setRange(1, 255);
     min_chapter_spin_ = new QSpinBox {precision_tab};
     min_chapter_spin_->setRange(1, 60);
-    prefer_embedded_checkbox_ = new QCheckBox {"Use embedded chapters as the initial plan when they exist", precision_tab};
+    prefer_embedded_checkbox_ =
+        new QCheckBox {"Use embedded chapters as the initial plan when they exist", precision_tab};
     stop_on_error_checkbox_ = new QCheckBox {"Stop immediately if a chapter export fails", precision_tab};
     verify_durations_checkbox_ = new QCheckBox {"Verify each finished chapter duration with ffprobe", precision_tab};
     write_json_manifest_checkbox_ = new QCheckBox {"Write a JSON export manifest", precision_tab};
@@ -112,7 +114,8 @@ AdvancedSettingsDialog::AdvancedSettingsDialog(QWidget* parent)
     tools_form->addRow("Extra ffmpeg args", extra_args_edit_);
     tabs->addTab(tools_tab, "Tools");
 
-    auto* buttons = new QDialogButtonBox {QDialogButtonBox::Ok | QDialogButtonBox::Cancel | QDialogButtonBox::RestoreDefaults, this};
+    auto* buttons = new QDialogButtonBox {
+        QDialogButtonBox::Ok | QDialogButtonBox::Cancel | QDialogButtonBox::RestoreDefaults, this};
     connect(buttons, &QDialogButtonBox::accepted, this, &QDialog::accept);
     connect(buttons, &QDialogButtonBox::rejected, this, &QDialog::reject);
     connect(buttons->button(QDialogButtonBox::RestoreDefaults), &QPushButton::clicked, this, [this]() {
@@ -171,7 +174,8 @@ auto AdvancedSettingsDialog::settings() const -> ExportSettings {
     values.container_mode = clamp_to_enum(container_combo_->currentIndex(), ContainerMode::Mkv, ContainerMode::Source);
     values.overwrite_mode = clamp_to_enum(overwrite_combo_->currentIndex(), OverwriteMode::Skip, OverwriteMode::Ask);
     values.seek_mode = clamp_to_enum(seek_combo_->currentIndex(), SeekMode::Fast, SeekMode::Accurate);
-    values.display_mode = clamp_to_enum(display_combo_->currentIndex(), TimestampDisplayMode::Frames, TimestampDisplayMode::Milliseconds);
+    values.display_mode =
+        clamp_to_enum(display_combo_->currentIndex(), TimestampDisplayMode::Frames, TimestampDisplayMode::Milliseconds);
 
     values.default_chapter_count = static_cast<u8>(default_chapter_spin_->value());
     values.index_padding = static_cast<u8>(index_padding_spin_->value());

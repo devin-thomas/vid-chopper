@@ -18,7 +18,8 @@ public:
     [[nodiscard]] auto rowCount(const QModelIndex& parent = QModelIndex {}) const -> int override;
     [[nodiscard]] auto columnCount(const QModelIndex& parent = QModelIndex {}) const -> int override;
     [[nodiscard]] auto data(const QModelIndex& index, int role = Qt::DisplayRole) const -> QVariant override;
-    [[nodiscard]] auto headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const -> QVariant override;
+    [[nodiscard]] auto headerData(
+        int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const -> QVariant override;
     [[nodiscard]] auto flags(const QModelIndex& index) const -> Qt::ItemFlags override;
     auto setData(const QModelIndex& index, const QVariant& value, int role = Qt::EditRole) -> bool override;
 

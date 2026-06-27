@@ -71,9 +71,7 @@ auto append_audio_arguments(std::vector<std::string>& command, const ExportSetti
 
 auto resolve_encoder(const ExportSettings& settings, const EncoderEnvironment& environment) -> ResolvedEncoder {
     const auto use_nvenc = settings.encoder_kind == EncoderKind::HevcNvenc
-        || (settings.encoder_kind == EncoderKind::Auto
-            && settings.auto_detect_gpu
-            && environment.has_nvidia_gpu
+        || (settings.encoder_kind == EncoderKind::Auto && settings.auto_detect_gpu && environment.has_nvidia_gpu
             && environment.has_hevc_nvenc_encoder);
 
     if (use_nvenc) {
@@ -103,36 +101,32 @@ auto output_extension_for(const VideoMetadata& metadata, const ExportSettings& s
     }
 }
 
-auto output_path_for(
-    const VideoMetadata& metadata,
+auto output_path_for(const VideoMetadata& metadata,
     const ChapterSegment& chapter,
     const u16 chapter_index,
     const std::filesystem::path& output_directory,
-    const ExportSettings& settings
-) -> std::filesystem::path {
+    const ExportSettings& settings) -> std::filesystem::path {
     auto chapter_name = settings.sanitize_file_names ? sanitize_file_component(chapter.name) : trim_copy(chapter.name);
     auto file_name = replace_all_copy(settings.naming_pattern, "%name%", chapter_name);
     file_name = replace_all_copy(file_name, "%source%", metadata.source_path.stem().string());
-    file_name = replace_all_copy(file_name, "%index%", zero_padded_index(static_cast<u16>(chapter_index + 1), settings.index_padding));
+    file_name = replace_all_copy(
+        file_name, "%index%", zero_padded_index(static_cast<u16>(chapter_index + 1), settings.index_padding));
     file_name = sanitize_file_component(file_name);
 
     return output_directory / (file_name + output_extension_for(metadata, settings));
 }
 
-auto build_ffmpeg_command(
-    const VideoMetadata& metadata,
+auto build_ffmpeg_command(const VideoMetadata& metadata,
     const ChapterSegment& chapter,
     const std::filesystem::path& output_path,
     const ExportSettings& settings,
-    const EncoderEnvironment& environment
-) -> std::vector<std::string> {
+    const EncoderEnvironment& environment) -> std::vector<std::string> {
     auto command = std::vector<std::string> {};
     command.reserve(32);
     command.emplace_back(settings.ffmpeg_path);
 
-    append(command, {settings.overwrite_mode == OverwriteMode::Overwrite
-            ? ffmpeg_arg::overwrite
-            : ffmpeg_arg::no_overwrite});
+    append(command,
+        {settings.overwrite_mode == OverwriteMode::Overwrite ? ffmpeg_arg::overwrite : ffmpeg_arg::no_overwrite});
 
     const auto start_time = format_millisecond_timecode(chapter.start_ms);
     const auto duration_ms = chapter.end_ms - chapter.start_ms;

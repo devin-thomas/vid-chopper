@@ -16,7 +16,7 @@ namespace {
 template <typename T>
 struct SettingField {
     std::string_view key;
-    T ExportSettings::* member;
+    T ExportSettings::*member;
 };
 
 // Single source of truth for every persisted key. load/save iterate the same
@@ -73,7 +73,8 @@ auto to_qkey(std::string_view key) -> QString {
 }
 
 template <std::unsigned_integral T, std::size_t N>
-auto load_uint_fields(QSettings& settings, ExportSettings& values, const std::array<SettingField<T>, N>& fields) -> void {
+auto load_uint_fields(
+    QSettings& settings, ExportSettings& values, const std::array<SettingField<T>, N>& fields) -> void {
     for (const auto& field : fields) {
         values.*(field.member) = static_cast<T>(settings.value(to_qkey(field.key), values.*(field.member)).toUInt());
     }
@@ -89,12 +90,28 @@ auto load_export_settings(QSettings& settings) -> ExportSettings {
             settings.value(to_qkey(field.key), QString::fromStdString(values.*(field.member))).toString().toStdString();
     }
 
-    values.encoder_kind = clamp_to_enum(settings.value(enum_key::encoder_kind, static_cast<int>(values.encoder_kind)).toInt(), EncoderKind::HevcNvenc, EncoderKind::Auto);
-    values.audio_mode = clamp_to_enum(settings.value(enum_key::audio_mode, static_cast<int>(values.audio_mode)).toInt(), AudioMode::Aac, AudioMode::Copy);
-    values.container_mode = clamp_to_enum(settings.value(enum_key::container_mode, static_cast<int>(values.container_mode)).toInt(), ContainerMode::Mkv, ContainerMode::Source);
-    values.overwrite_mode = clamp_to_enum(settings.value(enum_key::overwrite_mode, static_cast<int>(values.overwrite_mode)).toInt(), OverwriteMode::Skip, OverwriteMode::Ask);
-    values.seek_mode = clamp_to_enum(settings.value(enum_key::seek_mode, static_cast<int>(values.seek_mode)).toInt(), SeekMode::Fast, SeekMode::Accurate);
-    values.display_mode = clamp_to_enum(settings.value(enum_key::display_mode, static_cast<int>(values.display_mode)).toInt(), TimestampDisplayMode::Frames, TimestampDisplayMode::Milliseconds);
+    values.encoder_kind =
+        clamp_to_enum(settings.value(enum_key::encoder_kind, static_cast<int>(values.encoder_kind)).toInt(),
+            EncoderKind::HevcNvenc,
+            EncoderKind::Auto);
+    values.audio_mode = clamp_to_enum(settings.value(enum_key::audio_mode, static_cast<int>(values.audio_mode)).toInt(),
+        AudioMode::Aac,
+        AudioMode::Copy);
+    values.container_mode =
+        clamp_to_enum(settings.value(enum_key::container_mode, static_cast<int>(values.container_mode)).toInt(),
+            ContainerMode::Mkv,
+            ContainerMode::Source);
+    values.overwrite_mode =
+        clamp_to_enum(settings.value(enum_key::overwrite_mode, static_cast<int>(values.overwrite_mode)).toInt(),
+            OverwriteMode::Skip,
+            OverwriteMode::Ask);
+    values.seek_mode = clamp_to_enum(settings.value(enum_key::seek_mode, static_cast<int>(values.seek_mode)).toInt(),
+        SeekMode::Fast,
+        SeekMode::Accurate);
+    values.display_mode =
+        clamp_to_enum(settings.value(enum_key::display_mode, static_cast<int>(values.display_mode)).toInt(),
+            TimestampDisplayMode::Frames,
+            TimestampDisplayMode::Milliseconds);
 
     load_uint_fields(settings, values, byte_fields);
     load_uint_fields(settings, values, word_fields);

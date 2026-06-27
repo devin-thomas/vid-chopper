@@ -45,8 +45,7 @@ auto seconds_string_to_ms(const QString& value) -> std::optional<u64> {
 
 auto FfprobeService::probe_video(const QString& ffprobe_path, const QString& source_path) -> VideoProbeResult {
     auto process = QProcess {};
-    process.start(
-        ffprobe_path,
+    process.start(ffprobe_path,
         {
             "-v",
             "error",
@@ -56,8 +55,7 @@ auto FfprobeService::probe_video(const QString& ffprobe_path, const QString& sou
             "-show_streams",
             "-show_chapters",
             source_path,
-        }
-    );
+        });
 
     if (!process.waitForFinished(10000)) {
         return VideoProbeResult {
@@ -122,9 +120,8 @@ auto FfprobeService::probe_video(const QString& ffprobe_path, const QString& sou
         });
     }
 
-    std::erase_if(metadata.embedded_chapters, [](const ChapterSegment& chapter) {
-        return chapter.end_ms <= chapter.start_ms;
-    });
+    std::erase_if(
+        metadata.embedded_chapters, [](const ChapterSegment& chapter) { return chapter.end_ms <= chapter.start_ms; });
 
     return VideoProbeResult {
         .success = metadata.duration_ms > 0,
@@ -135,8 +132,7 @@ auto FfprobeService::probe_video(const QString& ffprobe_path, const QString& sou
 
 auto FfprobeService::probe_duration_ms(const QString& ffprobe_path, const QString& source_path) -> std::optional<u64> {
     auto process = QProcess {};
-    process.start(
-        ffprobe_path,
+    process.start(ffprobe_path,
         {
             "-v",
             "error",
@@ -145,8 +141,7 @@ auto FfprobeService::probe_duration_ms(const QString& ffprobe_path, const QStrin
             "-of",
             "default=nokey=1:noprint_wrappers=1",
             source_path,
-        }
-    );
+        });
 
     if (!process.waitForFinished(5000)) {
         return std::nullopt;

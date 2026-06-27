@@ -25,13 +25,11 @@ auto ExportCoordinator::busy() const -> bool {
     return busy_;
 }
 
-auto ExportCoordinator::start_export(
-    const VideoMetadata& metadata,
+auto ExportCoordinator::start_export(const VideoMetadata& metadata,
     std::vector<ChapterSegment> chapters,
     const std::filesystem::path& output_directory,
     const ExportSettings& settings,
-    const EncoderEnvironment& environment
-) -> void {
+    const EncoderEnvironment& environment) -> void {
     if (busy_) {
         emit log_message("Export is already running.");
         return;
@@ -54,7 +52,7 @@ auto ExportCoordinator::start_export(
     if (directory_error) {
         busy_ = false;
         const auto message = QStringLiteral("Failed to create output directory: %1")
-            .arg(QString::fromStdString(directory_error.message()));
+                                 .arg(QString::fromStdString(directory_error.message()));
         emit log_message(message);
         emit finished(false, QStringList {message});
         return;
@@ -138,9 +136,8 @@ auto ExportCoordinator::handle_ready_read_stdout() -> void {
 
             const auto chapter_ms = std::min<u64>(out_time_us / 1000, exports_[current_index_].duration_ms);
             const auto overall_ms = completed_duration_ms_ + chapter_ms;
-            const auto progress = total_duration_ms_ == 0
-                ? 0
-                : static_cast<int>((overall_ms * 100) / total_duration_ms_);
+            const auto progress =
+                total_duration_ms_ == 0 ? 0 : static_cast<int>((overall_ms * 100) / total_duration_ms_);
             emit progress_changed(progress);
         }
     }
@@ -155,8 +152,9 @@ auto ExportCoordinator::handle_ready_read_stderr() -> void {
 
 auto ExportCoordinator::handle_process_error(const QProcess::ProcessError error) -> void {
     if (error == QProcess::FailedToStart) {
-        const auto message = QStringLiteral("Failed to start ffmpeg (%1). Check that the path is correct in Advanced Settings.")
-            .arg(exports_[current_index_].program);
+        const auto message =
+            QStringLiteral("Failed to start ffmpeg (%1). Check that the path is correct in Advanced Settings.")
+                .arg(exports_[current_index_].program);
         handle_failure(message);
     }
 }
@@ -170,33 +168,35 @@ auto ExportCoordinator::handle_process_finished(const int exit_code, const QProc
     }
 
     if (exit_status != QProcess::NormalExit || exit_code != 0) {
-        handle_failure(QStringLiteral("ffmpeg exited with code %1 while exporting %2").arg(exit_code).arg(exports_[current_index_].output_file));
+        handle_failure(QStringLiteral("ffmpeg exited with code %1 while exporting %2")
+                           .arg(exit_code)
+                           .arg(exports_[current_index_].output_file));
         return;
     }
 
     if (settings_.verify_output_durations) {
         const auto actual_duration = FfprobeService::probe_duration_ms(
-            QString::fromStdString(settings_.ffprobe_path),
-            exports_[current_index_].output_file
-        );
+            QString::fromStdString(settings_.ffprobe_path), exports_[current_index_].output_file);
 
         if (!actual_duration.has_value()) {
-            handle_failure(QStringLiteral("ffprobe could not verify %1 after export.").arg(exports_[current_index_].output_file));
+            handle_failure(
+                QStringLiteral("ffprobe could not verify %1 after export.").arg(exports_[current_index_].output_file));
             return;
         }
 
         const auto expected_duration = exports_[current_index_].duration_ms;
-        const auto delta = expected_duration > *actual_duration
-            ? expected_duration - *actual_duration
-            : *actual_duration - expected_duration;
+        const auto delta = expected_duration > *actual_duration ? expected_duration - *actual_duration
+                                                                : *actual_duration - expected_duration;
         if (delta > 1000) {
-            handle_failure(QStringLiteral("Duration verification failed for %1.").arg(exports_[current_index_].output_file));
+            handle_failure(
+                QStringLiteral("Duration verification failed for %1.").arg(exports_[current_index_].output_file));
             return;
         }
     }
 
     completed_duration_ms_ += exports_[current_index_].duration_ms;
-    emit progress_changed(total_duration_ms_ == 0 ? 100 : static_cast<int>((completed_duration_ms_ * 100) / total_duration_ms_));
+    emit progress_changed(
+        total_duration_ms_ == 0 ? 100 : static_cast<int>((completed_duration_ms_ * 100) / total_duration_ms_));
     ++current_index_;
     start_next();
 }
@@ -254,11 +254,10 @@ auto ExportCoordinator::write_manifests() -> void {
         auto stream = QTextStream(&file);
         stream << "index,name,start_ms,end_ms,output_file\n";
         for (const auto& item : exports_) {
-            stream << (item.chapter_index + 1)
-                   << ",\"" << QString {QString::fromStdString(item.chapter.name)}.replace('"', '\'') << "\""
-                   << "," << item.chapter.start_ms
-                   << "," << item.chapter.end_ms
-                   << ",\"" << QString {item.output_file}.replace('"', '\'') << "\"\n";
+            stream << (item.chapter_index + 1) << ",\""
+                   << QString {QString::fromStdString(item.chapter.name)}.replace('"', '\'') << "\""
+                   << "," << item.chapter.start_ms << "," << item.chapter.end_ms << ",\""
+                   << QString {item.output_file}.replace('"', '\'') << "\"\n";
         }
     }
 }

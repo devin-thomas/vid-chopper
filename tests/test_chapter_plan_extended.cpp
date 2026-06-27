@@ -13,13 +13,15 @@ auto main() -> int {
     // build_default_chapters: sub-second duration
     {
         const auto chapters = build_default_chapters(500, 6);
-        test_support::expect_eq(chapters.size(), static_cast<usize>(0), "sub-second duration should produce no chapters");
+        test_support::expect_eq(
+            chapters.size(), static_cast<usize>(0), "sub-second duration should produce no chapters");
     }
 
     // build_default_chapters: exactly 1 second
     {
         const auto chapters = build_default_chapters(1000, 6);
-        test_support::expect_eq(chapters.size(), static_cast<usize>(1), "1 second duration with 6 requested should produce 1 chapter");
+        test_support::expect_eq(
+            chapters.size(), static_cast<usize>(1), "1 second duration with 6 requested should produce 1 chapter");
         test_support::expect_eq(chapters[0].start_ms, 0ULL, "single chapter should start at 0");
         test_support::expect_eq(chapters[0].end_ms, 1000ULL, "single chapter should end at duration");
     }
@@ -27,13 +29,15 @@ auto main() -> int {
     // build_default_chapters: requested_count = 0
     {
         const auto chapters = build_default_chapters(60000, 0);
-        test_support::expect_eq(chapters.size(), static_cast<usize>(0), "zero requested count should produce no chapters");
+        test_support::expect_eq(
+            chapters.size(), static_cast<usize>(0), "zero requested count should produce no chapters");
     }
 
     // build_default_chapters: requested_count = 1
     {
         const auto chapters = build_default_chapters(60000, 1);
-        test_support::expect_eq(chapters.size(), static_cast<usize>(1), "requesting 1 chapter should produce exactly 1");
+        test_support::expect_eq(
+            chapters.size(), static_cast<usize>(1), "requesting 1 chapter should produce exactly 1");
         test_support::expect_eq(chapters[0].start_ms, 0ULL, "single chapter start");
         test_support::expect_eq(chapters[0].end_ms, 60000ULL, "single chapter end");
     }
@@ -63,7 +67,8 @@ auto main() -> int {
         auto settings = ExportSettings {};
         const auto result = validate_chapters({}, 60000, settings);
         test_support::expect_true(!result.ok(), "empty chapters should fail validation");
-        test_support::expect_true(result.issues[0].message.find("At least one") != std::string::npos, "should report empty chapter error");
+        test_support::expect_true(
+            result.issues[0].message.find("At least one") != std::string::npos, "should report empty chapter error");
     }
 
     // validate_chapters: exceeds max_chapters
@@ -79,7 +84,8 @@ auto main() -> int {
         auto settings = ExportSettings {};
         const auto result = validate_chapters(chapters, 260000, settings);
         test_support::expect_true(!result.ok(), "exceeding max chapters should fail");
-        test_support::expect_true(result.issues[0].message.find("255") != std::string::npos, "should mention 255 chapter limit");
+        test_support::expect_true(
+            result.issues[0].message.find("255") != std::string::npos, "should mention 255 chapter limit");
     }
 
     // validate_chapters: chapter end exceeds duration
@@ -139,7 +145,8 @@ auto main() -> int {
         auto settings = ExportSettings {};
         settings.output_folder_pattern = "%source%_chapters";
         const auto dir = default_output_directory("C:/media/my-video.mp4", settings);
-        test_support::expect_true(dir.filename().string().find("my-video_chapters") != std::string::npos, "should substitute source stem into folder pattern");
+        test_support::expect_true(dir.filename().string().find("my-video_chapters") != std::string::npos,
+            "should substitute source stem into folder pattern");
     }
 
     // default_output_directory: custom pattern
@@ -147,7 +154,8 @@ auto main() -> int {
         auto settings = ExportSettings {};
         settings.output_folder_pattern = "export_%source%";
         const auto dir = default_output_directory("/home/user/clip.mov", settings);
-        test_support::expect_true(dir.filename().string().find("export_clip") != std::string::npos, "custom pattern should substitute source stem");
+        test_support::expect_true(dir.filename().string().find("export_clip") != std::string::npos,
+            "custom pattern should substitute source stem");
     }
 
     // default_output_directory: pattern without placeholder
@@ -155,7 +163,8 @@ auto main() -> int {
         auto settings = ExportSettings {};
         settings.output_folder_pattern = "output_clips";
         const auto dir = default_output_directory("/media/vid.mp4", settings);
-        test_support::expect_true(dir.filename().string().find("output_clips") != std::string::npos, "pattern without placeholder should use literal name");
+        test_support::expect_true(dir.filename().string().find("output_clips") != std::string::npos,
+            "pattern without placeholder should use literal name");
     }
 
     // ValidationResult::ok()

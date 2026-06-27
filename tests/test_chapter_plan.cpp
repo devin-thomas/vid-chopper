@@ -20,10 +20,12 @@ auto main() -> int {
 
     const auto invalid = validate_chapters(invalid_chapters, 120000, settings);
     test_support::expect_true(!invalid.ok(), "invalid chapter plan should fail validation");
-    test_support::expect_true(invalid.issues.size() >= 3, "validation should report overlap, short duration, and blank name");
+    test_support::expect_true(
+        invalid.issues.size() >= 3, "validation should report overlap, short duration, and blank name");
 
     const auto compact_chapters = build_default_chapters(4500, 6);
-    test_support::expect_eq(compact_chapters.size(), static_cast<usize>(4), "short clips should not produce sub-second default chapters");
+    test_support::expect_eq(
+        compact_chapters.size(), static_cast<usize>(4), "short clips should not produce sub-second default chapters");
 
     return 0;
 }

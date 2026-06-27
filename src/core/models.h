@@ -141,6 +141,9 @@ constexpr auto FrameRate::display_frames_per_second() const noexcept -> u32 {
         return 0;
     }
 
+    // std::lround is not constexpr before C++23; frame rates are always positive,
+    // so round-half-up via truncation is correct and keeps this function constexpr.
+    // NOLINTNEXTLINE(bugprone-incorrect-roundings)
     const auto rounded = static_cast<u32>(as_f64() + 0.5);
     return rounded == 0 ? 1 : rounded;
 }

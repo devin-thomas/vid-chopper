@@ -19,13 +19,11 @@ public:
     explicit ExportCoordinator(QObject* parent = nullptr);
 
     [[nodiscard]] auto busy() const -> bool;
-    auto start_export(
-        const VideoMetadata& metadata,
+    auto start_export(const VideoMetadata& metadata,
         std::vector<ChapterSegment> chapters,
         const std::filesystem::path& output_directory,
         const ExportSettings& settings,
-        const EncoderEnvironment& environment
-    ) -> void;
+        const EncoderEnvironment& environment) -> void;
     auto cancel() -> void;
 
 signals:

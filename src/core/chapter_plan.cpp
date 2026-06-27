@@ -41,7 +41,9 @@ auto build_default_chapters(const u64 duration_ms, const u8 requested_count) -> 
     return chapters;
 }
 
-auto validate_chapters(const std::vector<ChapterSegment>& chapters, const u64 duration_ms, const ExportSettings& settings) -> ValidationResult {
+auto validate_chapters(const std::vector<ChapterSegment>& chapters,
+    const u64 duration_ms,
+    const ExportSettings& settings) -> ValidationResult {
     auto result = ValidationResult {};
     const auto min_duration_ms = static_cast<u64>(settings.min_chapter_seconds) * 1000;
 
@@ -101,7 +103,8 @@ auto validate_chapters(const std::vector<ChapterSegment>& chapters, const u64 du
     return result;
 }
 
-auto default_output_directory(const std::filesystem::path& source_path, const ExportSettings& settings) -> std::filesystem::path {
+auto default_output_directory(
+    const std::filesystem::path& source_path, const ExportSettings& settings) -> std::filesystem::path {
     auto folder_name = replace_all_copy(settings.output_folder_pattern, "%source%", source_path.stem().string());
     folder_name = sanitize_file_component(folder_name);
     return source_path.parent_path() / folder_name;

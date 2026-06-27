@@ -22,7 +22,7 @@ auto trim_copy(std::string_view value) -> std::string {
 }
 
 auto to_lower_copy(std::string value) -> std::string {
-    std::ranges::transform(value, value.begin(), [](const unsigned char character) {
+    std::ranges::transform(value, value.begin(), [](const unsigned char character) -> char {
         return static_cast<char>(std::tolower(character));
     });
     return value;

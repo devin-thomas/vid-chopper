@@ -64,17 +64,25 @@ auto main() -> int {
         test_support::expect_true(!parse_millisecond_timecode("abc").has_value(), "non-numeric should fail");
         test_support::expect_true(!parse_millisecond_timecode("00:00:60.000").has_value(), "seconds >= 60 should fail");
         test_support::expect_true(!parse_millisecond_timecode("00:60:00.000").has_value(), "minutes >= 60 should fail");
-        test_support::expect_true(!parse_millisecond_timecode("1:2:3:4:5").has_value(), "too many segments should fail");
-        test_support::expect_true(!parse_millisecond_timecode("00:00:10.1234").has_value(), "fraction > 3 digits should fail");
-        test_support::expect_true(!parse_millisecond_timecode("00:00:10.").has_value(), "trailing dot with empty fraction should fail");
+        test_support::expect_true(
+            !parse_millisecond_timecode("1:2:3:4:5").has_value(), "too many segments should fail");
+        test_support::expect_true(
+            !parse_millisecond_timecode("00:00:10.1234").has_value(), "fraction > 3 digits should fail");
+        test_support::expect_true(
+            !parse_millisecond_timecode("00:00:10.").has_value(), "trailing dot with empty fraction should fail");
     }
 
     // format_millisecond_timecode: edge cases
     {
-        test_support::expect_eq(format_millisecond_timecode(0), std::string {"00:00:00.000"}, "zero ms should format correctly");
-        test_support::expect_eq(format_millisecond_timecode(999), std::string {"00:00:00.999"}, "sub-second ms should format correctly");
-        test_support::expect_eq(format_millisecond_timecode(3661001), std::string {"01:01:01.001"}, "1h1m1s1ms should format correctly");
-        test_support::expect_eq(format_millisecond_timecode(86399999), std::string {"23:59:59.999"}, "just under 24h should format correctly");
+        test_support::expect_eq(
+            format_millisecond_timecode(0), std::string {"00:00:00.000"}, "zero ms should format correctly");
+        test_support::expect_eq(
+            format_millisecond_timecode(999), std::string {"00:00:00.999"}, "sub-second ms should format correctly");
+        test_support::expect_eq(
+            format_millisecond_timecode(3661001), std::string {"01:01:01.001"}, "1h1m1s1ms should format correctly");
+        test_support::expect_eq(format_millisecond_timecode(86399999),
+            std::string {"23:59:59.999"},
+            "just under 24h should format correctly");
     }
 
     // parse_frame_timecode: zero frame rate
@@ -109,13 +117,16 @@ auto main() -> int {
     {
         const auto fps_24 = FrameRate {.numerator = 24, .denominator = 1};
         test_support::expect_true(!parse_frame_timecode("00:10", fps_24).has_value(), "too few segments should fail");
-        test_support::expect_true(!parse_frame_timecode("1:2:3:4:5", fps_24).has_value(), "too many segments should fail");
+        test_support::expect_true(
+            !parse_frame_timecode("1:2:3:4:5", fps_24).has_value(), "too many segments should fail");
     }
 
     // format_frame_timecode: zero fps
     {
         const auto zero_fps = FrameRate {.numerator = 0, .denominator = 1};
-        test_support::expect_eq(format_frame_timecode(5000, zero_fps), std::string {"00:00:00:00"}, "zero fps should return zeroed timecode");
+        test_support::expect_eq(format_frame_timecode(5000, zero_fps),
+            std::string {"00:00:00:00"},
+            "zero fps should return zeroed timecode");
     }
 
     // format_frame_timecode: round-trip consistency
@@ -132,7 +143,8 @@ auto main() -> int {
     {
         const auto fps_2997 = FrameRate {.numerator = 30000, .denominator = 1001};
         const auto formatted = format_frame_timecode(1000, fps_2997);
-        test_support::expect_eq(formatted, std::string {"00:00:01:00"}, "1000ms at 29.97fps should be 1 second 0 frames");
+        test_support::expect_eq(
+            formatted, std::string {"00:00:01:00"}, "1000ms at 29.97fps should be 1 second 0 frames");
     }
 
     return 0;

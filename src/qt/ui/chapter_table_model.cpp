@@ -71,7 +71,8 @@ auto ChapterTableModel::data(const QModelIndex& index, const int role) const -> 
     return {};
 }
 
-auto ChapterTableModel::headerData(const int section, const Qt::Orientation orientation, const int role) const -> QVariant {
+auto ChapterTableModel::headerData(
+    const int section, const Qt::Orientation orientation, const int role) const -> QVariant {
     if (orientation != Qt::Horizontal || role != Qt::DisplayRole) {
         return QAbstractTableModel::headerData(section, orientation, role);
     }
@@ -231,9 +232,8 @@ auto ChapterTableModel::format_time(const u64 milliseconds) const -> QString {
 }
 
 auto ChapterTableModel::parse_time(const QString& value) const -> std::optional<u64> {
-    return display_mode_ == TimestampDisplayMode::Frames
-        ? parse_frame_timecode(value.toStdString(), frame_rate_)
-        : parse_millisecond_timecode(value.toStdString());
+    return display_mode_ == TimestampDisplayMode::Frames ? parse_frame_timecode(value.toStdString(), frame_rate_)
+                                                         : parse_millisecond_timecode(value.toStdString());
 }
 
 } // namespace vidchopper
