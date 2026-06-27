@@ -1,89 +1,17 @@
 <!doctype html>
 <html lang="en">
   <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>VidChopper</title>
     <meta
       name="description"
-      content="VidChopper is a Windows desktop application for splitting source videos into chapter clips with ffmpeg, with a portable GitHub release zip for Windows 10/11 x64."
+      content="VidChopper is a Windows desktop app for turning one source video into chapter clips with ffmpeg. Download the v0.2.0-alpha portable release zip, browse features, and read developer docs."
     >
-    <link rel="stylesheet" href="styles.css">
+    <meta name="theme-color" content="#08050f">
+    <script type="module" src="/src/main.tsx"></script>
   </head>
   <body>
-    <main class="page">
-      <section class="hero">
-        <p class="eyebrow">Windows 10/11 x64 Release</p>
-        <h1>VidChopper</h1>
-        <p class="lede">
-          VidChopper turns a single source video into chapter clips with a focused Windows desktop workflow,
-          precise timestamp editing, GPU-aware encoding defaults, and a portable GitHub release zip that does not
-          require a local Qt build setup.
-        </p>
-        <div class="hero-actions">
-          <a class="button button-primary" href="https://github.com/devin-thomas/vid-chopper/releases/download/v0.2.0-alpha/VidChopper-windows-x64.zip">Download v0.2.0-alpha Zip</a>
-          <a class="button" href="https://github.com/devin-thomas/vid-chopper/releases">All Releases</a>
-          <a class="button" href="https://github.com/devin-thomas/vid-chopper">Repository</a>
-        </div>
-        <p class="hero-note">
-          The release zip bundles <code>VidChopper.exe</code>, the required Qt runtime, and the VC++ runtime.
-          <code>ffmpeg</code> and <code>ffprobe</code> still need to be installed separately or configured in-app.
-        </p>
-      </section>
-
-      <section class="grid">
-        <article class="card">
-          <h2>Portable Install Path</h2>
-          <p>
-            Download the `v0.2.0-alpha` GitHub prerelease, unzip it anywhere writable on a 64-bit Windows machine,
-            and launch <code>VidChopper.exe</code> directly.
-          </p>
-        </article>
-        <article class="card">
-          <h2>What It Does</h2>
-          <p>
-            Load a video, start from embedded chapters or a six-part starter layout, edit names and boundaries,
-            and export each chapter through <code>ffmpeg</code>.
-          </p>
-        </article>
-        <article class="card">
-          <h2>What Still Needs Setup</h2>
-          <p>
-            The release zip does not ship with <code>ffmpeg</code> or <code>ffprobe</code>. Keep them on
-            <code>PATH</code> or point VidChopper at custom locations in Advanced Settings.
-          </p>
-        </article>
-        <article class="card">
-          <h2>Encoding Defaults</h2>
-          <p>
-            VidChopper prefers HEVC NVENC when both an NVIDIA GPU and <code>hevc_nvenc</code> are available.
-            Otherwise it falls back to x264 for predictable compatibility.
-          </p>
-        </article>
-      </section>
-
-      <section class="details">
-        <div class="details-card">
-          <h2>Release Highlights</h2>
-          <ul>
-            <li>Portable Windows x64 zip attached to each published GitHub release</li>
-            <li>Qt runtime and VC++ runtime bundled beside <code>VidChopper.exe</code></li>
-            <li>Qt 6 Widgets interface with a dark-only workflow</li>
-            <li>Pure C++ core for chapter planning and command generation</li>
-            <li>GitHub Actions CI for the core path, GUI build, and release packaging</li>
-          </ul>
-        </div>
-        <div class="details-card">
-          <h2>Important Constraints</h2>
-          <ul>
-            <li>Windows is the primary target in the current repository state</li>
-            <li>Source builds still require a Qt 6 SDK for the full GUI target</li>
-            <li>The portable release still depends on external ffmpeg and ffprobe binaries</li>
-            <li>Exports are sequential to keep validation and progress tracking clear</li>
-            <li>Qt and FFmpeg licensing obligations remain separate from the repo license</li>
-          </ul>
-        </div>
-      </section>
-    </main>
+    <div id="root"></div>
   </body>
 </html>

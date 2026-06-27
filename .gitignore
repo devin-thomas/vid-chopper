@@ -1,5 +1,6 @@
 build/
 out/
+node_modules/
 .vs/
 .vscode/
 .idea/
@@ -20,6 +21,7 @@ out/
 *.log
 *.tmp
 *.cache
+*.tsbuildinfo
 CTestTestfile.cmake
 Testing/
 compile_commands.json
