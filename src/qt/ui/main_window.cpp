@@ -14,6 +14,7 @@
 #include <QApplication>
 #include <QDesktopServices>
 #include <QFileDialog>
+#include <QFontMetrics>
 #include <QGridLayout>
 #include <QGroupBox>
 #include <QHeaderView>
@@ -33,6 +34,8 @@
 #include <QTableView>
 #include <QUrl>
 #include <QVBoxLayout>
+
+#include <algorithm>
 
 namespace vidchopper {
 
@@ -162,10 +165,21 @@ auto MainWindow::build_ui() -> void {
 
     chapter_table_ = new QTableView {central};
     chapter_table_->setModel(chapter_model_);
-    chapter_table_->horizontalHeader()->setStretchLastSection(true);
     chapter_table_->verticalHeader()->setVisible(false);
     chapter_table_->setSelectionBehavior(QAbstractItemView::SelectRows);
     chapter_table_->setSelectionMode(QAbstractItemView::ExtendedSelection);
+    chapter_table_->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+
+    constexpr auto header_label_padding_px = 28;
+    auto* chapter_header = chapter_table_->horizontalHeader();
+    chapter_header->setSectionResizeMode(QHeaderView::Stretch);
+    const auto header_metrics = QFontMetrics {chapter_header->font()};
+    auto min_section_width = 0;
+    for (auto column = 0; column < chapter_model_->columnCount(); ++column) {
+        const auto label = chapter_model_->headerData(column, Qt::Horizontal).toString();
+        min_section_width = std::max(min_section_width, header_metrics.horizontalAdvance(label));
+    }
+    chapter_header->setMinimumSectionSize(min_section_width + header_label_padding_px);
 
     auto* export_row = new QWidget {central};
     auto* export_layout = new QHBoxLayout {export_row};
