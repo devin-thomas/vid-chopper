@@ -255,8 +255,11 @@ Use these in preference to hand-rolled equivalents:
 - **Concepts** to constrain templates (see `ScopedEnum` in `enum_utils.h`). Prefer a named
   concept over `enable_if`; it reads as documentation.
 - **`[[nodiscard]]`** on every pure function and every fallible/validation/builder function.
-- **`enum class : u8`** with **explicit values** (`Auto = 0, X264 = 1, …`) — the values are
-  persisted to `QSettings`, so they are a stable contract; never reorder or renumber them.
+- **`enum class`** with **explicit values** and a **fixed underlying type**, sized to the option
+  count: a **two-state** mode uses `: bool` (`enum class SeekMode : bool { Accurate = false, Fast = true };`),
+  a mode with three or more options uses `: u8` (`enum class EncoderKind : u8 { Auto = 0, X264 = 1, … };`).
+  Enumerator values are persisted to the config (`0`/`1`/…), so they are a **stable contract** —
+  never reorder or renumber them.
 
 Centralize string constants that would otherwise drift (e.g. `ffmpeg_arg::` flag names); a typo
 in one of many scattered literals is a real bug class.
