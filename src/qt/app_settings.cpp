@@ -28,7 +28,8 @@ auto clamp_enum(int raw, Enum max_valid, Enum fallback) -> Enum {
 
 auto snap_zoom_percent(const int zoom_percent) -> int {
     const auto clamped = std::clamp(zoom_percent, min_zoom_percent, max_zoom_percent);
-    const auto snapped_steps = static_cast<int>(std::lround(static_cast<double>(clamped - min_zoom_percent) / zoom_step_percent));
+    const auto snapped_steps =
+        static_cast<int>(std::lround(static_cast<double>(clamped - min_zoom_percent) / zoom_step_percent));
     return min_zoom_percent + (snapped_steps * zoom_step_percent);
 }
 
@@ -87,39 +88,71 @@ auto create_settings_store(QObject* parent) -> SettingsStore {
 auto load_export_settings(QSettings& settings) -> ExportSettings {
     auto values = ExportSettings {};
 
-    values.ffmpeg_path = settings.value("tools/ffmpegPath", QString::fromStdString(values.ffmpeg_path)).toString().toStdString();
-    values.ffprobe_path = settings.value("tools/ffprobePath", QString::fromStdString(values.ffprobe_path)).toString().toStdString();
-    values.output_folder_pattern = settings.value("output/folderPattern", QString::fromStdString(values.output_folder_pattern)).toString().toStdString();
-    values.naming_pattern = settings.value("output/namingPattern", QString::fromStdString(values.naming_pattern)).toString().toStdString();
-    values.x264_preset = settings.value("encoding/x264Preset", QString::fromStdString(values.x264_preset)).toString().toStdString();
-    values.nvenc_preset = settings.value("encoding/nvencPreset", QString::fromStdString(values.nvenc_preset)).toString().toStdString();
-    values.extra_ffmpeg_args = settings.value("tools/extraFfmpegArgs", QString::fromStdString(values.extra_ffmpeg_args)).toString().toStdString();
+    values.ffmpeg_path =
+        settings.value("tools/ffmpegPath", QString::fromStdString(values.ffmpeg_path)).toString().toStdString();
+    values.ffprobe_path =
+        settings.value("tools/ffprobePath", QString::fromStdString(values.ffprobe_path)).toString().toStdString();
+    values.output_folder_pattern =
+        settings.value("output/folderPattern", QString::fromStdString(values.output_folder_pattern))
+            .toString()
+            .toStdString();
+    values.naming_pattern =
+        settings.value("output/namingPattern", QString::fromStdString(values.naming_pattern)).toString().toStdString();
+    values.x264_preset =
+        settings.value("encoding/x264Preset", QString::fromStdString(values.x264_preset)).toString().toStdString();
+    values.nvenc_preset =
+        settings.value("encoding/nvencPreset", QString::fromStdString(values.nvenc_preset)).toString().toStdString();
+    values.extra_ffmpeg_args = settings.value("tools/extraFfmpegArgs", QString::fromStdString(values.extra_ffmpeg_args))
+                                   .toString()
+                                   .toStdString();
 
-    values.encoder_kind = clamp_enum(settings.value("encoding/encoderKind", static_cast<int>(values.encoder_kind)).toInt(), EncoderKind::HevcNvenc, EncoderKind::Auto);
-    values.audio_mode = clamp_enum(settings.value("encoding/audioMode", static_cast<int>(values.audio_mode)).toInt(), AudioMode::Aac, AudioMode::Copy);
-    values.container_mode = clamp_enum(settings.value("output/containerMode", static_cast<int>(values.container_mode)).toInt(), ContainerMode::Mkv, ContainerMode::Source);
-    values.overwrite_mode = clamp_enum(settings.value("output/overwriteMode", static_cast<int>(values.overwrite_mode)).toInt(), OverwriteMode::Skip, OverwriteMode::Ask);
-    values.seek_mode = clamp_enum(settings.value("precision/seekMode", static_cast<int>(values.seek_mode)).toInt(), SeekMode::Fast, SeekMode::Accurate);
-    values.display_mode = clamp_enum(settings.value("precision/displayMode", static_cast<int>(values.display_mode)).toInt(), TimestampDisplayMode::Frames, TimestampDisplayMode::Milliseconds);
+    values.encoder_kind =
+        clamp_enum(settings.value("encoding/encoderKind", static_cast<int>(values.encoder_kind)).toInt(),
+            EncoderKind::HevcNvenc,
+            EncoderKind::Auto);
+    values.audio_mode = clamp_enum(settings.value("encoding/audioMode", static_cast<int>(values.audio_mode)).toInt(),
+        AudioMode::Aac,
+        AudioMode::Copy);
+    values.container_mode =
+        clamp_enum(settings.value("output/containerMode", static_cast<int>(values.container_mode)).toInt(),
+            ContainerMode::Mkv,
+            ContainerMode::Source);
+    values.overwrite_mode =
+        clamp_enum(settings.value("output/overwriteMode", static_cast<int>(values.overwrite_mode)).toInt(),
+            OverwriteMode::Skip,
+            OverwriteMode::Ask);
+    values.seek_mode = clamp_enum(settings.value("precision/seekMode", static_cast<int>(values.seek_mode)).toInt(),
+        SeekMode::Fast,
+        SeekMode::Accurate);
+    values.display_mode =
+        clamp_enum(settings.value("precision/displayMode", static_cast<int>(values.display_mode)).toInt(),
+            TimestampDisplayMode::Frames,
+            TimestampDisplayMode::Milliseconds);
 
-    values.default_chapter_count = static_cast<u8>(settings.value("precision/defaultChapterCount", values.default_chapter_count).toUInt());
+    values.default_chapter_count =
+        static_cast<u8>(settings.value("precision/defaultChapterCount", values.default_chapter_count).toUInt());
     values.max_chapters = static_cast<u8>(settings.value("precision/maxChapters", values.max_chapters).toUInt());
     values.index_padding = static_cast<u8>(settings.value("output/indexPadding", values.index_padding).toUInt());
     values.x264_crf = static_cast<u8>(settings.value("encoding/x264Crf", values.x264_crf).toUInt());
     values.nvenc_cq = static_cast<u8>(settings.value("encoding/nvencCq", values.nvenc_cq).toUInt());
-    values.min_chapter_seconds = static_cast<u8>(settings.value("precision/minChapterSeconds", values.min_chapter_seconds).toUInt());
+    values.min_chapter_seconds =
+        static_cast<u8>(settings.value("precision/minChapterSeconds", values.min_chapter_seconds).toUInt());
     values.ffmpeg_threads = static_cast<u8>(settings.value("encoding/ffmpegThreads", values.ffmpeg_threads).toUInt());
-    values.aac_bitrate_kbps = static_cast<u16>(settings.value("encoding/aacBitrateKbps", values.aac_bitrate_kbps).toUInt());
+    values.aac_bitrate_kbps =
+        static_cast<u16>(settings.value("encoding/aacBitrateKbps", values.aac_bitrate_kbps).toUInt());
 
     values.auto_detect_gpu = settings.value("encoding/autoDetectGpu", values.auto_detect_gpu).toBool();
-    values.open_output_directory_after_export = settings.value("output/openDirectoryAfterExport", values.open_output_directory_after_export).toBool();
+    values.open_output_directory_after_export =
+        settings.value("output/openDirectoryAfterExport", values.open_output_directory_after_export).toBool();
     values.sanitize_file_names = settings.value("output/sanitizeFileNames", values.sanitize_file_names).toBool();
     values.stop_on_first_error = settings.value("execution/stopOnFirstError", values.stop_on_first_error).toBool();
     values.write_json_manifest = settings.value("execution/writeJsonManifest", values.write_json_manifest).toBool();
     values.write_csv_manifest = settings.value("execution/writeCsvManifest", values.write_csv_manifest).toBool();
-    values.verify_output_durations = settings.value("execution/verifyOutputDurations", values.verify_output_durations).toBool();
+    values.verify_output_durations =
+        settings.value("execution/verifyOutputDurations", values.verify_output_durations).toBool();
     values.copy_source_metadata = settings.value("output/copySourceMetadata", values.copy_source_metadata).toBool();
-    values.prefer_embedded_chapters = settings.value("precision/preferEmbeddedChapters", values.prefer_embedded_chapters).toBool();
+    values.prefer_embedded_chapters =
+        settings.value("precision/preferEmbeddedChapters", values.prefer_embedded_chapters).toBool();
     values.confirm_remove_chapters =
         settings.value("confirmations/confirmRemoveChapters", values.confirm_remove_chapters).toBool();
     values.confirm_exit = settings.value("confirmations/confirmExit", values.confirm_exit).toBool();

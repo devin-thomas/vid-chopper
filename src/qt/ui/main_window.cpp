@@ -117,7 +117,8 @@ MainWindow::MainWindow(QWidget* parent)
         zoom_percent_ = load_zoom_percent(*settings_store_);
     }
 
-    base_font_point_size_ = std::max(10, static_cast<int>(qApp->font().pointSizeF() > 0.0 ? qApp->font().pointSizeF() : 10.0));
+    base_font_point_size_ =
+        std::max(10, static_cast<int>(qApp->font().pointSizeF() > 0.0 ? qApp->font().pointSizeF() : 10.0));
 
     build_ui();
     create_menus();
@@ -141,10 +142,13 @@ MainWindow::MainWindow(QWidget* parent)
 
     connect(export_coordinator_, &ExportCoordinator::log_message, this, &MainWindow::append_log_message);
     connect(export_coordinator_, &ExportCoordinator::progress_changed, progress_bar_, &QProgressBar::setValue);
-    connect(export_coordinator_, &ExportCoordinator::chapter_started, this, [this](const int current, const int total, const QString& output_file) {
-        statusBar()->showMessage(QStringLiteral("Exporting chapter %1 of %2").arg(current).arg(total));
-        append_log_message(LogCategory::ExportProgress, QStringLiteral("Writing %1").arg(output_file));
-    });
+    connect(export_coordinator_,
+        &ExportCoordinator::chapter_started,
+        this,
+        [this](const int current, const int total, const QString& output_file) {
+            statusBar()->showMessage(QStringLiteral("Exporting chapter %1 of %2").arg(current).arg(total));
+            append_log_message(LogCategory::ExportProgress, QStringLiteral("Writing %1").arg(output_file));
+        });
     connect(export_coordinator_, &ExportCoordinator::finished, this, &MainWindow::handle_export_finished);
 
     append_log_message(LogCategory::Config, QStringLiteral("Config file: %1").arg(config_path_));
@@ -181,16 +185,12 @@ auto MainWindow::create_menus() -> void {
     auto* view_menu = menuBar()->addMenu("&View");
     auto* zoom_in_action = new QAction {"Zoom &In", this};
     zoom_in_action->setShortcuts({QKeySequence {"Ctrl+="}, QKeySequence {"Ctrl++"}});
-    connect(zoom_in_action, &QAction::triggered, this, [this]() {
-        apply_zoom_percent(zoom_percent_ + 25, true);
-    });
+    connect(zoom_in_action, &QAction::triggered, this, [this]() { apply_zoom_percent(zoom_percent_ + 25, true); });
     view_menu->addAction(zoom_in_action);
 
     auto* zoom_out_action = new QAction {"Zoom &Out", this};
     zoom_out_action->setShortcut(QKeySequence {"Ctrl+-"});
-    connect(zoom_out_action, &QAction::triggered, this, [this]() {
-        apply_zoom_percent(zoom_percent_ - 25, true);
-    });
+    connect(zoom_out_action, &QAction::triggered, this, [this]() { apply_zoom_percent(zoom_percent_ - 25, true); });
     view_menu->addAction(zoom_out_action);
 
     auto* reset_zoom_action = new QAction {"&Reset Zoom", this};
@@ -224,11 +224,9 @@ auto MainWindow::create_menus() -> void {
     auto* help_menu = menuBar()->addMenu("&Help");
     auto* about_vidchopper_action = new QAction {"&About VidChopper", this};
     connect(about_vidchopper_action, &QAction::triggered, this, [this]() {
-        QMessageBox::about(
-            this,
+        QMessageBox::about(this,
             "About VidChopper",
-            "VidChopper is a Windows-first Qt desktop application for turning one source video into chapter clips with ffmpeg."
-        );
+            "VidChopper is a Windows-first Qt desktop application for turning one source video into chapter clips with ffmpeg.");
     });
     help_menu->addAction(about_vidchopper_action);
 
@@ -330,9 +328,7 @@ auto MainWindow::build_ui() -> void {
     auto* log_layout = new QVBoxLayout {log_panel_};
     log_layout->setContentsMargins(0, 0, 0, 0);
     advanced_logs_checkbox_ = new QCheckBox {"Advanced", log_panel_};
-    connect(advanced_logs_checkbox_, &QCheckBox::toggled, this, [this]() {
-        refresh_log_view();
-    });
+    connect(advanced_logs_checkbox_, &QCheckBox::toggled, this, [this]() { refresh_log_view(); });
     log_output_ = new QPlainTextEdit {log_panel_};
     log_output_->setReadOnly(true);
     log_output_->setPlaceholderText("Curated export activity appears here when logs are expanded.");
@@ -355,12 +351,10 @@ auto MainWindow::build_ui() -> void {
 }
 
 auto MainWindow::open_video() -> void {
-    const auto file_path = QFileDialog::getOpenFileName(
-        this,
+    const auto file_path = QFileDialog::getOpenFileName(this,
         "Select a source video",
         QString {},
-        "Video Files (*.mp4 *.mkv *.mov *.m4v *.avi *.webm);;All Files (*.*)"
-    );
+        "Video Files (*.mp4 *.mkv *.mov *.m4v *.avi *.webm);;All Files (*.*)");
 
     if (!file_path.isEmpty()) {
         load_video(file_path);
@@ -368,7 +362,8 @@ auto MainWindow::open_video() -> void {
 }
 
 auto MainWindow::choose_output_directory() -> void {
-    const auto directory = QFileDialog::getExistingDirectory(this, "Choose output directory", output_directory_edit_->text());
+    const auto directory =
+        QFileDialog::getExistingDirectory(this, "Choose output directory", output_directory_edit_->text());
     if (!directory.isEmpty()) {
         set_output_directory_path(normalize_path_for_storage(std::filesystem::path {directory.toStdWString()}), true);
     }
@@ -401,7 +396,8 @@ auto MainWindow::redistribute_chapters() -> void {
         return;
     }
 
-    chapter_model_->set_chapters(build_default_chapters(metadata_->duration_ms, static_cast<u8>(chapter_count_spin_->value())));
+    chapter_model_->set_chapters(
+        build_default_chapters(metadata_->duration_ms, static_cast<u8>(chapter_count_spin_->value())));
     chapter_source_value_label_->setText("Evenly distributed from the current chapter count");
 }
 
@@ -411,7 +407,9 @@ auto MainWindow::add_chapter() -> void {
     }
 
     if (!chapter_model_->append_chapter(metadata_->duration_ms)) {
-        QMessageBox::warning(this, "Cannot add chapter", "VidChopper could not split the current layout into another chapter while keeping every segment at least one second long.");
+        QMessageBox::warning(this,
+            "Cannot add chapter",
+            "VidChopper could not split the current layout into another chapter while keeping every segment at least one second long.");
     }
 }
 
@@ -429,13 +427,13 @@ auto MainWindow::remove_selected_chapters() -> void {
     }
 
     if (settings_.confirm_remove_chapters) {
-        const auto reply = QMessageBox::warning(
-            this,
+        const auto reply = QMessageBox::warning(this,
             "Remove chapters",
-            QStringLiteral("Remove %1 selected chapter%2?").arg(removable_rows.size()).arg(removable_rows.size() == 1 ? "" : "s"),
+            QStringLiteral("Remove %1 selected chapter%2?")
+                .arg(removable_rows.size())
+                .arg(removable_rows.size() == 1 ? "" : "s"),
             QMessageBox::Yes | QMessageBox::No,
-            QMessageBox::No
-        );
+            QMessageBox::No);
         if (reply != QMessageBox::Yes) {
             return;
         }
@@ -492,13 +490,7 @@ auto MainWindow::start_or_cancel_export() -> void {
 
     append_log_message(LogCategory::ExportLifecycle, "Starting export.");
     progress_bar_->setValue(0);
-    export_coordinator_->start_export(
-        *metadata_,
-        chapters,
-        current_output_directory(),
-        settings_,
-        environment_
-    );
+    export_coordinator_->start_export(*metadata_, chapters, current_output_directory(), settings_, environment_);
     update_export_button_style();
 }
 
@@ -565,16 +557,16 @@ auto MainWindow::apply_zoom_percent(const int zoom_percent, const bool persist) 
     const auto control_padding = std::max(6, zoom_percent_ / 20);
     const auto row_height = std::max(28, zoom_percent_ / 4);
     const auto section_padding = std::max(4, zoom_percent_ / 30);
-    qApp->setStyleSheet(QStringLiteral(
-        "QPushButton, QToolButton { padding:%1px %2px; }"
-        "QLineEdit, QComboBox, QSpinBox { min-height:%3px; }"
-        "QHeaderView::section { padding:%4px; }"
-        "QProgressBar { min-height:%3px; }"
-        "QPlainTextEdit { font-family:'Cascadia Mono','Consolas','Courier New',monospace; }")
-        .arg(control_padding)
-        .arg(control_padding * 2)
-        .arg(row_height)
-        .arg(section_padding));
+    qApp->setStyleSheet(
+        QStringLiteral("QPushButton, QToolButton { padding:%1px %2px; }"
+                       "QLineEdit, QComboBox, QSpinBox { min-height:%3px; }"
+                       "QHeaderView::section { padding:%4px; }"
+                       "QProgressBar { min-height:%3px; }"
+                       "QPlainTextEdit { font-family:'Cascadia Mono','Consolas','Courier New',monospace; }")
+            .arg(control_padding)
+            .arg(control_padding * 2)
+            .arg(row_height)
+            .arg(section_padding));
 
     update_chapter_table_columns();
     update_export_button_style();
@@ -604,7 +596,8 @@ auto MainWindow::update_chapter_table_columns() -> void {
     auto widest_header = 0;
     const auto metrics = QFontMetrics {chapter_table_->horizontalHeader()->font()};
     for (auto column = 0; column < chapter_model_->columnCount(); ++column) {
-        widest_header = std::max(widest_header, metrics.horizontalAdvance(chapter_model_->headerData(column, Qt::Horizontal).toString()) + 28);
+        widest_header = std::max(widest_header,
+            metrics.horizontalAdvance(chapter_model_->headerData(column, Qt::Horizontal).toString()) + 28);
     }
 
     chapter_table_->horizontalHeader()->setMinimumSectionSize(widest_header);
@@ -623,12 +616,12 @@ auto MainWindow::update_export_button_style() -> void {
     export_button_->setStyleSheet(QStringLiteral(
         "QPushButton { background:%1; color:white; border:1px solid %2; border-radius:%3px; font-weight:700; padding:%4px %5px; }"
         "QPushButton:hover { background:%6; }")
-        .arg(background)
-        .arg(border)
-        .arg(radius)
-        .arg(vertical_padding)
-        .arg(horizontal_padding)
-        .arg(hover));
+            .arg(background)
+            .arg(border)
+            .arg(radius)
+            .arg(vertical_padding)
+            .arg(horizontal_padding)
+            .arg(hover));
 }
 
 auto MainWindow::update_log_disclosure(const bool expanded) -> void {
@@ -677,13 +670,8 @@ auto MainWindow::confirm_exit() -> bool {
     const auto prompt = export_coordinator_->busy()
         ? QStringLiteral("An export is still running. Exit VidChopper anyway?")
         : QStringLiteral("Exit VidChopper?");
-    const auto reply = QMessageBox::warning(
-        this,
-        "Confirm exit",
-        prompt,
-        QMessageBox::Yes | QMessageBox::No,
-        QMessageBox::No
-    );
+    const auto reply =
+        QMessageBox::warning(this, "Confirm exit", prompt, QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
     return reply == QMessageBox::Yes;
 }
 
