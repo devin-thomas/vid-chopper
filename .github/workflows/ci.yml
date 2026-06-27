@@ -51,7 +51,18 @@ jobs:
         uses: lukka/get-cmake@v4.3.3
 
       - name: Install FFmpeg
-        run: choco install ffmpeg --version=7.1.1 --yes --no-progress
+        shell: pwsh
+        run: |
+          $attempts = 5
+          for ($i = 1; $i -le $attempts; $i++) {
+            Write-Host "Installing ffmpeg (attempt $i/$attempts)..."
+            choco install ffmpeg --version=7.1.1 --yes --no-progress
+            if ($LASTEXITCODE -eq 0) { exit 0 }
+            Write-Host "choco install failed with exit code $LASTEXITCODE (likely a transient chocolatey.org outage); retrying in 30s..."
+            Start-Sleep -Seconds 30
+          }
+          Write-Error "ffmpeg install failed after $attempts attempts"
+          exit 1
 
       - name: Configure core-only build
         run: cmake --preset core-release
