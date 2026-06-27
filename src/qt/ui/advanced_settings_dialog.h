@@ -52,6 +52,8 @@ private:
     QCheckBox* write_csv_manifest_checkbox_ {nullptr};
     QCheckBox* copy_metadata_checkbox_ {nullptr};
     QCheckBox* prefer_embedded_checkbox_ {nullptr};
+    QCheckBox* confirm_remove_checkbox_ {nullptr};
+    QCheckBox* confirm_exit_checkbox_ {nullptr};
 };
 
 } // namespace vidchopper

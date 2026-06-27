@@ -29,12 +29,12 @@ Branch: `devin/enum-bool-underlying`
   (so `Start (HH:MM:SS.mmm)` never truncates). Horizontal scrollbar disabled; columns cannot run
   off-screen. Even stretch (not content-proportional).
 
-## Task 3 — Path slash cleanup — `IN PROGRESS`
+## Task 3 — Path slash cleanup — `DONE (PR #17 merged)`
 - Display paths with native separators (`QDir::toNativeSeparators`); store canonical
   `std::filesystem::path`; ffmpeg-arg paths stay OS-native. Source/output line edits + log lines.
 - Keep core platform-agnostic so Linux/macOS-native paths remain possible later.
 
-## Task 4 — Confirmation dialogs — `TODO`
+## Task 4 — Confirmation dialogs — `IN PROGRESS`
 - Confirm on **Remove Selected** (any count) and on **both** exit paths (File > Exit + window X).
 - Add Advanced-settings toggles to disable each confirmation, wrapped in a warning.
 

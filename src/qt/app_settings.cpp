@@ -55,6 +55,8 @@ constexpr auto bool_fields = std::to_array<SettingField<bool>>({
     {"execution/verifyOutputDurations", &ExportSettings::verify_output_durations},
     {"output/copySourceMetadata", &ExportSettings::copy_source_metadata},
     {"precision/preferEmbeddedChapters", &ExportSettings::prefer_embedded_chapters},
+    {"confirmations/confirmRemoveChapters", &ExportSettings::confirm_remove_chapters},
+    {"confirmations/confirmExit", &ExportSettings::confirm_exit},
 });
 
 // Enum keys are shared between load and save the same way the field tables are;

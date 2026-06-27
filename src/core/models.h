@@ -112,6 +112,8 @@ struct ExportSettings {
     bool verify_output_durations {true};
     bool copy_source_metadata {true};
     bool prefer_embedded_chapters {true};
+    bool confirm_remove_chapters {true};
+    bool confirm_exit {true};
 
     [[nodiscard]] auto operator==(const ExportSettings&) const -> bool = default;
 };

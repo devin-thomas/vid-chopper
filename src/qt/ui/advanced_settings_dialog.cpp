@@ -114,6 +114,22 @@ AdvancedSettingsDialog::AdvancedSettingsDialog(QWidget* parent)
     tools_form->addRow("Extra ffmpeg args", extra_args_edit_);
     tabs->addTab(tools_tab, "Tools");
 
+    auto* confirmations_tab = new QWidget {tabs};
+    auto* confirmations_layout = new QVBoxLayout {confirmations_tab};
+    confirm_remove_checkbox_ = new QCheckBox {"Confirm before removing selected chapters", confirmations_tab};
+    confirm_exit_checkbox_ = new QCheckBox {"Confirm before exiting VidChopper", confirmations_tab};
+    auto* confirmations_warning = new QLabel {
+        "\u26a0 Unchecking a box disables that safety prompt \u2014 the action then happens "
+        "immediately, with no confirmation and no undo.",
+        confirmations_tab,
+    };
+    confirmations_warning->setWordWrap(true);
+    confirmations_layout->addWidget(confirm_remove_checkbox_);
+    confirmations_layout->addWidget(confirm_exit_checkbox_);
+    confirmations_layout->addWidget(confirmations_warning);
+    confirmations_layout->addStretch(1);
+    tabs->addTab(confirmations_tab, "Confirmations");
+
     auto* buttons = new QDialogButtonBox {
         QDialogButtonBox::Ok | QDialogButtonBox::Cancel | QDialogButtonBox::RestoreDefaults, this};
     connect(buttons, &QDialogButtonBox::accepted, this, &QDialog::accept);
@@ -164,6 +180,8 @@ auto AdvancedSettingsDialog::set_settings(const ExportSettings& settings) -> voi
     write_csv_manifest_checkbox_->setChecked(settings.write_csv_manifest);
     copy_metadata_checkbox_->setChecked(settings.copy_source_metadata);
     prefer_embedded_checkbox_->setChecked(settings.prefer_embedded_chapters);
+    confirm_remove_checkbox_->setChecked(settings.confirm_remove_chapters);
+    confirm_exit_checkbox_->setChecked(settings.confirm_exit);
 }
 
 auto AdvancedSettingsDialog::settings() const -> ExportSettings {
@@ -202,6 +220,8 @@ auto AdvancedSettingsDialog::settings() const -> ExportSettings {
     values.write_csv_manifest = write_csv_manifest_checkbox_->isChecked();
     values.copy_source_metadata = copy_metadata_checkbox_->isChecked();
     values.prefer_embedded_chapters = prefer_embedded_checkbox_->isChecked();
+    values.confirm_remove_chapters = confirm_remove_checkbox_->isChecked();
+    values.confirm_exit = confirm_exit_checkbox_->isChecked();
 
     return values;
 }
