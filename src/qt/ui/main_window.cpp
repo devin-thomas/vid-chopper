@@ -12,6 +12,7 @@
 
 #include <QAction>
 #include <QApplication>
+#include <QCloseEvent>
 #include <QDesktopServices>
 #include <QDir>
 #include <QFileDialog>
@@ -274,7 +275,29 @@ auto MainWindow::add_chapter() -> void {
 }
 
 auto MainWindow::remove_selected_chapters() -> void {
-    chapter_model_->remove_rows(chapter_table_->selectionModel()->selectedRows());
+    const auto selected = chapter_table_->selectionModel()->selectedRows();
+    if (selected.isEmpty()) {
+        return;
+    }
+
+    if (settings_.confirm_remove_chapters) {
+        const auto prompt = QStringLiteral("Remove %1 selected chapter(s)?").arg(selected.size());
+        if (QMessageBox::question(this, "Remove chapters", prompt) != QMessageBox::Yes) {
+            return;
+        }
+    }
+
+    chapter_model_->remove_rows(selected);
+}
+
+auto MainWindow::closeEvent(QCloseEvent* event) -> void {
+    if (settings_.confirm_exit
+        && QMessageBox::question(this, "Quit VidChopper", "Quit VidChopper?") != QMessageBox::Yes) {
+        event->ignore();
+        return;
+    }
+
+    QMainWindow::closeEvent(event);
 }
 
 auto MainWindow::open_advanced_settings() -> void {

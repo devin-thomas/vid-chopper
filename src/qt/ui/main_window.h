@@ -6,6 +6,7 @@
 
 #include <optional>
 
+class QCloseEvent;
 class QLabel;
 class QLineEdit;
 class QPlainTextEdit;
@@ -38,6 +39,9 @@ private slots:
     void redetect_gpu();
     void start_or_cancel_export();
     void handle_export_finished(bool success, const QStringList& errors);
+
+protected:
+    auto closeEvent(QCloseEvent* event) -> void override;
 
 private:
     auto create_menus() -> void;
