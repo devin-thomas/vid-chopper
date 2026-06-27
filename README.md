@@ -4,9 +4,9 @@ VidChopper is a Windows desktop application for turning one source video into ch
 
 ## Windows Download
 
-If you want to run VidChopper on Windows 10/11 x64 without building from source, use the current `v0.1.0-alpha` GitHub prerelease zip:
+If you want to run VidChopper on Windows 10/11 x64 without building from source, use the current `v0.2.0-alpha` GitHub prerelease zip:
 
-- [Download the `v0.1.0-alpha` Windows x64 release zip](https://github.com/devin-thomas/vid-chopper/releases/download/v0.1.0-alpha/VidChopper-windows-x64.zip)
+- [Download the `v0.2.0-alpha` Windows x64 release zip](https://github.com/devin-thomas/vid-chopper/releases/download/v0.2.0-alpha/VidChopper-windows-x64.zip)
 - [Browse all GitHub releases](https://github.com/devin-thomas/vid-chopper/releases)
 
 The release zip is a portable build that includes `VidChopper.exe`, the required Qt runtime files, and the Microsoft Visual C++ runtime. It does **not** bundle `ffmpeg` or `ffprobe`, so those still need to be on `PATH` or configured in the advanced settings dialog.
