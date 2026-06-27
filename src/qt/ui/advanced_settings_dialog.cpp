@@ -1,7 +1,5 @@
 #include "qt/ui/advanced_settings_dialog.h"
 
-#include "core/enum_utils.h"
-
 #include <QDialogButtonBox>
 #include <QFormLayout>
 #include <QGroupBox>
@@ -12,6 +10,18 @@
 #include <QVBoxLayout>
 
 namespace vidchopper {
+
+namespace {
+
+template <typename Enum>
+auto safe_enum_cast(int index, Enum max_valid, Enum fallback) -> Enum {
+    if (index < 0 || index > static_cast<int>(max_valid)) {
+        return fallback;
+    }
+    return static_cast<Enum>(index);
+}
+
+} // namespace
 
 AdvancedSettingsDialog::AdvancedSettingsDialog(QWidget* parent)
     : QDialog(parent) {
@@ -38,8 +48,7 @@ AdvancedSettingsDialog::AdvancedSettingsDialog(QWidget* parent)
     threads_spin_ = new QSpinBox {encoding_tab};
     threads_spin_->setRange(0, 64);
     threads_spin_->setSpecialValueText("Auto");
-    auto_gpu_checkbox_ =
-        new QCheckBox {"Automatically switch to HEVC NVENC when NVIDIA hardware is detected", encoding_tab};
+    auto_gpu_checkbox_ = new QCheckBox {"Automatically switch to HEVC NVENC when NVIDIA hardware is detected", encoding_tab};
 
     encoding_form->addRow("Video encoder", encoder_combo_);
     encoding_form->addRow("Audio handling", audio_combo_);
@@ -86,8 +95,7 @@ AdvancedSettingsDialog::AdvancedSettingsDialog(QWidget* parent)
     default_chapter_spin_->setRange(1, 255);
     min_chapter_spin_ = new QSpinBox {precision_tab};
     min_chapter_spin_->setRange(1, 60);
-    prefer_embedded_checkbox_ =
-        new QCheckBox {"Use embedded chapters as the initial plan when they exist", precision_tab};
+    prefer_embedded_checkbox_ = new QCheckBox {"Use embedded chapters as the initial plan when they exist", precision_tab};
     stop_on_error_checkbox_ = new QCheckBox {"Stop immediately if a chapter export fails", precision_tab};
     verify_durations_checkbox_ = new QCheckBox {"Verify each finished chapter duration with ffprobe", precision_tab};
     write_json_manifest_checkbox_ = new QCheckBox {"Write a JSON export manifest", precision_tab};
@@ -104,6 +112,21 @@ AdvancedSettingsDialog::AdvancedSettingsDialog(QWidget* parent)
     precision_form->addRow("", write_csv_manifest_checkbox_);
     tabs->addTab(precision_tab, "Precision");
 
+    auto* confirmations_tab = new QWidget {tabs};
+    auto* confirmations_layout = new QVBoxLayout {confirmations_tab};
+    confirm_remove_checkbox_ = new QCheckBox {"Confirm before removing selected chapters", confirmations_tab};
+    confirm_exit_checkbox_ = new QCheckBox {"Confirm before closing the app", confirmations_tab};
+    auto* warning_label = new QLabel {
+        "Warning: disabling confirmations removes the last safety check before deleting chapter rows or closing the window.",
+        confirmations_tab,
+    };
+    warning_label->setWordWrap(true);
+    confirmations_layout->addWidget(confirm_remove_checkbox_);
+    confirmations_layout->addWidget(confirm_exit_checkbox_);
+    confirmations_layout->addWidget(warning_label);
+    confirmations_layout->addStretch(1);
+    tabs->addTab(confirmations_tab, "Confirmations");
+
     auto* tools_tab = new QWidget {tabs};
     auto* tools_form = new QFormLayout {tools_tab};
     ffmpeg_path_edit_ = new QLineEdit {"ffmpeg", tools_tab};
@@ -114,24 +137,7 @@ AdvancedSettingsDialog::AdvancedSettingsDialog(QWidget* parent)
     tools_form->addRow("Extra ffmpeg args", extra_args_edit_);
     tabs->addTab(tools_tab, "Tools");
 
-    auto* confirmations_tab = new QWidget {tabs};
-    auto* confirmations_layout = new QVBoxLayout {confirmations_tab};
-    confirm_remove_checkbox_ = new QCheckBox {"Confirm before removing selected chapters", confirmations_tab};
-    confirm_exit_checkbox_ = new QCheckBox {"Confirm before exiting VidChopper", confirmations_tab};
-    auto* confirmations_warning = new QLabel {
-        "\u26a0 Unchecking a box disables that safety prompt \u2014 the action then happens "
-        "immediately, with no confirmation and no undo.",
-        confirmations_tab,
-    };
-    confirmations_warning->setWordWrap(true);
-    confirmations_layout->addWidget(confirm_remove_checkbox_);
-    confirmations_layout->addWidget(confirm_exit_checkbox_);
-    confirmations_layout->addWidget(confirmations_warning);
-    confirmations_layout->addStretch(1);
-    tabs->addTab(confirmations_tab, "Confirmations");
-
-    auto* buttons = new QDialogButtonBox {
-        QDialogButtonBox::Ok | QDialogButtonBox::Cancel | QDialogButtonBox::RestoreDefaults, this};
+    auto* buttons = new QDialogButtonBox {QDialogButtonBox::Ok | QDialogButtonBox::Cancel | QDialogButtonBox::RestoreDefaults, this};
     connect(buttons, &QDialogButtonBox::accepted, this, &QDialog::accept);
     connect(buttons, &QDialogButtonBox::rejected, this, &QDialog::reject);
     connect(buttons->button(QDialogButtonBox::RestoreDefaults), &QPushButton::clicked, this, [this]() {
@@ -187,13 +193,12 @@ auto AdvancedSettingsDialog::set_settings(const ExportSettings& settings) -> voi
 auto AdvancedSettingsDialog::settings() const -> ExportSettings {
     auto values = ExportSettings {};
 
-    values.encoder_kind = clamp_to_enum(encoder_combo_->currentIndex(), EncoderKind::HevcNvenc, EncoderKind::Auto);
-    values.audio_mode = clamp_to_enum(audio_combo_->currentIndex(), AudioMode::Aac, AudioMode::Copy);
-    values.container_mode = clamp_to_enum(container_combo_->currentIndex(), ContainerMode::Mkv, ContainerMode::Source);
-    values.overwrite_mode = clamp_to_enum(overwrite_combo_->currentIndex(), OverwriteMode::Skip, OverwriteMode::Ask);
-    values.seek_mode = clamp_to_enum(seek_combo_->currentIndex(), SeekMode::Fast, SeekMode::Accurate);
-    values.display_mode =
-        clamp_to_enum(display_combo_->currentIndex(), TimestampDisplayMode::Frames, TimestampDisplayMode::Milliseconds);
+    values.encoder_kind = safe_enum_cast(encoder_combo_->currentIndex(), EncoderKind::HevcNvenc, EncoderKind::Auto);
+    values.audio_mode = safe_enum_cast(audio_combo_->currentIndex(), AudioMode::Aac, AudioMode::Copy);
+    values.container_mode = safe_enum_cast(container_combo_->currentIndex(), ContainerMode::Mkv, ContainerMode::Source);
+    values.overwrite_mode = safe_enum_cast(overwrite_combo_->currentIndex(), OverwriteMode::Skip, OverwriteMode::Ask);
+    values.seek_mode = safe_enum_cast(seek_combo_->currentIndex(), SeekMode::Fast, SeekMode::Accurate);
+    values.display_mode = safe_enum_cast(display_combo_->currentIndex(), TimestampDisplayMode::Frames, TimestampDisplayMode::Milliseconds);
 
     values.default_chapter_count = static_cast<u8>(default_chapter_spin_->value());
     values.index_padding = static_cast<u8>(index_padding_spin_->value());

@@ -13,6 +13,18 @@ namespace vidchopper {
 
 namespace {
 
+auto normalize_source_path(const QString& source_path) -> std::filesystem::path {
+    auto path = std::filesystem::path {source_path.toStdWString()};
+    auto error = std::error_code {};
+    const auto canonical = std::filesystem::weakly_canonical(path, error);
+    if (!error) {
+        return canonical;
+    }
+
+    path = std::filesystem::absolute(path, error);
+    return error ? std::filesystem::path {source_path.toStdWString()} : path.lexically_normal();
+}
+
 auto rational_from_string(const QString& value) -> FrameRate {
     const auto parts = value.split('/');
     if (parts.size() != 2) {
@@ -82,7 +94,7 @@ auto FfprobeService::probe_video(const QString& ffprobe_path, const QString& sou
     const auto chapters = root["chapters"].toArray();
 
     auto metadata = VideoMetadata {};
-    metadata.source_path = std::filesystem::path(source_path.toStdWString());
+    metadata.source_path = normalize_source_path(source_path);
     const auto parsed_duration = seconds_string_to_ms(format["duration"].toString());
     metadata.duration_ms = parsed_duration.value_or(0);
 

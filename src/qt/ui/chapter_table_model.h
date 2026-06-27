@@ -25,6 +25,9 @@ public:
 
     auto set_chapters(std::vector<ChapterSegment> chapters) -> void;
     [[nodiscard]] auto chapters() const -> const std::vector<ChapterSegment>&;
+    [[nodiscard]] auto chapter_count() const -> int;
+    [[nodiscard]] auto append_row_index() const -> int;
+    [[nodiscard]] auto is_append_row(const QModelIndex& index) const -> bool;
     auto set_display_mode(TimestampDisplayMode mode) -> void;
     auto set_frame_rate(FrameRate frame_rate) -> void;
     auto append_chapter(u64 duration_ms) -> bool;
@@ -34,6 +37,7 @@ signals:
     void chapters_changed();
 
 private:
+    [[nodiscard]] auto chapter_at(int row) const -> const ChapterSegment*;
     [[nodiscard]] auto format_time(u64 milliseconds) const -> QString;
     [[nodiscard]] auto parse_time(const QString& value) const -> std::optional<u64>;
 

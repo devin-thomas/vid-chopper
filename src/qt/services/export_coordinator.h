@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/models.h"
+#include "qt/logging.h"
 
 #include <QByteArray>
 #include <QObject>
@@ -27,7 +28,7 @@ public:
     auto cancel() -> void;
 
 signals:
-    void log_message(const QString& message);
+    void log_message(LogCategory category, const QString& message);
     void progress_changed(int percent);
     void chapter_started(int current, int total, const QString& output_file);
     void finished(bool success, const QStringList& errors);

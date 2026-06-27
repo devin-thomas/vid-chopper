@@ -12,13 +12,16 @@
 
 #include <QAction>
 #include <QApplication>
+#include <QCheckBox>
 #include <QCloseEvent>
-#include <QDesktopServices>
 #include <QDir>
+#include <QDesktopServices>
 #include <QFileDialog>
+#include <QFont>
 #include <QFontMetrics>
 #include <QGridLayout>
 #include <QGroupBox>
+#include <QGuiApplication>
 #include <QHeaderView>
 #include <QHBoxLayout>
 #include <QLabel>
@@ -29,48 +32,143 @@
 #include <QPlainTextEdit>
 #include <QProgressBar>
 #include <QPushButton>
+#include <QScreen>
 #include <QSettings>
 #include <QSpinBox>
+#include <QScrollBar>
 #include <QStatusBar>
-#include <QString>
 #include <QTableView>
+#include <QToolButton>
 #include <QUrl>
 #include <QVBoxLayout>
+#include <QWheelEvent>
 
 #include <algorithm>
+#include <filesystem>
 
 namespace vidchopper {
 
+namespace {
+
+auto normalize_path_for_storage(const std::filesystem::path& path) -> std::filesystem::path {
+    auto error = std::error_code {};
+    const auto canonical = std::filesystem::weakly_canonical(path, error);
+    if (!error) {
+        return canonical;
+    }
+
+    return std::filesystem::absolute(path, error).lexically_normal();
+}
+
+auto display_path(const std::filesystem::path& path) -> QString {
+    return QDir::toNativeSeparators(QString::fromStdWString(path.wstring()));
+}
+
+auto translated_log_message(const LogEntry& entry) -> QString {
+    if (entry.category == LogCategory::ProcessRaw) {
+        return {};
+    }
+
+    if (entry.message.startsWith("Config file: ")) {
+        return entry.message;
+    }
+
+    if (entry.message.startsWith("Loaded ")) {
+        return QStringLiteral("Loaded video: %1").arg(entry.message.mid(QStringLiteral("Loaded ").size()));
+    }
+
+    if (entry.message.startsWith("Writing ")) {
+        return QStringLiteral("Preparing clip file: %1").arg(entry.message.mid(QStringLiteral("Writing ").size()));
+    }
+
+    if (entry.message.startsWith("Exporting ")) {
+        return QStringLiteral("Running ffmpeg for: %1").arg(entry.message.mid(QStringLiteral("Exporting ").size()));
+    }
+
+    if (entry.message == "Starting export.") {
+        return "Starting export.";
+    }
+
+    return entry.message;
+}
+
+} // namespace
+
 MainWindow::MainWindow(QWidget* parent)
     : QMainWindow(parent)
-    , settings_store_(new QSettings {this})
-    , settings_(load_export_settings(*settings_store_))
     , chapter_model_(new ChapterTableModel {this})
     , export_coordinator_(new ExportCoordinator {this}) {
     setWindowTitle("VidChopper");
     resize(1280, 860);
 
+    const auto settings_store = create_settings_store(this);
+    settings_store_ = settings_store.settings;
+    config_path_ = settings_store.config_path;
+    settings_ = load_export_settings(*settings_store_);
+
+    const auto stored_screen_size = load_last_screen_size(*settings_store_);
+    const auto screen_size = current_screen_size();
+    if (stored_screen_size != screen_size) {
+        zoom_percent_ = auto_zoom_percent_for_screen_height(screen_size.height());
+        save_zoom_percent(*settings_store_, zoom_percent_);
+        save_last_screen_size(*settings_store_, screen_size);
+        settings_store_->sync();
+    } else {
+        zoom_percent_ = load_zoom_percent(*settings_store_);
+    }
+
+    base_font_point_size_ = std::max(10, static_cast<int>(qApp->font().pointSizeF() > 0.0 ? qApp->font().pointSizeF() : 10.0));
+
     build_ui();
     create_menus();
     apply_settings_to_ui();
+    apply_zoom_percent(zoom_percent_, false);
     redetect_gpu();
+
+    qApp->installEventFilter(this);
 
     connect(chapter_model_, &ChapterTableModel::chapters_changed, this, [this]() {
         chapter_count_spin_->blockSignals(true);
-        chapter_count_spin_->setValue(chapter_model_->rowCount());
+        chapter_count_spin_->setValue(chapter_model_->chapter_count());
         chapter_count_spin_->blockSignals(false);
+    });
+
+    connect(chapter_table_, &QTableView::clicked, this, [this](const QModelIndex& index) {
+        if (chapter_model_->is_append_row(index)) {
+            add_chapter();
+        }
     });
 
     connect(export_coordinator_, &ExportCoordinator::log_message, this, &MainWindow::append_log_message);
     connect(export_coordinator_, &ExportCoordinator::progress_changed, progress_bar_, &QProgressBar::setValue);
-    connect(export_coordinator_,
-        &ExportCoordinator::chapter_started,
-        this,
-        [this](const int current, const int total, const QString& output_file) {
-            statusBar()->showMessage(QStringLiteral("Exporting chapter %1 of %2").arg(current).arg(total));
-            append_log_message(QStringLiteral("Writing %1").arg(QDir::toNativeSeparators(output_file)));
-        });
+    connect(export_coordinator_, &ExportCoordinator::chapter_started, this, [this](const int current, const int total, const QString& output_file) {
+        statusBar()->showMessage(QStringLiteral("Exporting chapter %1 of %2").arg(current).arg(total));
+        append_log_message(LogCategory::ExportProgress, QStringLiteral("Writing %1").arg(output_file));
+    });
     connect(export_coordinator_, &ExportCoordinator::finished, this, &MainWindow::handle_export_finished);
+
+    append_log_message(LogCategory::Config, QStringLiteral("Config file: %1").arg(config_path_));
+}
+
+auto MainWindow::closeEvent(QCloseEvent* event) -> void {
+    if (!confirm_exit()) {
+        event->ignore();
+        return;
+    }
+
+    QMainWindow::closeEvent(event);
+}
+
+auto MainWindow::eventFilter(QObject* watched, QEvent* event) -> bool {
+    if (event->type() == QEvent::Wheel) {
+        auto* wheel_event = static_cast<QWheelEvent*>(event);
+        if (wheel_event->modifiers().testFlag(Qt::ControlModifier)) {
+            apply_zoom_percent(zoom_percent_ + (wheel_event->angleDelta().y() > 0 ? 25 : -25), true);
+            return true;
+        }
+    }
+
+    return QMainWindow::eventFilter(watched, event);
 }
 
 auto MainWindow::create_menus() -> void {
@@ -79,6 +177,37 @@ auto MainWindow::create_menus() -> void {
     file_menu->addAction("Choose &Output Directory...", this, &MainWindow::choose_output_directory);
     file_menu->addSeparator();
     file_menu->addAction("E&xit", this, &QWidget::close, QKeySequence::Quit);
+
+    auto* view_menu = menuBar()->addMenu("&View");
+    auto* zoom_in_action = new QAction {"Zoom &In", this};
+    zoom_in_action->setShortcuts({QKeySequence {"Ctrl+="}, QKeySequence {"Ctrl++"}});
+    connect(zoom_in_action, &QAction::triggered, this, [this]() {
+        apply_zoom_percent(zoom_percent_ + 25, true);
+    });
+    view_menu->addAction(zoom_in_action);
+
+    auto* zoom_out_action = new QAction {"Zoom &Out", this};
+    zoom_out_action->setShortcut(QKeySequence {"Ctrl+-"});
+    connect(zoom_out_action, &QAction::triggered, this, [this]() {
+        apply_zoom_percent(zoom_percent_ - 25, true);
+    });
+    view_menu->addAction(zoom_out_action);
+
+    auto* reset_zoom_action = new QAction {"&Reset Zoom", this};
+    connect(reset_zoom_action, &QAction::triggered, this, [this]() {
+        apply_zoom_percent(auto_zoom_percent_for_screen_height(current_screen_size().height()), true);
+    });
+    view_menu->addAction(reset_zoom_action);
+    view_menu->addSeparator();
+
+    auto* preset_menu = view_menu->addMenu("Zoom &Presets");
+    for (auto zoom_percent = 50; zoom_percent <= 300; zoom_percent += 25) {
+        auto* preset_action = new QAction {QStringLiteral("%1%").arg(zoom_percent), this};
+        connect(preset_action, &QAction::triggered, this, [this, zoom_percent]() {
+            apply_zoom_percent(zoom_percent, true);
+        });
+        preset_menu->addAction(preset_action);
+    }
 
     auto* advanced_menu = menuBar()->addMenu("&Advanced");
     advanced_menu->addAction("&Settings...", this, &MainWindow::open_advanced_settings);
@@ -95,9 +224,11 @@ auto MainWindow::create_menus() -> void {
     auto* help_menu = menuBar()->addMenu("&Help");
     auto* about_vidchopper_action = new QAction {"&About VidChopper", this};
     connect(about_vidchopper_action, &QAction::triggered, this, [this]() {
-        QMessageBox::about(this,
+        QMessageBox::about(
+            this,
             "About VidChopper",
-            "VidChopper is a Windows-first Qt desktop application for turning one source video into chapter clips with ffmpeg.");
+            "VidChopper is a Windows-first Qt desktop application for turning one source video into chapter clips with ffmpeg."
+        );
     });
     help_menu->addAction(about_vidchopper_action);
 
@@ -131,8 +262,6 @@ auto MainWindow::build_ui() -> void {
     connect(distribute_button, &QPushButton::clicked, this, &MainWindow::redistribute_chapters);
     auto* import_button = new QPushButton {"Import Embedded Chapters", source_group};
     connect(import_button, &QPushButton::clicked, this, &MainWindow::import_embedded_chapters);
-    auto* add_button = new QPushButton {"Add Chapter", source_group};
-    connect(add_button, &QPushButton::clicked, this, &MainWindow::add_chapter);
     auto* remove_button = new QPushButton {"Remove Selected", source_group};
     connect(remove_button, &QPushButton::clicked, this, &MainWindow::remove_selected_chapters);
 
@@ -146,7 +275,6 @@ auto MainWindow::build_ui() -> void {
     source_layout->addWidget(chapter_count_spin_, 2, 1);
     source_layout->addWidget(distribute_button, 2, 2);
     source_layout->addWidget(import_button, 3, 0);
-    source_layout->addWidget(add_button, 3, 1);
     source_layout->addWidget(remove_button, 3, 2);
 
     auto* summary_group = new QGroupBox {"Session Summary", central};
@@ -165,54 +293,74 @@ auto MainWindow::build_ui() -> void {
     summary_layout->addWidget(new QLabel {"Encoder path"}, 2, 0);
     summary_layout->addWidget(encoder_value_label_, 2, 1, 1, 3);
 
+    auto* chapter_controls = new QWidget {central};
+    auto* chapter_controls_layout = new QHBoxLayout {chapter_controls};
+    chapter_controls_layout->setContentsMargins(0, 0, 0, 0);
+    auto* add_button = new QPushButton {"Add Chapter", chapter_controls};
+    connect(add_button, &QPushButton::clicked, this, &MainWindow::add_chapter);
+    chapter_controls_layout->addWidget(add_button);
+    chapter_controls_layout->addStretch(1);
+
     chapter_table_ = new QTableView {central};
     chapter_table_->setModel(chapter_model_);
+    chapter_table_->horizontalHeader()->setStretchLastSection(false);
+    chapter_table_->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
     chapter_table_->verticalHeader()->setVisible(false);
     chapter_table_->setSelectionBehavior(QAbstractItemView::SelectRows);
     chapter_table_->setSelectionMode(QAbstractItemView::ExtendedSelection);
     chapter_table_->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-
-    constexpr auto header_label_padding_px = 28;
-    auto* chapter_header = chapter_table_->horizontalHeader();
-    chapter_header->setSectionResizeMode(QHeaderView::Stretch);
-    const auto header_metrics = QFontMetrics {chapter_header->font()};
-    auto min_section_width = 0;
-    for (auto column = 0; column < chapter_model_->columnCount(); ++column) {
-        const auto label = chapter_model_->headerData(column, Qt::Horizontal).toString();
-        min_section_width = std::max(min_section_width, header_metrics.horizontalAdvance(label));
-    }
-    chapter_header->setMinimumSectionSize(min_section_width + header_label_padding_px);
+    chapter_table_->setHorizontalScrollMode(QAbstractItemView::ScrollPerPixel);
 
     auto* export_row = new QWidget {central};
     auto* export_layout = new QHBoxLayout {export_row};
     progress_bar_ = new QProgressBar {export_row};
     progress_bar_->setRange(0, 100);
     progress_bar_->setValue(0);
-    export_button_ = new QPushButton {export_row};
+    export_button_ = new QPushButton {"Export Chapters", export_row};
     connect(export_button_, &QPushButton::clicked, this, &MainWindow::start_or_cancel_export);
-    set_export_button_state(false);
     export_layout->addWidget(progress_bar_, 1);
     export_layout->addWidget(export_button_);
 
-    log_output_ = new QPlainTextEdit {central};
+    log_toggle_button_ = new QToolButton {central};
+    log_toggle_button_->setCheckable(true);
+    log_toggle_button_->setToolButtonStyle(Qt::ToolButtonTextOnly);
+    connect(log_toggle_button_, &QToolButton::toggled, this, &MainWindow::update_log_disclosure);
+
+    log_panel_ = new QWidget {central};
+    auto* log_layout = new QVBoxLayout {log_panel_};
+    log_layout->setContentsMargins(0, 0, 0, 0);
+    advanced_logs_checkbox_ = new QCheckBox {"Advanced", log_panel_};
+    connect(advanced_logs_checkbox_, &QCheckBox::toggled, this, [this]() {
+        refresh_log_view();
+    });
+    log_output_ = new QPlainTextEdit {log_panel_};
     log_output_->setReadOnly(true);
-    log_output_->setPlaceholderText("ffmpeg and ffprobe activity will appear here.");
+    log_output_->setPlaceholderText("Curated export activity appears here when logs are expanded.");
+    log_layout->addWidget(advanced_logs_checkbox_, 0, Qt::AlignLeft);
+    log_layout->addWidget(log_output_, 1);
 
     root_layout->addWidget(source_group);
     root_layout->addWidget(summary_group);
+    root_layout->addWidget(chapter_controls);
     root_layout->addWidget(chapter_table_, 1);
     root_layout->addWidget(export_row);
-    root_layout->addWidget(log_output_, 1);
+    root_layout->addWidget(log_toggle_button_);
+    root_layout->addWidget(log_panel_, 1);
 
     setCentralWidget(central);
     statusBar()->showMessage("Ready");
+    update_log_disclosure(false);
+    update_chapter_table_columns();
+    update_export_button_style();
 }
 
 auto MainWindow::open_video() -> void {
-    const auto file_path = QFileDialog::getOpenFileName(this,
+    const auto file_path = QFileDialog::getOpenFileName(
+        this,
         "Select a source video",
         QString {},
-        "Video Files (*.mp4 *.mkv *.mov *.m4v *.avi *.webm);;All Files (*.*)");
+        "Video Files (*.mp4 *.mkv *.mov *.m4v *.avi *.webm);;All Files (*.*)"
+    );
 
     if (!file_path.isEmpty()) {
         load_video(file_path);
@@ -220,11 +368,9 @@ auto MainWindow::open_video() -> void {
 }
 
 auto MainWindow::choose_output_directory() -> void {
-    const auto directory =
-        QFileDialog::getExistingDirectory(this, "Choose output directory", output_directory_edit_->text());
+    const auto directory = QFileDialog::getExistingDirectory(this, "Choose output directory", output_directory_edit_->text());
     if (!directory.isEmpty()) {
-        output_directory_edit_->setText(QDir::toNativeSeparators(directory));
-        output_directory_overridden_ = true;
+        set_output_directory_path(normalize_path_for_storage(std::filesystem::path {directory.toStdWString()}), true);
     }
 }
 
@@ -233,9 +379,7 @@ auto MainWindow::reset_output_directory() -> void {
         return;
     }
 
-    output_directory_edit_->setText(QDir::toNativeSeparators(
-        QString::fromStdWString(default_output_directory(metadata_->source_path, settings_).wstring())));
-    output_directory_overridden_ = false;
+    set_output_directory_path(default_output_directory(metadata_->source_path, settings_), false);
 }
 
 auto MainWindow::import_embedded_chapters() -> void {
@@ -257,8 +401,7 @@ auto MainWindow::redistribute_chapters() -> void {
         return;
     }
 
-    chapter_model_->set_chapters(
-        build_default_chapters(metadata_->duration_ms, static_cast<u8>(chapter_count_spin_->value())));
+    chapter_model_->set_chapters(build_default_chapters(metadata_->duration_ms, static_cast<u8>(chapter_count_spin_->value())));
     chapter_source_value_label_->setText("Evenly distributed from the current chapter count");
 }
 
@@ -268,36 +411,37 @@ auto MainWindow::add_chapter() -> void {
     }
 
     if (!chapter_model_->append_chapter(metadata_->duration_ms)) {
-        QMessageBox::warning(this,
-            "Cannot add chapter",
-            "VidChopper could not split the current layout into another chapter while keeping every segment at least one second long.");
+        QMessageBox::warning(this, "Cannot add chapter", "VidChopper could not split the current layout into another chapter while keeping every segment at least one second long.");
     }
 }
 
 auto MainWindow::remove_selected_chapters() -> void {
-    const auto selected = chapter_table_->selectionModel()->selectedRows();
-    if (selected.isEmpty()) {
+    const auto selected_rows = chapter_table_->selectionModel()->selectedRows();
+    auto removable_rows = QModelIndexList {};
+    for (const auto& index : selected_rows) {
+        if (!chapter_model_->is_append_row(index)) {
+            removable_rows.push_back(index);
+        }
+    }
+
+    if (removable_rows.isEmpty()) {
         return;
     }
 
     if (settings_.confirm_remove_chapters) {
-        const auto prompt = QStringLiteral("Remove %1 selected chapter(s)?").arg(selected.size());
-        if (QMessageBox::question(this, "Remove chapters", prompt) != QMessageBox::Yes) {
+        const auto reply = QMessageBox::warning(
+            this,
+            "Remove chapters",
+            QStringLiteral("Remove %1 selected chapter%2?").arg(removable_rows.size()).arg(removable_rows.size() == 1 ? "" : "s"),
+            QMessageBox::Yes | QMessageBox::No,
+            QMessageBox::No
+        );
+        if (reply != QMessageBox::Yes) {
             return;
         }
     }
 
-    chapter_model_->remove_rows(selected);
-}
-
-auto MainWindow::closeEvent(QCloseEvent* event) -> void {
-    if (settings_.confirm_exit
-        && QMessageBox::question(this, "Quit VidChopper", "Quit VidChopper?") != QMessageBox::Yes) {
-        event->ignore();
-        return;
-    }
-
-    QMainWindow::closeEvent(event);
+    chapter_model_->remove_rows(removable_rows);
 }
 
 auto MainWindow::open_advanced_settings() -> void {
@@ -309,6 +453,7 @@ auto MainWindow::open_advanced_settings() -> void {
 
     settings_ = dialog.settings();
     save_export_settings(*settings_store_, settings_);
+    settings_store_->sync();
     apply_settings_to_ui();
     if (!output_directory_overridden_ && metadata_.has_value()) {
         reset_output_directory();
@@ -319,7 +464,7 @@ auto MainWindow::open_advanced_settings() -> void {
 auto MainWindow::redetect_gpu() -> void {
     environment_ = GpuDetector::detect(QString::fromStdString(settings_.ffmpeg_path));
     refresh_summary();
-    append_log_message(resolve_encoder_summary());
+    append_log_message(LogCategory::App, resolve_encoder_summary());
 }
 
 auto MainWindow::start_or_cancel_export() -> void {
@@ -345,19 +490,28 @@ auto MainWindow::start_or_cancel_export() -> void {
         return;
     }
 
-    set_export_button_state(true);
+    append_log_message(LogCategory::ExportLifecycle, "Starting export.");
     progress_bar_->setValue(0);
-    append_log_message("Starting export.");
-
-    export_coordinator_->start_export(*metadata_, chapters, current_output_directory(), settings_, environment_);
+    export_coordinator_->start_export(
+        *metadata_,
+        chapters,
+        current_output_directory(),
+        settings_,
+        environment_
+    );
+    update_export_button_style();
 }
 
 auto MainWindow::handle_export_finished(const bool success, const QStringList& errors) -> void {
-    set_export_button_state(false);
     statusBar()->showMessage(success ? "Export complete" : "Export ended with errors");
+    update_export_button_style();
 
-    if (!errors.isEmpty()) {
-        append_log_message(errors.join('\n'));
+    for (const auto& error : errors) {
+        append_log_message(LogCategory::Error, error);
+    }
+
+    if (success) {
+        append_log_message(LogCategory::ExportLifecycle, "Export complete.");
     }
 
     if (success && settings_.open_output_directory_after_export) {
@@ -365,36 +519,16 @@ auto MainWindow::handle_export_finished(const bool success, const QStringList& e
     }
 }
 
-auto MainWindow::set_export_button_state(const bool exporting) -> void {
-    const auto sheet = [](const char* base, const char* hover, const char* pressed) -> QString {
-        return QString {R"(
-            QPushButton { background-color: %1; color: #ffffff; font-weight: bold; font-size: 15px;
-                          padding: 9px 24px; border: none; border-radius: 4px; min-width: 160px; }
-            QPushButton:hover { background-color: %2; }
-            QPushButton:pressed { background-color: %3; }
-        )"}
-            .arg(base, hover, pressed);
-    };
-
-    if (exporting) {
-        export_button_->setText("Cancel Export");
-        export_button_->setStyleSheet(sheet("#dc2626", "#b91c1c", "#991b1b"));
-    } else {
-        export_button_->setText("Export Chapters");
-        export_button_->setStyleSheet(sheet("#2563eb", "#1d4ed8", "#1e40af"));
-    }
-}
-
 auto MainWindow::load_video(const QString& source_path) -> void {
     const auto probe_result = FfprobeService::probe_video(QString::fromStdString(settings_.ffprobe_path), source_path);
     if (!probe_result.success) {
         QMessageBox::critical(this, "ffprobe error", probe_result.error_message);
-        append_log_message(probe_result.error_message);
+        append_log_message(LogCategory::Error, probe_result.error_message);
         return;
     }
 
     metadata_ = probe_result.metadata;
-    source_path_edit_->setText(QDir::toNativeSeparators(source_path));
+    source_path_edit_->setText(display_path(metadata_->source_path));
 
     if (settings_.prefer_embedded_chapters && !metadata_->embedded_chapters.empty()) {
         chapter_model_->set_chapters(metadata_->embedded_chapters);
@@ -404,21 +538,52 @@ auto MainWindow::load_video(const QString& source_path) -> void {
         chapter_source_value_label_->setText("Evenly distributed starter layout");
     }
 
-    chapter_count_spin_->setValue(chapter_model_->rowCount());
+    chapter_count_spin_->setValue(chapter_model_->chapter_count());
     chapter_model_->set_frame_rate(metadata_->frame_rate);
 
     if (!output_directory_overridden_) {
-        output_directory_edit_->setText(QDir::toNativeSeparators(
-            QString::fromStdWString(default_output_directory(metadata_->source_path, settings_).wstring())));
+        set_output_directory_path(default_output_directory(metadata_->source_path, settings_), false);
     }
 
     refresh_summary();
-    append_log_message(QStringLiteral("Loaded %1").arg(QDir::toNativeSeparators(source_path)));
+    append_log_message(LogCategory::Probe, QStringLiteral("Loaded %1").arg(display_path(metadata_->source_path)));
 }
 
 auto MainWindow::apply_settings_to_ui() -> void {
     chapter_count_spin_->setValue(settings_.default_chapter_count);
     chapter_model_->set_display_mode(settings_.display_mode);
+    update_chapter_table_columns();
+}
+
+auto MainWindow::apply_zoom_percent(const int zoom_percent, const bool persist) -> void {
+    zoom_percent_ = clamp_zoom_percent(zoom_percent);
+
+    auto font = qApp->font();
+    font.setPointSizeF(static_cast<double>(base_font_point_size_) * static_cast<double>(zoom_percent_) / 100.0);
+    qApp->setFont(font);
+
+    const auto control_padding = std::max(6, zoom_percent_ / 20);
+    const auto row_height = std::max(28, zoom_percent_ / 4);
+    const auto section_padding = std::max(4, zoom_percent_ / 30);
+    qApp->setStyleSheet(QStringLiteral(
+        "QPushButton, QToolButton { padding:%1px %2px; }"
+        "QLineEdit, QComboBox, QSpinBox { min-height:%3px; }"
+        "QHeaderView::section { padding:%4px; }"
+        "QProgressBar { min-height:%3px; }"
+        "QPlainTextEdit { font-family:'Cascadia Mono','Consolas','Courier New',monospace; }")
+        .arg(control_padding)
+        .arg(control_padding * 2)
+        .arg(row_height)
+        .arg(section_padding));
+
+    update_chapter_table_columns();
+    update_export_button_style();
+
+    if (persist) {
+        save_zoom_percent(*settings_store_, zoom_percent_);
+        save_last_screen_size(*settings_store_, current_screen_size());
+        settings_store_->sync();
+    }
 }
 
 auto MainWindow::refresh_summary() -> void {
@@ -435,12 +600,100 @@ auto MainWindow::refresh_summary() -> void {
     encoder_value_label_->setText(resolve_encoder_summary());
 }
 
-auto MainWindow::append_log_message(const QString& message) -> void {
-    log_output_->appendPlainText(message);
+auto MainWindow::update_chapter_table_columns() -> void {
+    auto widest_header = 0;
+    const auto metrics = QFontMetrics {chapter_table_->horizontalHeader()->font()};
+    for (auto column = 0; column < chapter_model_->columnCount(); ++column) {
+        widest_header = std::max(widest_header, metrics.horizontalAdvance(chapter_model_->headerData(column, Qt::Horizontal).toString()) + 28);
+    }
+
+    chapter_table_->horizontalHeader()->setMinimumSectionSize(widest_header);
+    chapter_table_->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+}
+
+auto MainWindow::update_export_button_style() -> void {
+    const auto exporting = export_coordinator_->busy();
+    const auto background = exporting ? QStringLiteral("#c75050") : QStringLiteral("#2f7fe7");
+    const auto border = exporting ? QStringLiteral("#e36c6c") : QStringLiteral("#5ca0ff");
+    const auto hover = exporting ? QStringLiteral("#da5f5f") : QStringLiteral("#4c91f2");
+    const auto radius = std::max(8, zoom_percent_ / 15);
+    const auto vertical_padding = std::max(8, zoom_percent_ / 18);
+    const auto horizontal_padding = std::max(18, zoom_percent_ / 8);
+    export_button_->setText(exporting ? "Cancel Export" : "Export Chapters");
+    export_button_->setStyleSheet(QStringLiteral(
+        "QPushButton { background:%1; color:white; border:1px solid %2; border-radius:%3px; font-weight:700; padding:%4px %5px; }"
+        "QPushButton:hover { background:%6; }")
+        .arg(background)
+        .arg(border)
+        .arg(radius)
+        .arg(vertical_padding)
+        .arg(horizontal_padding)
+        .arg(hover));
+}
+
+auto MainWindow::update_log_disclosure(const bool expanded) -> void {
+    log_toggle_button_->blockSignals(true);
+    log_toggle_button_->setChecked(expanded);
+    log_toggle_button_->blockSignals(false);
+    log_toggle_button_->setText(expanded ? "▾ Hide Logs" : "▸ Show Logs");
+    log_panel_->setVisible(expanded);
+}
+
+auto MainWindow::refresh_log_view() -> void {
+    auto lines = QStringList {};
+    for (const auto& entry : log_entries_) {
+        const auto translated = advanced_logs_checkbox_->isChecked() ? entry.message : translated_log_message(entry);
+        if (!translated.isEmpty()) {
+            lines.push_back(translated);
+        }
+    }
+
+    log_output_->setPlainText(lines.join('\n'));
+    auto* scrollbar = log_output_->verticalScrollBar();
+    if (scrollbar != nullptr) {
+        scrollbar->setValue(scrollbar->maximum());
+    }
+}
+
+auto MainWindow::append_log_message(const LogCategory category, const QString& message) -> void {
+    log_entries_.push_back(LogEntry {
+        .category = category,
+        .message = message,
+    });
+    refresh_log_view();
+}
+
+auto MainWindow::set_output_directory_path(const std::filesystem::path& path, const bool overridden) -> void {
+    output_directory_path_ = normalize_path_for_storage(path);
+    output_directory_edit_->setText(display_path(output_directory_path_));
+    output_directory_overridden_ = overridden;
+}
+
+auto MainWindow::confirm_exit() -> bool {
+    if (!settings_.confirm_exit) {
+        return true;
+    }
+
+    const auto prompt = export_coordinator_->busy()
+        ? QStringLiteral("An export is still running. Exit VidChopper anyway?")
+        : QStringLiteral("Exit VidChopper?");
+    const auto reply = QMessageBox::warning(
+        this,
+        "Confirm exit",
+        prompt,
+        QMessageBox::Yes | QMessageBox::No,
+        QMessageBox::No
+    );
+    return reply == QMessageBox::Yes;
+}
+
+auto MainWindow::current_screen_size() const -> QSize {
+    const auto* active_screen = screen() != nullptr ? screen() : QGuiApplication::primaryScreen();
+    return active_screen == nullptr ? QSize {0, 0} : active_screen->geometry().size();
 }
 
 auto MainWindow::current_output_directory() const -> std::filesystem::path {
-    return std::filesystem::path(output_directory_edit_->text().toStdWString()).make_preferred();
+    return output_directory_path_;
 }
 
 auto MainWindow::resolve_encoder_summary() const -> QString {

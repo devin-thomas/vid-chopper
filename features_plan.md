@@ -1,72 +1,79 @@
 # VidChopper Feature Plan — towards v0.2.0-alpha
 
-Living tracker for the v0.2.0-alpha feature round. **Update the status of each task as it
-completes** so work can be resumed easily. All code follows [`CODING_STYLE.md`](CODING_STYLE.md).
+Living tracker for the v0.2.0-alpha feature round. Update the status of each task as it
+completes so work can be resumed easily. The implementation in this checkout follows the
+repository coding style documented on the `devin/enum-bool-underlying` branch.
 
-Status legend: `TODO` · `IN PROGRESS` · `DONE (PR #n merged)`
+Status legend: `TODO` · `IN PROGRESS` · `DONE`
 
-Delivery: one PR per task, smallest-first (no interdependence assumed), config before scaling so
-zoom persists into the INI. Release is penultimate; the Pages rewrite is last.
+Linear tracking:
+- `VID-1` Task 0
+- `VID-2` Task 1
+- `VID-3` Task 2
+- `VID-4` Task 3
+- `VID-5` Task 4
+- `VID-6` Task 5
+- `VID-7` Task 6
+- `VID-8` Task 7
+- `VID-9` Task 8
+
+Delivery: one PR per task, smallest-first. Config lands before scaling so zoom persists into
+the INI. Release is penultimate; the Pages rewrite is last.
 
 ---
 
-## Task 0 — enum→bool underlying type — `DONE (PR #14 merged)`
+## Task 0 — enum→bool underlying type — `IN PROGRESS`
 Branch: `devin/enum-bool-underlying`
-- Any `enum class` with exactly **two** enumerators that currently has underlying type `u8` is
-  switched to underlying type `bool`. Values stay `0`/`1`, so `QSettings`/INI persistence is
-  byte-identical and `clamp_to_enum` still works (`static_cast<int>`/`static_cast<E>` over `{0,1}`).
+- Any `enum class` with exactly two enumerators that currently has underlying type `u8` is
+  switched to underlying type `bool`.
+- Values stay `0` and `1`, so `QSettings` and INI persistence is byte-identical and enum
+  clamping over `{0,1}` still works.
 - Affected: `TimestampDisplayMode`, `AudioMode`, `SeekMode`.
-- Unaffected (3 options): `EncoderKind`, `ContainerMode`, `OverwriteMode`.
-- Add `static_assert(std::is_same_v<std::underlying_type_t<E>, bool>)` locks; document the
-  two-state-enum rule in `CODING_STYLE.md` §12.
+- Unaffected: `EncoderKind`, `ContainerMode`, `OverwriteMode`.
 
-## Task 1 — Export button styling — `DONE (PR #15 merged)`
-- `Export Chapters` = bold, prominent **blue** (white text, larger); flips to **red**
-  `Cancel Export` while exporting. Styled for the dark theme.
+## Task 1 — Export button styling — `IN PROGRESS`
+- `Export Chapters` is a bold, prominent blue button in the dark theme.
+- While exporting, it flips to a red `Cancel Export` state.
 
-## Task 2 — Chapter table columns — `DONE (PR #16 merged)`
-- All 4 columns stretch to fill width evenly; per-column minimum = full header-label width
-  (so `Start (HH:MM:SS.mmm)` never truncates). Horizontal scrollbar disabled; columns cannot run
-  off-screen. Even stretch (not content-proportional).
+## Task 2 — Chapter table columns — `IN PROGRESS`
+- All 4 columns stretch to fill width evenly.
+- The table uses a minimum section width based on the widest header label.
+- Horizontal scrolling is disabled.
 
-## Task 3 — Path slash cleanup — `DONE (PR #17 merged)`
-- Display paths with native separators (`QDir::toNativeSeparators`); store canonical
-  `std::filesystem::path`; ffmpeg-arg paths stay OS-native. Source/output line edits + log lines.
-- Keep core platform-agnostic so Linux/macOS-native paths remain possible later.
+## Task 3 — Path slash cleanup — `IN PROGRESS`
+- Display paths with native separators.
+- Store canonical `std::filesystem::path` values at the Qt boundary.
+- Keep ffmpeg-facing paths OS-native.
 
 ## Task 4 — Confirmation dialogs — `IN PROGRESS`
-- Confirm on **Remove Selected** (any count) and on **both** exit paths (File > Exit + window X).
-- Add Advanced-settings toggles to disable each confirmation, wrapped in a warning.
+- Confirm on `Remove Selected`.
+- Confirm on both exit paths.
+- Add advanced-settings toggles to disable each confirmation with warning copy.
 
-## Task 5 — Chapter-list UX — `TODO`
-- Move the **Add Chapter** button to directly above the table.
-- Add a synthetic non-editable final row `➕ New Chapter…` that appends a chapter using the same
-  split-last-in-half logic as the button.
+## Task 5 — Chapter-list UX — `IN PROGRESS`
+- Move the `Add Chapter` button directly above the table.
+- Add a synthetic non-editable final row `➕ New Chapter…` that appends a chapter using the
+  same split-last-in-half logic as the button.
 
-## Task 6 — Explicit INI config file — `TODO`
-- Switch `QSettings` to an **INI file** `VidChopper.ini` **next to the executable**, created on
-  first launch if absent; fall back to `%APPDATA%/VidChopper/VidChopper.ini` if the exe dir is not
-  writable. Log where the config was loaded from. No registry migration.
+## Task 6 — Explicit INI config file — `IN PROGRESS`
+- Switch `QSettings` to `VidChopper.ini` next to the executable.
+- Fall back to `%APPDATA%/VidChopper/VidChopper.ini` if the executable directory is not writable.
+- Log where the config was loaded from.
 
-## Task 7 — Logging overhaul — `TODO`
-- Replace the always-on log box with a collapsible **`▸ Show Logs`** disclosure, collapsed by
-  default. When expanded, an **Advanced** checkbox:
-  - unchecked (default): only curated, user-friendly messages via a seeded translation dictionary.
-  - checked: full raw log (today's behavior).
-- Categories are an `enum class LogCategory { … }`; default view = allowlist + translations.
+## Task 7 — Logging overhaul — `IN PROGRESS`
+- Replace the always-on log box with a collapsible `▸ Show Logs` disclosure, collapsed by default.
+- When expanded, the `Advanced` checkbox switches between curated and raw logs.
+- Categories use `enum class LogCategory`.
 
-## Task 8 — UI scaling (View > Zoom) — `TODO`
-- App-wide UI scale factor (base font + key metrics/icon sizes via stylesheet).
-- Range 50%–300%, **25%** steps; `Ctrl+=` / `Ctrl+-` and `Ctrl+mouse-wheel`; **no** `Ctrl+0`.
-- New **View** menu **before Advanced**: Zoom In / Zoom Out / Reset (+ presets). Persist zoom.
-- Auto-default: 100% at 1080px tall, linear with primary screen logical height (2160→200%),
-  snapped to the nearest step; store the screen resolution in config and **re-apply auto** when the
-  current resolution differs from the stored one, otherwise respect the saved zoom.
+## Task 8 — UI scaling (View > Zoom) — `IN PROGRESS`
+- App-wide UI scale factor with 50%–300% zoom in 25% steps.
+- Support `Ctrl+=`, `Ctrl+-`, and `Ctrl+mouse-wheel`.
+- Add a `View` menu before `Advanced`.
+- Persist zoom and re-apply the auto zoom when the screen resolution changes.
 
-## Task 9 — Release v0.2.0-alpha — `TODO` (penultimate)
+## Task 9 — Release v0.2.0-alpha — `TODO`
 - After tasks 0–8 merge: cut prerelease `v0.2.0-alpha`; bump version references.
 
-## Task 10 — GitHub Pages → React/TypeScript — `TODO` (last)
-- Rewrite `docs/` as Vite + React + TypeScript + Tailwind; deploy via a GitHub Actions Pages
-  workflow. Match the clapperboard icon branding + dark theme; use Thumio's fonts and clean design
-  principles. Update to the new version + download links.
+## Task 10 — GitHub Pages → React/TypeScript — `TODO`
+- Rewrite `docs/` as Vite + React + TypeScript + Tailwind.
+- Deploy via a GitHub Actions Pages workflow and update the current download/version content.

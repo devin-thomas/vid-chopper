@@ -32,7 +32,7 @@ auto ChapterTableModel::rowCount(const QModelIndex& parent) const -> int {
         return 0;
     }
 
-    return static_cast<int>(chapters_.size());
+    return chapter_count() + 1;
 }
 
 auto ChapterTableModel::columnCount(const QModelIndex& parent) const -> int {
@@ -48,23 +48,39 @@ auto ChapterTableModel::data(const QModelIndex& index, const int role) const -> 
         return {};
     }
 
-    const auto& chapter = chapters_[static_cast<usize>(index.row())];
+    if (is_append_row(index)) {
+        if (role == Qt::DisplayRole && index.column() == Column::Name) {
+            return QString::fromUtf8("➕ New Chapter…");
+        }
+
+        if (role == Qt::ForegroundRole) {
+            return QBrush {QColor(120, 190, 255)};
+        }
+
+        return {};
+    }
+
+    const auto* chapter = chapter_at(index.row());
+    if (chapter == nullptr) {
+        return {};
+    }
+
     if (role == Qt::DisplayRole || role == Qt::EditRole) {
         switch (index.column()) {
         case Column::Name:
-            return QString::fromStdString(chapter.name);
+            return QString::fromStdString(chapter->name);
         case Column::Start:
-            return format_time(chapter.start_ms);
+            return format_time(chapter->start_ms);
         case Column::End:
-            return format_time(chapter.end_ms);
+            return format_time(chapter->end_ms);
         case Column::Duration:
-            return format_time(chapter.end_ms - chapter.start_ms);
+            return format_time(chapter->end_ms - chapter->start_ms);
         default:
             break;
         }
     }
 
-    if (role == Qt::ForegroundRole && chapter.end_ms <= chapter.start_ms) {
+    if (role == Qt::ForegroundRole && chapter->end_ms <= chapter->start_ms) {
         return QBrush {QColor(255, 120, 120)};
     }
 
@@ -97,7 +113,7 @@ auto ChapterTableModel::flags(const QModelIndex& index) const -> Qt::ItemFlags {
     }
 
     auto flags = Qt::ItemIsSelectable | Qt::ItemIsEnabled;
-    if (index.column() != Column::Duration) {
+    if (!is_append_row(index) && index.column() != Column::Duration) {
         flags |= Qt::ItemIsEditable;
     }
 
@@ -105,7 +121,7 @@ auto ChapterTableModel::flags(const QModelIndex& index) const -> Qt::ItemFlags {
 }
 
 auto ChapterTableModel::setData(const QModelIndex& index, const QVariant& value, const int role) -> bool {
-    if (!index.isValid() || role != Qt::EditRole || index.row() >= rowCount()) {
+    if (!index.isValid() || role != Qt::EditRole || is_append_row(index)) {
         return false;
     }
 
@@ -150,18 +166,30 @@ auto ChapterTableModel::chapters() const -> const std::vector<ChapterSegment>& {
     return chapters_;
 }
 
+auto ChapterTableModel::chapter_count() const -> int {
+    return static_cast<int>(chapters_.size());
+}
+
+auto ChapterTableModel::append_row_index() const -> int {
+    return chapter_count();
+}
+
+auto ChapterTableModel::is_append_row(const QModelIndex& index) const -> bool {
+    return index.row() == append_row_index();
+}
+
 auto ChapterTableModel::set_display_mode(const TimestampDisplayMode mode) -> void {
     display_mode_ = mode;
     emit headerDataChanged(Qt::Horizontal, Column::Start, Column::End);
-    if (rowCount() > 0) {
-        emit dataChanged(index(0, Column::Start), index(rowCount() - 1, Column::Duration));
+    if (chapter_count() > 0) {
+        emit dataChanged(index(0, Column::Start), index(chapter_count() - 1, Column::Duration));
     }
 }
 
 auto ChapterTableModel::set_frame_rate(const FrameRate frame_rate) -> void {
     frame_rate_ = frame_rate;
-    if (rowCount() > 0) {
-        emit dataChanged(index(0, Column::Start), index(rowCount() - 1, Column::Duration));
+    if (chapter_count() > 0) {
+        emit dataChanged(index(0, Column::Start), index(chapter_count() - 1, Column::Duration));
     }
 }
 
@@ -191,14 +219,14 @@ auto ChapterTableModel::append_chapter(const u64 duration_ms) -> bool {
     const auto split_point = last.start_ms + (last_duration / 2);
     last.end_ms = split_point;
 
-    beginInsertRows(QModelIndex {}, rowCount(), rowCount());
+    beginInsertRows(QModelIndex {}, chapter_count(), chapter_count());
     chapters_.push_back(ChapterSegment {
         .name = "Chapter " + std::to_string(chapters_.size() + 1),
         .start_ms = split_point,
         .end_ms = duration_ms,
     });
     endInsertRows();
-    emit dataChanged(index(rowCount() - 2, Column::Start), index(rowCount() - 2, Column::Duration));
+    emit dataChanged(index(chapter_count() - 2, Column::Start), index(chapter_count() - 2, Column::Duration));
     emit chapters_changed();
     return true;
 }
@@ -213,7 +241,7 @@ auto ChapterTableModel::remove_rows(const QModelIndexList& indices) -> void {
     std::ranges::sort(sorted_rows, std::greater {});
 
     for (const auto row : sorted_rows) {
-        if (row < 0 || row >= rowCount()) {
+        if (row < 0 || row >= chapter_count()) {
             continue;
         }
 
@@ -223,6 +251,14 @@ auto ChapterTableModel::remove_rows(const QModelIndexList& indices) -> void {
     }
 
     emit chapters_changed();
+}
+
+auto ChapterTableModel::chapter_at(const int row) const -> const ChapterSegment* {
+    if (row < 0 || row >= chapter_count()) {
+        return nullptr;
+    }
+
+    return &chapters_[static_cast<usize>(row)];
 }
 
 auto ChapterTableModel::format_time(const u64 milliseconds) const -> QString {

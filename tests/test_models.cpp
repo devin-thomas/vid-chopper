@@ -36,6 +36,16 @@ static_assert(FrameRate {.numerator = 24, .denominator = 1} == FrameRate {.numer
 static_assert(FrameRate {.numerator = 24, .denominator = 1} > FrameRate {.numerator = 23, .denominator = 1});
 
 auto main() -> int {
+    static_assert(std::is_same_v<std::underlying_type_t<TimestampDisplayMode>, bool>);
+    static_assert(std::is_same_v<std::underlying_type_t<AudioMode>, bool>);
+    static_assert(std::is_same_v<std::underlying_type_t<SeekMode>, bool>);
+    static_assert(static_cast<int>(TimestampDisplayMode::Milliseconds) == 0);
+    static_assert(static_cast<int>(TimestampDisplayMode::Frames) == 1);
+    static_assert(static_cast<int>(AudioMode::Copy) == 0);
+    static_assert(static_cast<int>(AudioMode::Aac) == 1);
+    static_assert(static_cast<int>(SeekMode::Accurate) == 0);
+    static_assert(static_cast<int>(SeekMode::Fast) == 1);
+
     // FrameRate::valid()
     {
         const auto valid_rate = FrameRate {.numerator = 24, .denominator = 1};
