@@ -26,7 +26,7 @@ The repository is structured as a production-oriented desktop application rather
 - A C++ core library for chapter validation, timestamp parsing and formatting, file naming, output planning, and `ffmpeg` command construction
 - Automatic preference for HEVC NVENC when an NVIDIA GPU and `hevc_nvenc` support are both detected, with x264 used otherwise
 - A staged test suite split into fast unit-level coverage and slower `ffmpeg` integration coverage
-- A static documentation site in `docs/` intended for GitHub Pages publication
+- A Vite + React + TypeScript + Tailwind Pages site in `docs/` for the product landing page, release portal, and developer docs
 
 ## Key Features
 
@@ -47,6 +47,9 @@ engineering guide. It is the source of truth for conventions (trailing return ty
 aliases, designated initializers, aggressive `const`/`constexpr`, modern C++20 idioms, the Qt-free
 core boundary, the hand-rolled test harness, and the `clang-format`/`clang-tidy` gates) and is
 expected to be followed rigorously.
+
+For the broader project handoff, workflow notes, feature-progress tracking, and future-agent guidance,
+start with [`knowledge/README.md`](knowledge/README.md).
 
 ## Build and Test From Source
 
@@ -124,7 +127,7 @@ Chapter boundaries can fall between keyframes. Re-encoding with x264 or HEVC NVE
 - `src/core/`: domain logic, timestamp handling, chapter planning, naming, and `ffmpeg` command construction
 - `src/qt/`: Qt application shell, settings persistence, chapter table model, ffprobe integration, GPU detection, and export coordination
 - `tests/`: staged native tests
-- `docs/`: GitHub Pages content
+- `docs/`: Vite + React + TypeScript + Tailwind GitHub Pages app
 - `packaging/windows/`: bundled release notes and third-party runtime notices for the portable zip
 - `.github/workflows/`: CI and release packaging definitions
 
