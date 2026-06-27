@@ -77,6 +77,11 @@ if(VIDCHOPPER_BUILD_GUI)
 
     qt_standard_project_setup()
 
+    set(VIDCHOPPER_WIN_RESOURCE "")
+    if(WIN32)
+        set(VIDCHOPPER_WIN_RESOURCE resources/app_icon.rc)
+    endif()
+
     add_executable(VidChopper
         src/qt/main.cpp
         src/qt/app_settings.cpp
@@ -95,6 +100,8 @@ if(VIDCHOPPER_BUILD_GUI)
         src/qt/ui/chapter_table_model.h
         src/qt/ui/main_window.cpp
         src/qt/ui/main_window.h
+        resources/app_icon.qrc
+        ${VIDCHOPPER_WIN_RESOURCE}
     )
 
     target_link_libraries(VidChopper PRIVATE Qt6::Core Qt6::Gui Qt6::Widgets vidchopper_core)
