@@ -20,11 +20,11 @@ Branch: `devin/enum-bool-underlying`
 - Add `static_assert(std::is_same_v<std::underlying_type_t<E>, bool>)` locks; document the
   two-state-enum rule in `CODING_STYLE.md` §12.
 
-## Task 1 — Export button styling — `IN PROGRESS`
+## Task 1 — Export button styling — `DONE (PR #15 merged)`
 - `Export Chapters` = bold, prominent **blue** (white text, larger); flips to **red**
   `Cancel Export` while exporting. Styled for the dark theme.
 
-## Task 2 — Chapter table columns — `TODO`
+## Task 2 — Chapter table columns — `IN PROGRESS`
 - All 4 columns stretch to fill width evenly; per-column minimum = full header-label width
   (so `Start (HH:MM:SS.mmm)` never truncates). Horizontal scrollbar disabled; columns cannot run
   off-screen. Even stretch (not content-proportional).
