@@ -13,6 +13,7 @@
 #include <QAction>
 #include <QApplication>
 #include <QDesktopServices>
+#include <QDir>
 #include <QFileDialog>
 #include <QFontMetrics>
 #include <QGridLayout>
@@ -66,7 +67,7 @@ MainWindow::MainWindow(QWidget* parent)
         this,
         [this](const int current, const int total, const QString& output_file) {
             statusBar()->showMessage(QStringLiteral("Exporting chapter %1 of %2").arg(current).arg(total));
-            append_log_message(QStringLiteral("Writing %1").arg(output_file));
+            append_log_message(QStringLiteral("Writing %1").arg(QDir::toNativeSeparators(output_file)));
         });
     connect(export_coordinator_, &ExportCoordinator::finished, this, &MainWindow::handle_export_finished);
 }
@@ -221,7 +222,7 @@ auto MainWindow::choose_output_directory() -> void {
     const auto directory =
         QFileDialog::getExistingDirectory(this, "Choose output directory", output_directory_edit_->text());
     if (!directory.isEmpty()) {
-        output_directory_edit_->setText(directory);
+        output_directory_edit_->setText(QDir::toNativeSeparators(directory));
         output_directory_overridden_ = true;
     }
 }
@@ -231,8 +232,8 @@ auto MainWindow::reset_output_directory() -> void {
         return;
     }
 
-    output_directory_edit_->setText(
-        QString::fromStdWString(default_output_directory(metadata_->source_path, settings_).wstring()));
+    output_directory_edit_->setText(QDir::toNativeSeparators(
+        QString::fromStdWString(default_output_directory(metadata_->source_path, settings_).wstring())));
     output_directory_overridden_ = false;
 }
 
@@ -370,7 +371,7 @@ auto MainWindow::load_video(const QString& source_path) -> void {
     }
 
     metadata_ = probe_result.metadata;
-    source_path_edit_->setText(source_path);
+    source_path_edit_->setText(QDir::toNativeSeparators(source_path));
 
     if (settings_.prefer_embedded_chapters && !metadata_->embedded_chapters.empty()) {
         chapter_model_->set_chapters(metadata_->embedded_chapters);
@@ -384,12 +385,12 @@ auto MainWindow::load_video(const QString& source_path) -> void {
     chapter_model_->set_frame_rate(metadata_->frame_rate);
 
     if (!output_directory_overridden_) {
-        output_directory_edit_->setText(
-            QString::fromStdWString(default_output_directory(metadata_->source_path, settings_).wstring()));
+        output_directory_edit_->setText(QDir::toNativeSeparators(
+            QString::fromStdWString(default_output_directory(metadata_->source_path, settings_).wstring())));
     }
 
     refresh_summary();
-    append_log_message(QStringLiteral("Loaded %1").arg(source_path));
+    append_log_message(QStringLiteral("Loaded %1").arg(QDir::toNativeSeparators(source_path)));
 }
 
 auto MainWindow::apply_settings_to_ui() -> void {
@@ -416,7 +417,7 @@ auto MainWindow::append_log_message(const QString& message) -> void {
 }
 
 auto MainWindow::current_output_directory() const -> std::filesystem::path {
-    return std::filesystem::path(output_directory_edit_->text().toStdWString());
+    return std::filesystem::path(output_directory_edit_->text().toStdWString()).make_preferred();
 }
 
 auto MainWindow::resolve_encoder_summary() const -> QString {

@@ -24,12 +24,12 @@ Branch: `devin/enum-bool-underlying`
 - `Export Chapters` = bold, prominent **blue** (white text, larger); flips to **red**
   `Cancel Export` while exporting. Styled for the dark theme.
 
-## Task 2 — Chapter table columns — `IN PROGRESS`
+## Task 2 — Chapter table columns — `DONE (PR #16 merged)`
 - All 4 columns stretch to fill width evenly; per-column minimum = full header-label width
   (so `Start (HH:MM:SS.mmm)` never truncates). Horizontal scrollbar disabled; columns cannot run
   off-screen. Even stretch (not content-proportional).
 
-## Task 3 — Path slash cleanup — `TODO`
+## Task 3 — Path slash cleanup — `IN PROGRESS`
 - Display paths with native separators (`QDir::toNativeSeparators`); store canonical
   `std::filesystem::path`; ffmpeg-arg paths stay OS-native. Source/output line edits + log lines.
 - Keep core platform-agnostic so Linux/macOS-native paths remain possible later.
