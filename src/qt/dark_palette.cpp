@@ -36,8 +36,7 @@ auto apply_dark_palette(QApplication& app) -> void {
         "QProgressBar { background-color: #202026; border: 1px solid #303038; border-radius: 4px; text-align: center; }"
         "QProgressBar::chunk { background-color: #4f85f5; }"
         "QGroupBox { border: 1px solid #303038; border-radius: 6px; margin-top: 10px; padding-top: 10px; }"
-        "QGroupBox::title { left: 10px; padding: 0 4px; }"
-    );
+        "QGroupBox::title { left: 10px; padding: 0 4px; }");
 }
 
 } // namespace vidchopper

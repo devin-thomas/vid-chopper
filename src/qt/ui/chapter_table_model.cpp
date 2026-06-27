@@ -7,6 +7,7 @@
 #include <QSet>
 
 #include <algorithm>
+#include <functional>
 
 namespace vidchopper {
 
@@ -70,7 +71,8 @@ auto ChapterTableModel::data(const QModelIndex& index, const int role) const -> 
     return {};
 }
 
-auto ChapterTableModel::headerData(const int section, const Qt::Orientation orientation, const int role) const -> QVariant {
+auto ChapterTableModel::headerData(
+    const int section, const Qt::Orientation orientation, const int role) const -> QVariant {
     if (orientation != Qt::Horizontal || role != Qt::DisplayRole) {
         return QAbstractTableModel::headerData(section, orientation, role);
     }
@@ -208,7 +210,7 @@ auto ChapterTableModel::remove_rows(const QModelIndexList& indices) -> void {
     }
 
     auto sorted_rows = rows.values();
-    std::sort(sorted_rows.begin(), sorted_rows.end(), std::greater {});
+    std::ranges::sort(sorted_rows, std::greater {});
 
     for (const auto row : sorted_rows) {
         if (row < 0 || row >= rowCount()) {
@@ -230,9 +232,8 @@ auto ChapterTableModel::format_time(const u64 milliseconds) const -> QString {
 }
 
 auto ChapterTableModel::parse_time(const QString& value) const -> std::optional<u64> {
-    return display_mode_ == TimestampDisplayMode::Frames
-        ? parse_frame_timecode(value.toStdString(), frame_rate_)
-        : parse_millisecond_timecode(value.toStdString());
+    return display_mode_ == TimestampDisplayMode::Frames ? parse_frame_timecode(value.toStdString(), frame_rate_)
+                                                         : parse_millisecond_timecode(value.toStdString());
 }
 
 } // namespace vidchopper

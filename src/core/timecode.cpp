@@ -2,10 +2,10 @@
 
 #include "core/string_utils.h"
 
+#include <charconv>
 #include <cmath>
-#include <iomanip>
-#include <limits>
-#include <sstream>
+#include <format>
+#include <system_error>
 #include <vector>
 
 namespace vidchopper {
@@ -31,21 +31,12 @@ auto split_timecode(std::string_view value, const char delimiter) -> std::vector
 }
 
 auto parse_unsigned(std::string_view value) -> std::optional<u64> {
-    if (value.empty()) {
-        return std::nullopt;
-    }
-
     auto result = u64 {0};
-    for (const auto character : value) {
-        if (character < '0' || character > '9') {
-            return std::nullopt;
-        }
-
-        const auto digit = static_cast<u64>(character - '0');
-        if (result > (std::numeric_limits<u64>::max() - digit) / 10) {
-            return std::nullopt;
-        }
-        result = (result * 10) + digit;
+    const auto* const first = value.data();
+    const auto* const last = first + value.size();
+    const auto [parse_end, error] = std::from_chars(first, last, result);
+    if (error != std::errc {} || parse_end != last) {
+        return std::nullopt;
     }
 
     return result;
@@ -57,7 +48,7 @@ struct HmsComponents {
     u64 seconds;
 };
 
-auto decompose_total_seconds(const u64 total_seconds) -> HmsComponents {
+constexpr auto decompose_total_seconds(const u64 total_seconds) noexcept -> HmsComponents {
     return HmsComponents {
         .hours = total_seconds / 3600,
         .minutes = (total_seconds / 60) % 60,
@@ -72,7 +63,8 @@ struct ParsedHmsSegments {
     std::string trailing_segment;
 };
 
-auto parse_hms_segments(std::string_view value, const usize min_segments, const usize max_segments) -> std::optional<ParsedHmsSegments> {
+auto parse_hms_segments(
+    std::string_view value, const usize min_segments, const usize max_segments) -> std::optional<ParsedHmsSegments> {
     const auto trimmed = trim_copy(value);
     if (trimmed.empty()) {
         return std::nullopt;
@@ -96,9 +88,8 @@ auto parse_hms_segments(std::string_view value, const usize min_segments, const 
         return std::nullopt;
     }
 
-    const auto seconds_str = (static_cast<usize>(seconds_index) < segments.size() - 1)
-        ? segments[seconds_index]
-        : std::string {};
+    const auto seconds_str =
+        (static_cast<usize>(seconds_index) < segments.size() - 1) ? segments[seconds_index] : std::string {};
 
     const auto& trailing = segments.back();
 
@@ -152,7 +143,7 @@ auto parse_millisecond_timecode(std::string_view value) -> std::optional<u64> {
 
     auto milliseconds = u64 {0};
     if (second_parts.size() == 2) {
-        const auto fraction = second_parts[1];
+        const auto& fraction = second_parts[1];
         if (fraction.empty() || fraction.size() > 3) {
             return std::nullopt;
         }
@@ -197,9 +188,10 @@ auto parse_frame_timecode(std::string_view value, const FrameRate& frame_rate) -
         return std::nullopt;
     }
 
-    const auto base_seconds = ((parsed->hours * 60) + parsed->minutes) * 60 + parsed->seconds;
+    const auto base_seconds = (((parsed->hours * 60) + parsed->minutes) * 60) + parsed->seconds;
     const auto total_frames = (base_seconds * fps) + *frames;
-    const auto milliseconds = static_cast<u64>(std::llround((static_cast<f64>(total_frames) * 1000.0) / static_cast<f64>(fps)));
+    const auto milliseconds =
+        static_cast<u64>(std::llround((static_cast<f64>(total_frames) * 1000.0) / static_cast<f64>(fps)));
 
     return milliseconds;
 }
@@ -208,12 +200,7 @@ auto format_millisecond_timecode(const u64 milliseconds) -> std::string {
     const auto hms = decompose_total_seconds(milliseconds / 1000);
     const auto remaining_ms = milliseconds % 1000;
 
-    auto builder = std::ostringstream {};
-    builder << std::setw(2) << std::setfill('0') << hms.hours << ':'
-            << std::setw(2) << std::setfill('0') << hms.minutes << ':'
-            << std::setw(2) << std::setfill('0') << hms.seconds << '.'
-            << std::setw(3) << std::setfill('0') << remaining_ms;
-    return builder.str();
+    return std::format("{:02}:{:02}:{:02}.{:03}", hms.hours, hms.minutes, hms.seconds, remaining_ms);
 }
 
 auto format_frame_timecode(const u64 milliseconds, const FrameRate& frame_rate) -> std::string {
@@ -222,16 +209,12 @@ auto format_frame_timecode(const u64 milliseconds, const FrameRate& frame_rate) 
         return "00:00:00:00";
     }
 
-    const auto total_frames = static_cast<u64>(std::llround((static_cast<f64>(milliseconds) * static_cast<f64>(fps)) / 1000.0));
+    const auto total_frames =
+        static_cast<u64>(std::llround((static_cast<f64>(milliseconds) * static_cast<f64>(fps)) / 1000.0));
     const auto frames = total_frames % fps;
     const auto hms = decompose_total_seconds(total_frames / fps);
 
-    auto builder = std::ostringstream {};
-    builder << std::setw(2) << std::setfill('0') << hms.hours << ':'
-            << std::setw(2) << std::setfill('0') << hms.minutes << ':'
-            << std::setw(2) << std::setfill('0') << hms.seconds << ':'
-            << std::setw(2) << std::setfill('0') << frames;
-    return builder.str();
+    return std::format("{:02}:{:02}:{:02}:{:02}", hms.hours, hms.minutes, hms.seconds, frames);
 }
 
 } // namespace vidchopper

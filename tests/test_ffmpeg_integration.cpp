@@ -77,9 +77,9 @@ auto join_command(const std::vector<std::string>& command) -> std::string {
 }
 
 auto probe_duration_ms(const std::filesystem::path& file_path) -> u64 {
-    const auto output = run_capture(
-        "ffprobe -v error -show_entries format=duration -of default=nokey=1:noprint_wrappers=1 " + quote(file_path.string())
-    );
+    const auto output =
+        run_capture("ffprobe -v error -show_entries format=duration -of default=nokey=1:noprint_wrappers=1 "
+            + quote(file_path.string()));
     const auto seconds = std::stod(output);
     return static_cast<u64>(seconds * 1000.0);
 }
@@ -138,12 +138,14 @@ auto main() -> int {
 
     for (auto index = u16 {0}; index < chapters.size(); ++index) {
         const auto output_path = output_path_for(metadata, chapters[index], index, output_directory, settings);
-        const auto command = build_ffmpeg_command(metadata, chapters[index], output_path, settings, EncoderEnvironment {});
+        const auto command =
+            build_ffmpeg_command(metadata, chapters[index], output_path, settings, EncoderEnvironment {});
         run_args_no_capture(command);
         test_support::expect_true(std::filesystem::exists(output_path), "chapter output should exist");
 
         const auto duration_ms = probe_duration_ms(output_path);
-        test_support::expect_true(duration_ms >= 1500 && duration_ms <= 2500, "chapter duration should stay close to two seconds");
+        test_support::expect_true(
+            duration_ms >= 1500 && duration_ms <= 2500, "chapter duration should stay close to two seconds");
     }
 
     std::filesystem::remove_all(root);

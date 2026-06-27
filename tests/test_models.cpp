@@ -5,6 +5,17 @@
 
 using namespace vidchopper;
 
+// Lock the constexpr/noexcept contract of the FrameRate accessors: these must
+// evaluate at compile time, not just at runtime.
+static_assert(FrameRate {.numerator = 24, .denominator = 1}.valid());
+static_assert(!FrameRate {}.valid());
+static_assert(FrameRate {.numerator = 24, .denominator = 1}.as_f64() == 24.0);
+static_assert(FrameRate {.numerator = 30000, .denominator = 1001}.display_frames_per_second() == 30);
+static_assert(FrameRate {.numerator = 1, .denominator = 4}.display_frames_per_second() == 1);
+static_assert(noexcept(FrameRate {}.valid()));
+static_assert(FrameRate {.numerator = 24, .denominator = 1} == FrameRate {.numerator = 24, .denominator = 1});
+static_assert(FrameRate {.numerator = 24, .denominator = 1} > FrameRate {.numerator = 23, .denominator = 1});
+
 auto main() -> int {
     // FrameRate::valid()
     {
@@ -39,25 +50,32 @@ auto main() -> int {
     // FrameRate::display_frames_per_second()
     {
         const auto rate_24 = FrameRate {.numerator = 24, .denominator = 1};
-        test_support::expect_eq(rate_24.display_frames_per_second(), static_cast<u32>(24), "24fps should display as 24");
+        test_support::expect_eq(
+            rate_24.display_frames_per_second(), static_cast<u32>(24), "24fps should display as 24");
 
         const auto rate_2997 = FrameRate {.numerator = 30000, .denominator = 1001};
-        test_support::expect_eq(rate_2997.display_frames_per_second(), static_cast<u32>(30), "29.97fps should round to 30");
+        test_support::expect_eq(
+            rate_2997.display_frames_per_second(), static_cast<u32>(30), "29.97fps should round to 30");
 
         const auto rate_2398 = FrameRate {.numerator = 24000, .denominator = 1001};
-        test_support::expect_eq(rate_2398.display_frames_per_second(), static_cast<u32>(24), "23.976fps should round to 24");
+        test_support::expect_eq(
+            rate_2398.display_frames_per_second(), static_cast<u32>(24), "23.976fps should round to 24");
 
         const auto rate_5994 = FrameRate {.numerator = 60000, .denominator = 1001};
-        test_support::expect_eq(rate_5994.display_frames_per_second(), static_cast<u32>(60), "59.94fps should round to 60");
+        test_support::expect_eq(
+            rate_5994.display_frames_per_second(), static_cast<u32>(60), "59.94fps should round to 60");
 
         const auto rate_25 = FrameRate {.numerator = 25, .denominator = 1};
-        test_support::expect_eq(rate_25.display_frames_per_second(), static_cast<u32>(25), "25fps should display as 25");
+        test_support::expect_eq(
+            rate_25.display_frames_per_second(), static_cast<u32>(25), "25fps should display as 25");
 
         const auto invalid_rate = FrameRate {};
-        test_support::expect_eq(invalid_rate.display_frames_per_second(), static_cast<u32>(0), "invalid rate should yield 0");
+        test_support::expect_eq(
+            invalid_rate.display_frames_per_second(), static_cast<u32>(0), "invalid rate should yield 0");
 
         const auto very_low = FrameRate {.numerator = 1, .denominator = 4};
-        test_support::expect_eq(very_low.display_frames_per_second(), static_cast<u32>(1), "sub-1fps should clamp to 1");
+        test_support::expect_eq(
+            very_low.display_frames_per_second(), static_cast<u32>(1), "sub-1fps should clamp to 1");
     }
 
     return 0;

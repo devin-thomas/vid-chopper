@@ -57,10 +57,13 @@ MainWindow::MainWindow(QWidget* parent)
 
     connect(export_coordinator_, &ExportCoordinator::log_message, this, &MainWindow::append_log_message);
     connect(export_coordinator_, &ExportCoordinator::progress_changed, progress_bar_, &QProgressBar::setValue);
-    connect(export_coordinator_, &ExportCoordinator::chapter_started, this, [this](const int current, const int total, const QString& output_file) {
-        statusBar()->showMessage(QStringLiteral("Exporting chapter %1 of %2").arg(current).arg(total));
-        append_log_message(QStringLiteral("Writing %1").arg(output_file));
-    });
+    connect(export_coordinator_,
+        &ExportCoordinator::chapter_started,
+        this,
+        [this](const int current, const int total, const QString& output_file) {
+            statusBar()->showMessage(QStringLiteral("Exporting chapter %1 of %2").arg(current).arg(total));
+            append_log_message(QStringLiteral("Writing %1").arg(output_file));
+        });
     connect(export_coordinator_, &ExportCoordinator::finished, this, &MainWindow::handle_export_finished);
 }
 
@@ -86,11 +89,9 @@ auto MainWindow::create_menus() -> void {
     auto* help_menu = menuBar()->addMenu("&Help");
     auto* about_vidchopper_action = new QAction {"&About VidChopper", this};
     connect(about_vidchopper_action, &QAction::triggered, this, [this]() {
-        QMessageBox::about(
-            this,
+        QMessageBox::about(this,
             "About VidChopper",
-            "VidChopper is a Windows-first Qt desktop application for turning one source video into chapter clips with ffmpeg."
-        );
+            "VidChopper is a Windows-first Qt desktop application for turning one source video into chapter clips with ffmpeg.");
     });
     help_menu->addAction(about_vidchopper_action);
 
@@ -190,12 +191,10 @@ auto MainWindow::build_ui() -> void {
 }
 
 auto MainWindow::open_video() -> void {
-    const auto file_path = QFileDialog::getOpenFileName(
-        this,
+    const auto file_path = QFileDialog::getOpenFileName(this,
         "Select a source video",
         QString {},
-        "Video Files (*.mp4 *.mkv *.mov *.m4v *.avi *.webm);;All Files (*.*)"
-    );
+        "Video Files (*.mp4 *.mkv *.mov *.m4v *.avi *.webm);;All Files (*.*)");
 
     if (!file_path.isEmpty()) {
         load_video(file_path);
@@ -203,7 +202,8 @@ auto MainWindow::open_video() -> void {
 }
 
 auto MainWindow::choose_output_directory() -> void {
-    const auto directory = QFileDialog::getExistingDirectory(this, "Choose output directory", output_directory_edit_->text());
+    const auto directory =
+        QFileDialog::getExistingDirectory(this, "Choose output directory", output_directory_edit_->text());
     if (!directory.isEmpty()) {
         output_directory_edit_->setText(directory);
         output_directory_overridden_ = true;
@@ -215,7 +215,8 @@ auto MainWindow::reset_output_directory() -> void {
         return;
     }
 
-    output_directory_edit_->setText(QString::fromStdWString(default_output_directory(metadata_->source_path, settings_).wstring()));
+    output_directory_edit_->setText(
+        QString::fromStdWString(default_output_directory(metadata_->source_path, settings_).wstring()));
     output_directory_overridden_ = false;
 }
 
@@ -238,7 +239,8 @@ auto MainWindow::redistribute_chapters() -> void {
         return;
     }
 
-    chapter_model_->set_chapters(build_default_chapters(metadata_->duration_ms, static_cast<u8>(chapter_count_spin_->value())));
+    chapter_model_->set_chapters(
+        build_default_chapters(metadata_->duration_ms, static_cast<u8>(chapter_count_spin_->value())));
     chapter_source_value_label_->setText("Evenly distributed from the current chapter count");
 }
 
@@ -248,7 +250,9 @@ auto MainWindow::add_chapter() -> void {
     }
 
     if (!chapter_model_->append_chapter(metadata_->duration_ms)) {
-        QMessageBox::warning(this, "Cannot add chapter", "VidChopper could not split the current layout into another chapter while keeping every segment at least one second long.");
+        QMessageBox::warning(this,
+            "Cannot add chapter",
+            "VidChopper could not split the current layout into another chapter while keeping every segment at least one second long.");
     }
 }
 
@@ -305,13 +309,7 @@ auto MainWindow::start_or_cancel_export() -> void {
     progress_bar_->setValue(0);
     append_log_message("Starting export.");
 
-    export_coordinator_->start_export(
-        *metadata_,
-        chapters,
-        current_output_directory(),
-        settings_,
-        environment_
-    );
+    export_coordinator_->start_export(*metadata_, chapters, current_output_directory(), settings_, environment_);
 }
 
 auto MainWindow::handle_export_finished(const bool success, const QStringList& errors) -> void {
@@ -350,7 +348,8 @@ auto MainWindow::load_video(const QString& source_path) -> void {
     chapter_model_->set_frame_rate(metadata_->frame_rate);
 
     if (!output_directory_overridden_) {
-        output_directory_edit_->setText(QString::fromStdWString(default_output_directory(metadata_->source_path, settings_).wstring()));
+        output_directory_edit_->setText(
+            QString::fromStdWString(default_output_directory(metadata_->source_path, settings_).wstring()));
     }
 
     refresh_summary();

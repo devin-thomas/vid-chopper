@@ -38,7 +38,8 @@ auto main() -> int {
         auto metadata = make_metadata();
         auto settings = ExportSettings {};
         settings.container_mode = ContainerMode::Mp4;
-        test_support::expect_eq(output_extension_for(metadata, settings), std::string {".mp4"}, "Mp4 mode should return .mp4");
+        test_support::expect_eq(
+            output_extension_for(metadata, settings), std::string {".mp4"}, "Mp4 mode should return .mp4");
     }
 
     // output_extension_for: ContainerMode::Mkv
@@ -46,7 +47,8 @@ auto main() -> int {
         auto metadata = make_metadata();
         auto settings = ExportSettings {};
         settings.container_mode = ContainerMode::Mkv;
-        test_support::expect_eq(output_extension_for(metadata, settings), std::string {".mkv"}, "Mkv mode should return .mkv");
+        test_support::expect_eq(
+            output_extension_for(metadata, settings), std::string {".mkv"}, "Mkv mode should return .mkv");
     }
 
     // output_extension_for: ContainerMode::Source preserves common extensions
@@ -55,7 +57,8 @@ auto main() -> int {
         metadata.source_extension = ".MOV";
         auto settings = ExportSettings {};
         settings.container_mode = ContainerMode::Source;
-        test_support::expect_eq(output_extension_for(metadata, settings), std::string {".mov"}, "Source mode should lowercase .MOV");
+        test_support::expect_eq(
+            output_extension_for(metadata, settings), std::string {".mov"}, "Source mode should lowercase .MOV");
     }
 
     // output_extension_for: Source mode falls back to .mp4 for uncommon extensions
@@ -64,7 +67,9 @@ auto main() -> int {
         metadata.source_extension = ".avi";
         auto settings = ExportSettings {};
         settings.container_mode = ContainerMode::Source;
-        test_support::expect_eq(output_extension_for(metadata, settings), std::string {".mp4"}, "Source mode should fall back to .mp4 for unsupported extension");
+        test_support::expect_eq(output_extension_for(metadata, settings),
+            std::string {".mp4"},
+            "Source mode should fall back to .mp4 for unsupported extension");
     }
 
     // output_extension_for: Source mode uses path extension when source_extension is empty
@@ -74,7 +79,9 @@ auto main() -> int {
         metadata.source_path = "video.mkv";
         auto settings = ExportSettings {};
         settings.container_mode = ContainerMode::Source;
-        test_support::expect_eq(output_extension_for(metadata, settings), std::string {".mkv"}, "Source mode should use path extension as fallback");
+        test_support::expect_eq(output_extension_for(metadata, settings),
+            std::string {".mkv"},
+            "Source mode should use path extension as fallback");
     }
 
     // output_extension_for: Source mode defaults to .mp4 when both are empty
@@ -84,7 +91,9 @@ auto main() -> int {
         metadata.source_path = "video";
         auto settings = ExportSettings {};
         settings.container_mode = ContainerMode::Source;
-        test_support::expect_eq(output_extension_for(metadata, settings), std::string {".mp4"}, "Source mode should default to .mp4 when no extension");
+        test_support::expect_eq(output_extension_for(metadata, settings),
+            std::string {".mp4"},
+            "Source mode should default to .mp4 when no extension");
     }
 
     // resolve_encoder: explicit HevcNvenc setting
@@ -92,7 +101,8 @@ auto main() -> int {
         auto settings = ExportSettings {};
         settings.encoder_kind = EncoderKind::HevcNvenc;
         const auto encoder = resolve_encoder(settings, EncoderEnvironment {});
-        test_support::expect_eq(encoder.video_codec, std::string {"hevc_nvenc"}, "explicit HevcNvenc should always select hevc_nvenc");
+        test_support::expect_eq(
+            encoder.video_codec, std::string {"hevc_nvenc"}, "explicit HevcNvenc should always select hevc_nvenc");
         test_support::expect_eq(encoder.kind, EncoderKind::HevcNvenc, "encoder kind should be HevcNvenc");
     }
 
@@ -101,8 +111,10 @@ auto main() -> int {
         auto settings = ExportSettings {};
         settings.encoder_kind = EncoderKind::Auto;
         settings.auto_detect_gpu = true;
-        const auto encoder = resolve_encoder(settings, EncoderEnvironment {.has_nvidia_gpu = false, .has_hevc_nvenc_encoder = false});
-        test_support::expect_eq(encoder.video_codec, std::string {"libx264"}, "Auto without GPU should fall back to libx264");
+        const auto encoder =
+            resolve_encoder(settings, EncoderEnvironment {.has_nvidia_gpu = false, .has_hevc_nvenc_encoder = false});
+        test_support::expect_eq(
+            encoder.video_codec, std::string {"libx264"}, "Auto without GPU should fall back to libx264");
     }
 
     // resolve_encoder: Auto with GPU but auto_detect_gpu disabled
@@ -110,8 +122,10 @@ auto main() -> int {
         auto settings = ExportSettings {};
         settings.encoder_kind = EncoderKind::Auto;
         settings.auto_detect_gpu = false;
-        const auto encoder = resolve_encoder(settings, EncoderEnvironment {.has_nvidia_gpu = true, .has_hevc_nvenc_encoder = true});
-        test_support::expect_eq(encoder.video_codec, std::string {"libx264"}, "Auto with GPU detection disabled should use libx264");
+        const auto encoder =
+            resolve_encoder(settings, EncoderEnvironment {.has_nvidia_gpu = true, .has_hevc_nvenc_encoder = true});
+        test_support::expect_eq(
+            encoder.video_codec, std::string {"libx264"}, "Auto with GPU detection disabled should use libx264");
     }
 
     // resolve_encoder: Auto with GPU but no hevc_nvenc encoder
@@ -119,8 +133,10 @@ auto main() -> int {
         auto settings = ExportSettings {};
         settings.encoder_kind = EncoderKind::Auto;
         settings.auto_detect_gpu = true;
-        const auto encoder = resolve_encoder(settings, EncoderEnvironment {.has_nvidia_gpu = true, .has_hevc_nvenc_encoder = false});
-        test_support::expect_eq(encoder.video_codec, std::string {"libx264"}, "Auto with GPU but no nvenc encoder should use libx264");
+        const auto encoder =
+            resolve_encoder(settings, EncoderEnvironment {.has_nvidia_gpu = true, .has_hevc_nvenc_encoder = false});
+        test_support::expect_eq(
+            encoder.video_codec, std::string {"libx264"}, "Auto with GPU but no nvenc encoder should use libx264");
     }
 
     // resolve_encoder: custom preset and quality settings
@@ -240,7 +256,8 @@ auto main() -> int {
         const auto cmd = build_ffmpeg_command(metadata, chapter, output, settings, EncoderEnvironment {});
         auto map_metadata_pos = std::find(cmd.begin(), cmd.end(), "-map_metadata");
         test_support::expect_true(map_metadata_pos != cmd.end(), "should include -map_metadata");
-        test_support::expect_eq(*(map_metadata_pos + 1), std::string {"-1"}, "copy_source_metadata=false should map to -1");
+        test_support::expect_eq(
+            *(map_metadata_pos + 1), std::string {"-1"}, "copy_source_metadata=false should map to -1");
     }
 
     // build_ffmpeg_command: copy_source_metadata=true copies metadata
@@ -254,7 +271,8 @@ auto main() -> int {
         const auto cmd = build_ffmpeg_command(metadata, chapter, output, settings, EncoderEnvironment {});
         auto map_metadata_pos = std::find(cmd.begin(), cmd.end(), "-map_metadata");
         test_support::expect_true(map_metadata_pos != cmd.end(), "should include -map_metadata");
-        test_support::expect_eq(*(map_metadata_pos + 1), std::string {"0"}, "copy_source_metadata=true should map to 0");
+        test_support::expect_eq(
+            *(map_metadata_pos + 1), std::string {"0"}, "copy_source_metadata=true should map to 0");
     }
 
     // build_ffmpeg_command: mp4 output adds movflags
@@ -289,7 +307,8 @@ auto main() -> int {
         settings.overwrite_mode = OverwriteMode::Overwrite;
         const auto output = std::filesystem::path {"output.mp4"};
         const auto cmd = build_ffmpeg_command(metadata, chapter, output, settings, EncoderEnvironment {});
-        test_support::expect_eq(cmd.front(), std::string {"C:/tools/ffmpeg.exe"}, "command should use custom ffmpeg path");
+        test_support::expect_eq(
+            cmd.front(), std::string {"C:/tools/ffmpeg.exe"}, "command should use custom ffmpeg path");
     }
 
     // output_path_for: sanitize_file_names=false skips per-name sanitization but final filename is still sanitized
@@ -308,7 +327,8 @@ auto main() -> int {
 
         const auto name_on = output_on.filename().string();
         const auto name_off = output_off.filename().string();
-        test_support::expect_true(name_on.find("chapter") != std::string::npos, "sanitize=true with empty name should use 'chapter' fallback");
+        test_support::expect_true(name_on.find("chapter") != std::string::npos,
+            "sanitize=true with empty name should use 'chapter' fallback");
         test_support::expect_true(name_on != name_off, "sanitize on/off should differ for empty chapter name");
     }
 
@@ -322,9 +342,12 @@ auto main() -> int {
         settings.container_mode = ContainerMode::Mp4;
         const auto output = output_path_for(metadata, chapter, 2, "/output", settings);
         const auto filename = output.filename().string();
-        test_support::expect_true(filename.find("my-video") != std::string::npos, "naming pattern should substitute %source%");
-        test_support::expect_true(filename.find("03") != std::string::npos, "naming pattern should substitute %index% (1-based)");
-        test_support::expect_true(filename.find("Outro") != std::string::npos, "naming pattern should substitute %name%");
+        test_support::expect_true(
+            filename.find("my-video") != std::string::npos, "naming pattern should substitute %source%");
+        test_support::expect_true(
+            filename.find("03") != std::string::npos, "naming pattern should substitute %index% (1-based)");
+        test_support::expect_true(
+            filename.find("Outro") != std::string::npos, "naming pattern should substitute %name%");
     }
 
     return 0;

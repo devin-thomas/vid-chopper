@@ -45,15 +45,19 @@ struct FrameRate {
     u32 numerator {0};
     u32 denominator {1};
 
-    [[nodiscard]] auto valid() const -> bool;
-    [[nodiscard]] auto as_f64() const -> f64;
-    [[nodiscard]] auto display_frames_per_second() const -> u32;
+    [[nodiscard]] constexpr auto valid() const noexcept -> bool;
+    [[nodiscard]] constexpr auto as_f64() const noexcept -> f64;
+    [[nodiscard]] constexpr auto display_frames_per_second() const noexcept -> u32;
+
+    [[nodiscard]] auto operator<=>(const FrameRate&) const = default;
 };
 
 struct ChapterSegment {
     std::string name;
     u64 start_ms {0};
     u64 end_ms {0};
+
+    [[nodiscard]] auto operator<=>(const ChapterSegment&) const = default;
 };
 
 struct VideoMetadata {
@@ -62,11 +66,15 @@ struct VideoMetadata {
     FrameRate frame_rate {};
     std::vector<ChapterSegment> embedded_chapters;
     std::string source_extension;
+
+    [[nodiscard]] auto operator==(const VideoMetadata&) const -> bool = default;
 };
 
 struct EncoderEnvironment {
     bool has_nvidia_gpu {false};
     bool has_hevc_nvenc_encoder {false};
+
+    [[nodiscard]] auto operator==(const EncoderEnvironment&) const -> bool = default;
 };
 
 struct ExportSettings {
@@ -104,19 +112,23 @@ struct ExportSettings {
     bool verify_output_durations {true};
     bool copy_source_metadata {true};
     bool prefer_embedded_chapters {true};
+
+    [[nodiscard]] auto operator==(const ExportSettings&) const -> bool = default;
 };
 
 struct ResolvedEncoder {
     EncoderKind kind {EncoderKind::X264};
     std::string video_codec;
     std::vector<std::string> arguments;
+
+    [[nodiscard]] auto operator==(const ResolvedEncoder&) const -> bool = default;
 };
 
-inline auto FrameRate::valid() const -> bool {
+constexpr auto FrameRate::valid() const noexcept -> bool {
     return numerator > 0 && denominator > 0;
 }
 
-inline auto FrameRate::as_f64() const -> f64 {
+constexpr auto FrameRate::as_f64() const noexcept -> f64 {
     if (!valid()) {
         return 0.0;
     }
@@ -124,11 +136,14 @@ inline auto FrameRate::as_f64() const -> f64 {
     return static_cast<f64>(numerator) / static_cast<f64>(denominator);
 }
 
-inline auto FrameRate::display_frames_per_second() const -> u32 {
+constexpr auto FrameRate::display_frames_per_second() const noexcept -> u32 {
     if (!valid()) {
         return 0;
     }
 
+    // std::lround is not constexpr before C++23; frame rates are always positive,
+    // so round-half-up via truncation is correct and keeps this function constexpr.
+    // NOLINTNEXTLINE(bugprone-incorrect-roundings)
     const auto rounded = static_cast<u32>(as_f64() + 0.5);
     return rounded == 0 ? 1 : rounded;
 }
