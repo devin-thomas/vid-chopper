@@ -40,6 +40,14 @@ The repository is structured as a production-oriented desktop application rather
 - Detailed advanced settings for encoding, naming, container choice, seek mode, manifest output, metadata handling, and tool paths
 - Always-dark interface without exposing theme switching
 
+## Contributing
+
+Before writing code, read [`CODING_STYLE.md`](CODING_STYLE.md) — the repository's coding-style and
+engineering guide. It is the source of truth for conventions (trailing return types, project type
+aliases, designated initializers, aggressive `const`/`constexpr`, modern C++20 idioms, the Qt-free
+core boundary, the hand-rolled test harness, and the `clang-format`/`clang-tidy` gates) and is
+expected to be followed rigorously.
+
 ## Build and Test From Source
 
 ### Source Build Prerequisites
