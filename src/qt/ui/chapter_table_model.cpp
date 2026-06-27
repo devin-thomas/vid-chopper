@@ -7,6 +7,7 @@
 #include <QSet>
 
 #include <algorithm>
+#include <functional>
 
 namespace vidchopper {
 
@@ -208,7 +209,7 @@ auto ChapterTableModel::remove_rows(const QModelIndexList& indices) -> void {
     }
 
     auto sorted_rows = rows.values();
-    std::sort(sorted_rows.begin(), sorted_rows.end(), std::greater {});
+    std::ranges::sort(sorted_rows, std::greater {});
 
     for (const auto row : sorted_rows) {
         if (row < 0 || row >= rowCount()) {

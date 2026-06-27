@@ -2,6 +2,9 @@
 #include "core/command_builder.h"
 #include "test_support.h"
 
+#include <algorithm>
+#include <ranges>
+
 using namespace vidchopper;
 
 auto main() -> int {
@@ -36,10 +39,10 @@ auto main() -> int {
 
     const auto command = build_ffmpeg_command(metadata, chapter, output_path, settings, EncoderEnvironment {});
     test_support::expect_eq(command.front(), std::string {"ffmpeg"}, "command should start with ffmpeg");
-    test_support::expect_true(std::find(command.begin(), command.end(), "libx264") != command.end(), "x264 codec should be selected");
-    test_support::expect_true(std::find(command.begin(), command.end(), "aac") != command.end(), "aac audio codec should be selected");
-    test_support::expect_true(std::find(command.begin(), command.end(), "-metadata") != command.end(), "command should include chapter title metadata");
-    test_support::expect_true(std::find(command.begin(), command.end(), "-pix_fmt") != command.end(), "extra ffmpeg args should be appended");
+    test_support::expect_true(std::ranges::find(command, "libx264") != command.end(), "x264 codec should be selected");
+    test_support::expect_true(std::ranges::find(command, "aac") != command.end(), "aac audio codec should be selected");
+    test_support::expect_true(std::ranges::find(command, "-metadata") != command.end(), "command should include chapter title metadata");
+    test_support::expect_true(std::ranges::find(command, "-pix_fmt") != command.end(), "extra ffmpeg args should be appended");
     test_support::expect_true(command.back().ends_with(".mov"), "source container mode should preserve common source extension");
 
     return 0;
