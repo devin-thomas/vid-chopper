@@ -29,6 +29,7 @@
 #include <QSettings>
 #include <QSpinBox>
 #include <QStatusBar>
+#include <QString>
 #include <QTableView>
 #include <QUrl>
 #include <QVBoxLayout>
@@ -171,8 +172,9 @@ auto MainWindow::build_ui() -> void {
     progress_bar_ = new QProgressBar {export_row};
     progress_bar_->setRange(0, 100);
     progress_bar_->setValue(0);
-    export_button_ = new QPushButton {"Export Chapters", export_row};
+    export_button_ = new QPushButton {export_row};
     connect(export_button_, &QPushButton::clicked, this, &MainWindow::start_or_cancel_export);
+    set_export_button_state(false);
     export_layout->addWidget(progress_bar_, 1);
     export_layout->addWidget(export_button_);
 
@@ -305,7 +307,7 @@ auto MainWindow::start_or_cancel_export() -> void {
         return;
     }
 
-    export_button_->setText("Cancel Export");
+    set_export_button_state(true);
     progress_bar_->setValue(0);
     append_log_message("Starting export.");
 
@@ -313,7 +315,7 @@ auto MainWindow::start_or_cancel_export() -> void {
 }
 
 auto MainWindow::handle_export_finished(const bool success, const QStringList& errors) -> void {
-    export_button_->setText("Export Chapters");
+    set_export_button_state(false);
     statusBar()->showMessage(success ? "Export complete" : "Export ended with errors");
 
     if (!errors.isEmpty()) {
@@ -322,6 +324,26 @@ auto MainWindow::handle_export_finished(const bool success, const QStringList& e
 
     if (success && settings_.open_output_directory_after_export) {
         QDesktopServices::openUrl(QUrl::fromLocalFile(output_directory_edit_->text()));
+    }
+}
+
+auto MainWindow::set_export_button_state(const bool exporting) -> void {
+    const auto sheet = [](const char* base, const char* hover, const char* pressed) -> QString {
+        return QString {R"(
+            QPushButton { background-color: %1; color: #ffffff; font-weight: bold; font-size: 15px;
+                          padding: 9px 24px; border: none; border-radius: 4px; min-width: 160px; }
+            QPushButton:hover { background-color: %2; }
+            QPushButton:pressed { background-color: %3; }
+        )"}
+            .arg(base, hover, pressed);
+    };
+
+    if (exporting) {
+        export_button_->setText("Cancel Export");
+        export_button_->setStyleSheet(sheet("#dc2626", "#b91c1c", "#991b1b"));
+    } else {
+        export_button_->setText("Export Chapters");
+        export_button_->setStyleSheet(sheet("#2563eb", "#1d4ed8", "#1e40af"));
     }
 }
 

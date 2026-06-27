@@ -46,6 +46,7 @@ private:
     auto apply_settings_to_ui() -> void;
     auto refresh_summary() -> void;
     auto append_log_message(const QString& message) -> void;
+    auto set_export_button_state(bool exporting) -> void;
     [[nodiscard]] auto current_output_directory() const -> std::filesystem::path;
     [[nodiscard]] auto resolve_encoder_summary() const -> QString;
 
