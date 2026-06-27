@@ -616,12 +616,12 @@ auto MainWindow::update_export_button_style() -> void {
     export_button_->setStyleSheet(QStringLiteral(
         "QPushButton { background:%1; color:white; border:1px solid %2; border-radius:%3px; font-weight:700; padding:%4px %5px; }"
         "QPushButton:hover { background:%6; }")
-            .arg(background)
-            .arg(border)
-            .arg(radius)
-            .arg(vertical_padding)
-            .arg(horizontal_padding)
-            .arg(hover));
+                                      .arg(background)
+                                      .arg(border)
+                                      .arg(radius)
+                                      .arg(vertical_padding)
+                                      .arg(horizontal_padding)
+                                      .arg(hover));
 }
 
 auto MainWindow::update_log_disclosure(const bool expanded) -> void {

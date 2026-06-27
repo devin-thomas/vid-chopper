@@ -179,8 +179,8 @@ auto ExportCoordinator::handle_process_finished(const int exit_code, const QProc
 
     if (exit_status != QProcess::NormalExit || exit_code != 0) {
         handle_failure(QStringLiteral("ffmpeg exited with code %1 while exporting %2")
-                .arg(exit_code)
-                .arg(exports_[current_index_].output_file));
+                           .arg(exit_code)
+                           .arg(exports_[current_index_].output_file));
         return;
     }
 
