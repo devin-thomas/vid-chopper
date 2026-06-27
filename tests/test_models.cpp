@@ -5,6 +5,17 @@
 
 using namespace vidchopper;
 
+// Lock the constexpr/noexcept contract of the FrameRate accessors: these must
+// evaluate at compile time, not just at runtime.
+static_assert(FrameRate {.numerator = 24, .denominator = 1}.valid());
+static_assert(!FrameRate {}.valid());
+static_assert(FrameRate {.numerator = 24, .denominator = 1}.as_f64() == 24.0);
+static_assert(FrameRate {.numerator = 30000, .denominator = 1001}.display_frames_per_second() == 30);
+static_assert(FrameRate {.numerator = 1, .denominator = 4}.display_frames_per_second() == 1);
+static_assert(noexcept(FrameRate {}.valid()));
+static_assert(FrameRate {.numerator = 24, .denominator = 1} == FrameRate {.numerator = 24, .denominator = 1});
+static_assert(FrameRate {.numerator = 24, .denominator = 1} > FrameRate {.numerator = 23, .denominator = 1});
+
 auto main() -> int {
     // FrameRate::valid()
     {

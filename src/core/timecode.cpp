@@ -48,7 +48,7 @@ struct HmsComponents {
     u64 seconds;
 };
 
-auto decompose_total_seconds(const u64 total_seconds) -> HmsComponents {
+constexpr auto decompose_total_seconds(const u64 total_seconds) noexcept -> HmsComponents {
     return HmsComponents {
         .hours = total_seconds / 3600,
         .minutes = (total_seconds / 60) % 60,

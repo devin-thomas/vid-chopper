@@ -5,6 +5,7 @@
 #include <QSettings>
 
 #include <array>
+#include <concepts>
 #include <cstddef>
 #include <string_view>
 
@@ -71,7 +72,7 @@ auto to_qkey(std::string_view key) -> QString {
     return QString::fromUtf8(key.data(), static_cast<qsizetype>(key.size()));
 }
 
-template <typename T, std::size_t N>
+template <std::unsigned_integral T, std::size_t N>
 auto load_uint_fields(QSettings& settings, ExportSettings& values, const std::array<SettingField<T>, N>& fields) -> void {
     for (const auto& field : fields) {
         values.*(field.member) = static_cast<T>(settings.value(to_qkey(field.key), values.*(field.member)).toUInt());

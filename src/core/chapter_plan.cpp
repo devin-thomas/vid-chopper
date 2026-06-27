@@ -6,7 +6,7 @@
 
 namespace vidchopper {
 
-auto ValidationResult::ok() const -> bool {
+auto ValidationResult::ok() const noexcept -> bool {
     return issues.empty();
 }
 
