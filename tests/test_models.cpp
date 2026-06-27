@@ -2,8 +2,27 @@
 #include "test_support.h"
 
 #include <cmath>
+#include <type_traits>
 
 using namespace vidchopper;
+
+// Two-state modes carry their state directly in a bool underlying type. The
+// enumerator values stay 0/1 so persisted QSettings/INI values round-trip
+// byte-identically with the previous u8-backed definitions.
+static_assert(std::is_same_v<std::underlying_type_t<TimestampDisplayMode>, bool>);
+static_assert(std::is_same_v<std::underlying_type_t<AudioMode>, bool>);
+static_assert(std::is_same_v<std::underlying_type_t<SeekMode>, bool>);
+static_assert(static_cast<int>(TimestampDisplayMode::Milliseconds) == 0);
+static_assert(static_cast<int>(TimestampDisplayMode::Frames) == 1);
+static_assert(static_cast<int>(AudioMode::Copy) == 0);
+static_assert(static_cast<int>(AudioMode::Aac) == 1);
+static_assert(static_cast<int>(SeekMode::Accurate) == 0);
+static_assert(static_cast<int>(SeekMode::Fast) == 1);
+
+// Multi-state modes remain u8-backed.
+static_assert(std::is_same_v<std::underlying_type_t<EncoderKind>, u8>);
+static_assert(std::is_same_v<std::underlying_type_t<ContainerMode>, u8>);
+static_assert(std::is_same_v<std::underlying_type_t<OverwriteMode>, u8>);
 
 // Lock the constexpr/noexcept contract of the FrameRate accessors: these must
 // evaluate at compile time, not just at runtime.

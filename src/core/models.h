@@ -8,9 +8,9 @@
 
 namespace vidchopper {
 
-enum class TimestampDisplayMode : u8 {
-    Milliseconds = 0,
-    Frames = 1,
+enum class TimestampDisplayMode : bool {
+    Milliseconds = false,
+    Frames = true,
 };
 
 enum class EncoderKind : u8 {
@@ -19,9 +19,9 @@ enum class EncoderKind : u8 {
     HevcNvenc = 2,
 };
 
-enum class AudioMode : u8 {
-    Copy = 0,
-    Aac = 1,
+enum class AudioMode : bool {
+    Copy = false,
+    Aac = true,
 };
 
 enum class ContainerMode : u8 {
@@ -36,9 +36,9 @@ enum class OverwriteMode : u8 {
     Skip = 2,
 };
 
-enum class SeekMode : u8 {
-    Accurate = 0,
-    Fast = 1,
+enum class SeekMode : bool {
+    Accurate = false,
+    Fast = true,
 };
 
 struct FrameRate {
