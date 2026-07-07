@@ -10,6 +10,8 @@ namespace vidchopper {
 
 namespace {
 
+using TokenList = std::vector<std::string>;
+
 constexpr auto command_chop = std::string_view {"chop"};
 constexpr auto flag_help = std::string_view {"--help"};
 constexpr auto short_flag_help = std::string_view {"-h"};
@@ -63,8 +65,7 @@ constexpr auto flag_threads = std::string_view {"--threads"};
     return token.starts_with('-');
 }
 
-[[nodiscard]] auto next_value(const std::vector<std::string>& tokens,
-    const usize index) -> std::optional<std::string_view> {
+[[nodiscard]] auto next_value(const TokenList& tokens, const usize index) -> std::optional<std::string_view> {
     const auto next_index = index + 1;
     if (next_index >= tokens.size() || is_flag(tokens[next_index])) {
         return std::nullopt;
