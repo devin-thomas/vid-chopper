@@ -33,13 +33,13 @@ namespace {
 // sequences. string_view arguments bind to both the ffmpeg_arg constants and
 // freshly built std::string values without forcing the caller to spell types.
 auto append(std::vector<std::string>& command, std::initializer_list<std::string_view> tokens) -> void {
-    for (const auto token : tokens) {
+    for (const std::string_view token : tokens) {
         command.emplace_back(token);
     }
 }
 
 auto safe_source_extension(const VideoMetadata& metadata) -> std::string {
-    auto extension = metadata.source_extension;
+    std::string extension = metadata.source_extension;
     if (extension.empty()) {
         extension = metadata.source_path.extension().string();
     }
@@ -70,7 +70,7 @@ auto append_audio_arguments(std::vector<std::string>& command, const ExportSetti
 } // namespace
 
 auto resolve_encoder(const ExportSettings& settings, const EncoderEnvironment& environment) -> ResolvedEncoder {
-    const auto use_nvenc = settings.encoder_kind == EncoderKind::HevcNvenc
+    const bool use_nvenc = settings.encoder_kind == EncoderKind::HevcNvenc
         || (settings.encoder_kind == EncoderKind::Auto && settings.auto_detect_gpu && environment.has_nvidia_gpu
             && environment.has_hevc_nvenc_encoder);
 
@@ -104,10 +104,10 @@ auto output_extension_for(const VideoMetadata& metadata, const ExportSettings& s
 auto output_path_for(const VideoMetadata& metadata,
     const ChapterSegment& chapter,
     const u16 chapter_index,
-    const std::filesystem::path& output_directory,
-    const ExportSettings& settings) -> std::filesystem::path {
-    auto chapter_name = settings.sanitize_file_names ? sanitize_file_component(chapter.name) : trim_copy(chapter.name);
-    auto file_name = replace_all_copy(settings.naming_pattern, "%name%", chapter_name);
+    const Path& output_directory,
+    const ExportSettings& settings) -> Path {
+    std::string chapter_name = settings.sanitize_file_names ? sanitize_file_component(chapter.name) : trim_copy(chapter.name);
+    std::string file_name = replace_all_copy(settings.naming_pattern, "%name%", chapter_name);
     file_name = replace_all_copy(file_name, "%source%", metadata.source_path.stem().string());
     file_name = replace_all_copy(
         file_name, "%index%", zero_padded_index(static_cast<u16>(chapter_index + 1), settings.index_padding));
@@ -118,19 +118,19 @@ auto output_path_for(const VideoMetadata& metadata,
 
 auto build_ffmpeg_command(const VideoMetadata& metadata,
     const ChapterSegment& chapter,
-    const std::filesystem::path& output_path,
+    const Path& output_path,
     const ExportSettings& settings,
     const EncoderEnvironment& environment) -> std::vector<std::string> {
-    auto command = std::vector<std::string> {};
+    std::vector<std::string> command {};
     command.reserve(32);
     command.emplace_back(settings.ffmpeg_path);
 
     append(command,
         {settings.overwrite_mode == OverwriteMode::Overwrite ? ffmpeg_arg::overwrite : ffmpeg_arg::no_overwrite});
 
-    const auto start_time = format_millisecond_timecode(chapter.start_ms);
-    const auto duration_ms = chapter.end_ms - chapter.start_ms;
-    const auto duration = format_millisecond_timecode(duration_ms);
+    const std::string start_time = format_millisecond_timecode(chapter.start_ms);
+    const u64 duration_ms = chapter.end_ms - chapter.start_ms;
+    const std::string duration = format_millisecond_timecode(duration_ms);
 
     if (settings.seek_mode == SeekMode::Fast) {
         append(command, {ffmpeg_arg::seek, start_time});
@@ -144,7 +144,7 @@ auto build_ffmpeg_command(const VideoMetadata& metadata,
 
     append(command, {ffmpeg_arg::duration, duration});
 
-    const auto resolved_encoder = resolve_encoder(settings, environment);
+    const ResolvedEncoder resolved_encoder = resolve_encoder(settings, environment);
     append(command, {ffmpeg_arg::video_codec, resolved_encoder.video_codec});
     command.insert(command.end(), resolved_encoder.arguments.begin(), resolved_encoder.arguments.end());
 
@@ -161,7 +161,7 @@ auto build_ffmpeg_command(const VideoMetadata& metadata,
         append(command, {ffmpeg_arg::movflags, "+faststart"});
     }
 
-    const auto extra_arguments = split_quoted_arguments(settings.extra_ffmpeg_args);
+    const std::vector<std::string> extra_arguments = split_quoted_arguments(settings.extra_ffmpeg_args);
     command.insert(command.end(), extra_arguments.begin(), extra_arguments.end());
     command.emplace_back(output_path.string());
 
