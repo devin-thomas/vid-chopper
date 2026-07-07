@@ -63,8 +63,8 @@ constexpr auto flag_threads = std::string_view {"--threads"};
     return token.starts_with('-');
 }
 
-[[nodiscard]] auto next_value(
-    const std::vector<std::string>& tokens, const usize index) -> std::optional<std::string_view> {
+[[nodiscard]] auto next_value(const std::vector<std::string>& tokens,
+    const usize index) -> std::optional<std::string_view> {
     const auto next_index = index + 1;
     if (next_index >= tokens.size() || is_flag(tokens[next_index])) {
         return std::nullopt;
