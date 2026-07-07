@@ -35,27 +35,30 @@ auto main() -> int {
         std::string {"VidChopper.ini"},
         "GUI settings path should remain VidChopper.ini");
 
-    test_support::expect_true(ensure_cli_settings_file(paths.cli_settings_path), "CLI settings file should be created");
-    test_support::expect_true(file_exists(paths.cli_settings_path), "VidChopperCLI.ini should exist after ensure");
-    test_support::expect_true(!file_exists(paths.gui_settings_path), "ensure should not create VidChopper.ini");
+    const bool cli_file_created = ensure_cli_settings_file(paths.cli_settings_path);
+    test_support::expect_true(cli_file_created, "CLI settings file should be created");
+    test_support::expect_true(file_exists(paths.cli_settings_path), "VidChopperCLI.ini should exist");
+    test_support::expect_true(!file_exists(paths.gui_settings_path), "ensure should not create GUI INI");
 
     write_text(paths.gui_settings_path, "x264_crf=40\nnvenc_cq=41\nffmpeg_threads=8\n");
     write_text(paths.cli_settings_path, "x264_crf=20\nstop_on_first_error=false\n");
 
     const CliResolvedSettings cli_only = load_cli_settings(paths);
-    test_support::expect_true(cli_only.loaded_cli_settings, "CLI settings should load from VidChopperCLI.ini");
-    test_support::expect_true(!cli_only.loaded_gui_settings, "GUI settings should not load without --use-gui-config");
+    const bool loaded_cli = cli_only.loaded_cli_settings;
+    const bool loaded_gui_without_opt_in = cli_only.loaded_gui_settings;
+    test_support::expect_true(loaded_cli, "CLI settings should load from VidChopperCLI.ini");
+    test_support::expect_true(!loaded_gui_without_opt_in, "GUI settings should require opt-in");
     test_support::expect_eq(cli_only.export_settings.x264_crf, u8 {20}, "CLI CRF should come from CLI INI");
-    test_support::expect_eq(cli_only.export_settings.nvenc_cq, u8 {22}, "GUI CQ should be ignored without opt-in");
-    test_support::expect_eq(cli_only.export_settings.ffmpeg_threads, u8 {0}, "GUI threads should be ignored without opt-in");
+    test_support::expect_eq(cli_only.export_settings.nvenc_cq, u8 {22}, "GUI CQ should be ignored");
+    test_support::expect_eq(cli_only.export_settings.ffmpeg_threads, u8 {0}, "GUI threads should be ignored");
     test_support::expect_true(!cli_only.export_settings.stop_on_first_error, "CLI INI should set stop behavior");
 
     const CliSettingsPaths paths_with_gui = resolve_cli_settings_paths(executable_path, true);
     const CliResolvedSettings with_gui = load_cli_settings(paths_with_gui);
-    test_support::expect_true(with_gui.loaded_gui_settings, "GUI settings should load only with --use-gui-config");
-    test_support::expect_eq(with_gui.export_settings.x264_crf, u8 {20}, "CLI INI should override imported GUI CRF");
+    test_support::expect_true(with_gui.loaded_gui_settings, "GUI settings should load only with opt-in");
+    test_support::expect_eq(with_gui.export_settings.x264_crf, u8 {20}, "CLI INI should override GUI CRF");
     test_support::expect_eq(with_gui.export_settings.nvenc_cq, u8 {41}, "GUI CQ should import when CLI is silent");
-    test_support::expect_eq(with_gui.export_settings.ffmpeg_threads, u8 {8}, "GUI threads should import when CLI is silent");
+    test_support::expect_eq(with_gui.export_settings.ffmpeg_threads, u8 {8}, "GUI threads should import");
 
     auto arguments = CliArguments {};
     arguments.crf = u8 {31};
@@ -68,8 +71,8 @@ auto main() -> int {
     test_support::expect_eq(flagged.x264_crf, u8 {31}, "CLI flag should override loaded CRF");
     test_support::expect_eq(flagged.nvenc_cq, u8 {32}, "CLI flag should override loaded CQ");
     test_support::expect_eq(flagged.ffmpeg_threads, u8 {2}, "CLI flag should override loaded threads");
-    test_support::expect_eq(flagged.x264_preset, std::string {"fast"}, "CLI preset should override x264 preset");
-    test_support::expect_eq(flagged.nvenc_preset, std::string {"fast"}, "CLI preset should override NVENC preset");
+    test_support::expect_eq(flagged.x264_preset, std::string {"fast"}, "CLI preset should override x264");
+    test_support::expect_eq(flagged.nvenc_preset, std::string {"fast"}, "CLI preset should override NVENC");
     test_support::expect_true(flagged.stop_on_first_error, "CLI flag should override stop behavior");
 
     std::filesystem::remove_all(root);
