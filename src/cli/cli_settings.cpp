@@ -139,7 +139,8 @@ auto apply_setting(ExportSettings& settings, const std::string_view key, const s
     auto line = std::string {};
     while (std::getline(stream, line)) {
         const std::string trimmed = trim_copy(line);
-        if (trimmed.empty() || trimmed.starts_with('#') || trimmed.starts_with(';') || trimmed.starts_with('[')) {
+        const bool is_comment = trimmed.starts_with('#') || trimmed.starts_with(';') || trimmed.starts_with('[');
+        if (trimmed.empty() || is_comment) {
             continue;
         }
 
