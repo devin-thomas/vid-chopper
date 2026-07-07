@@ -2,7 +2,6 @@
 
 #include "core/types.h"
 
-#include <filesystem>
 #include <string>
 #include <vector>
 
@@ -61,7 +60,7 @@ struct ChapterSegment {
 };
 
 struct VideoMetadata {
-    std::filesystem::path source_path;
+    Path source_path;
     u64 duration_ms {0};
     FrameRate frame_rate {};
     std::vector<ChapterSegment> embedded_chapters;

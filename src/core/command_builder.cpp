@@ -5,6 +5,7 @@
 
 #include <initializer_list>
 #include <string_view>
+#include <utility>
 
 namespace vidchopper {
 
@@ -12,18 +13,18 @@ namespace vidchopper {
 // mistyped literal and future refactors have a single source of truth.
 namespace ffmpeg_arg {
 
-constexpr std::string_view overwrite = "-y";
-constexpr std::string_view no_overwrite = "-n";
-constexpr std::string_view seek = "-ss";
-constexpr std::string_view input = "-i";
-constexpr std::string_view duration = "-t";
-constexpr std::string_view video_codec = "-c:v";
-constexpr std::string_view audio_codec = "-c:a";
-constexpr std::string_view audio_bitrate = "-b:a";
-constexpr std::string_view threads = "-threads";
-constexpr std::string_view map_metadata = "-map_metadata";
-constexpr std::string_view metadata = "-metadata";
-constexpr std::string_view movflags = "-movflags";
+constexpr auto overwrite = std::string_view {"-y"};
+constexpr auto no_overwrite = std::string_view {"-n"};
+constexpr auto seek = std::string_view {"-ss"};
+constexpr auto input = std::string_view {"-i"};
+constexpr auto duration = std::string_view {"-t"};
+constexpr auto video_codec = std::string_view {"-c:v"};
+constexpr auto audio_codec = std::string_view {"-c:a"};
+constexpr auto audio_bitrate = std::string_view {"-b:a"};
+constexpr auto threads = std::string_view {"-threads"};
+constexpr auto map_metadata = std::string_view {"-map_metadata"};
+constexpr auto metadata = std::string_view {"-metadata"};
+constexpr auto movflags = std::string_view {"-movflags"};
 
 } // namespace ffmpeg_arg
 
@@ -33,13 +34,13 @@ namespace {
 // sequences. string_view arguments bind to both the ffmpeg_arg constants and
 // freshly built std::string values without forcing the caller to spell types.
 auto append(std::vector<std::string>& command, std::initializer_list<std::string_view> tokens) -> void {
-    for (const auto token : tokens) {
+    for (const std::string_view token : tokens) {
         command.emplace_back(token);
     }
 }
 
 auto safe_source_extension(const VideoMetadata& metadata) -> std::string {
-    auto extension = metadata.source_extension;
+    std::string extension = metadata.source_extension;
     if (extension.empty()) {
         extension = metadata.source_path.extension().string();
     }
@@ -63,14 +64,15 @@ auto append_audio_arguments(std::vector<std::string>& command, const ExportSetti
         return;
     }
 
+    const std::string bitrate = std::to_string(settings.aac_bitrate_kbps) + "k";
     append(command, {ffmpeg_arg::audio_codec, "aac"});
-    append(command, {ffmpeg_arg::audio_bitrate, std::to_string(settings.aac_bitrate_kbps) + "k"});
+    append(command, {ffmpeg_arg::audio_bitrate, bitrate});
 }
 
 } // namespace
 
 auto resolve_encoder(const ExportSettings& settings, const EncoderEnvironment& environment) -> ResolvedEncoder {
-    const auto use_nvenc = settings.encoder_kind == EncoderKind::HevcNvenc
+    const bool use_nvenc = settings.encoder_kind == EncoderKind::HevcNvenc
         || (settings.encoder_kind == EncoderKind::Auto && settings.auto_detect_gpu && environment.has_nvidia_gpu
             && environment.has_hevc_nvenc_encoder);
 
@@ -104,13 +106,18 @@ auto output_extension_for(const VideoMetadata& metadata, const ExportSettings& s
 auto output_path_for(const VideoMetadata& metadata,
     const ChapterSegment& chapter,
     const u16 chapter_index,
-    const std::filesystem::path& output_directory,
-    const ExportSettings& settings) -> std::filesystem::path {
-    auto chapter_name = settings.sanitize_file_names ? sanitize_file_component(chapter.name) : trim_copy(chapter.name);
-    auto file_name = replace_all_copy(settings.naming_pattern, "%name%", chapter_name);
+    const Path& output_directory,
+    const ExportSettings& settings) -> Path {
+    std::string chapter_name = trim_copy(chapter.name);
+    if (settings.sanitize_file_names) {
+        chapter_name = sanitize_file_component(chapter.name);
+    }
+
+    std::string file_name = replace_all_copy(settings.naming_pattern, "%name%", chapter_name);
     file_name = replace_all_copy(file_name, "%source%", metadata.source_path.stem().string());
-    file_name = replace_all_copy(
-        file_name, "%index%", zero_padded_index(static_cast<u16>(chapter_index + 1), settings.index_padding));
+
+    const std::string index_text = zero_padded_index(static_cast<u16>(chapter_index + 1), settings.index_padding);
+    file_name = replace_all_copy(file_name, "%index%", index_text);
     file_name = sanitize_file_component(file_name);
 
     return output_directory / (file_name + output_extension_for(metadata, settings));
@@ -118,7 +125,7 @@ auto output_path_for(const VideoMetadata& metadata,
 
 auto build_ffmpeg_command(const VideoMetadata& metadata,
     const ChapterSegment& chapter,
-    const std::filesystem::path& output_path,
+    const Path& output_path,
     const ExportSettings& settings,
     const EncoderEnvironment& environment) -> std::vector<std::string> {
     auto command = std::vector<std::string> {};
@@ -128,9 +135,9 @@ auto build_ffmpeg_command(const VideoMetadata& metadata,
     append(command,
         {settings.overwrite_mode == OverwriteMode::Overwrite ? ffmpeg_arg::overwrite : ffmpeg_arg::no_overwrite});
 
-    const auto start_time = format_millisecond_timecode(chapter.start_ms);
-    const auto duration_ms = chapter.end_ms - chapter.start_ms;
-    const auto duration = format_millisecond_timecode(duration_ms);
+    const std::string start_time = format_millisecond_timecode(chapter.start_ms);
+    const u64 duration_ms = chapter.end_ms - chapter.start_ms;
+    const std::string duration = format_millisecond_timecode(duration_ms);
 
     if (settings.seek_mode == SeekMode::Fast) {
         append(command, {ffmpeg_arg::seek, start_time});
@@ -144,7 +151,7 @@ auto build_ffmpeg_command(const VideoMetadata& metadata,
 
     append(command, {ffmpeg_arg::duration, duration});
 
-    const auto resolved_encoder = resolve_encoder(settings, environment);
+    const ResolvedEncoder resolved_encoder = resolve_encoder(settings, environment);
     append(command, {ffmpeg_arg::video_codec, resolved_encoder.video_codec});
     command.insert(command.end(), resolved_encoder.arguments.begin(), resolved_encoder.arguments.end());
 
@@ -161,7 +168,7 @@ auto build_ffmpeg_command(const VideoMetadata& metadata,
         append(command, {ffmpeg_arg::movflags, "+faststart"});
     }
 
-    const auto extra_arguments = split_quoted_arguments(settings.extra_ffmpeg_args);
+    const std::vector<std::string> extra_arguments = split_quoted_arguments(settings.extra_ffmpeg_args);
     command.insert(command.end(), extra_arguments.begin(), extra_arguments.end());
     command.emplace_back(output_path.string());
 

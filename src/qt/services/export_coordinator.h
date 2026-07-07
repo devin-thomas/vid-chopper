@@ -8,6 +8,7 @@
 #include <QProcess>
 #include <QStringList>
 
+#include <cstddef>
 #include <filesystem>
 #include <vector>
 
@@ -62,7 +63,7 @@ private:
     ExportSettings settings_;
     std::filesystem::path output_directory_;
 
-    usize current_index_ {0};
+    std::size_t current_index_ {0};
     u64 total_duration_ms_ {0};
     u64 completed_duration_ms_ {0};
     bool busy_ {false};

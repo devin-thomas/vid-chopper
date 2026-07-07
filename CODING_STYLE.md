@@ -144,15 +144,22 @@ Units belong in names: milliseconds are `*_ms`, kbps is `*_kbps`, seconds `*_sec
 
 ---
 
-## 7. Fixed-width type aliases
+## 7. Fixed-width type aliases and standard sizes
 
-Use the project aliases from `core/types.h`, not raw `int`/`unsigned`/`size_t`:
+Use the project aliases from `core/types.h`, not raw `int`/`unsigned`:
 
 ```
-u8 u16 u32 u64   i8 i16 i32 i64   usize   f64
+u8 u16 u32 u64   i8 i16 i32 i64   f64   Path
 ```
 
 - Pick the smallest type that fits the domain (`u8 default_chapter_count`, `u16 aac_bitrate_kbps`).
+- Use `std::size_t` for STL container sizes, string positions, `reserve`, and indexes that are
+  directly compared with `.size()` or `.find()` results. Do not hide this behind a project alias.
+- Use `std::ptrdiff_t` for portable signed sizes when signed size math is genuinely required;
+  `ssize_t` is POSIX-only and should not appear in portable Windows-targeted C++.
+- Use `u64` for domain quantities that are conceptually 64-bit values, such as timestamps,
+  durations, byte counts, or media sizes. Do not use `u64` merely because a container size happens
+  to be 64-bit on current targets.
 - Convert **explicitly** at boundaries with `static_cast`; never rely on implicit narrowing.
   Qt APIs use `int`, so casting at the Qt boundary is normal and expected
   (`static_cast<u8>(chapter_count_spin_->value())`).
@@ -161,16 +168,22 @@ u8 u16 u32 u64   i8 i16 i32 i64   usize   f64
 
 ## 8. "Almost always auto" with typed braced init
 
-Declare with `auto` and a typed braced initializer rather than a leading type:
+Declare with `auto` and a typed braced initializer rather than a leading type when the right-hand
+side names the type directly:
 
 ```cpp
 auto total = u64 {0};
 auto names = std::vector<std::string> {};
 auto dialog = AdvancedSettingsDialog {this};
+auto index = std::size_t {0};
 ```
 
 Not `u64 total = 0;` or `std::vector<std::string> names;`. The type is on the right, the
 initializer is braced, and there is a space before `{`.
+
+Do not use `auto` when the type is only implied by another variable or function return. Prefer the
+explicit leading type in cases like `const char* const first = text.data();` or
+`const std::optional<u64> parsed = parse_unsigned(value);`.
 
 ---
 
@@ -337,7 +350,7 @@ ctest --test-dir build/core-release -C Release -L slow --output-on-failure   # n
 ## 17. Paths & filesystem
 
 - Represent paths as `std::filesystem::path` in the core; convert to/from `QString` only at the
-  Qt boundary.
+  Qt boundary. The project-level `Path` alias is allowed when it keeps signatures readable.
 - **Normalize slash direction.** Do not concatenate path strings with mixed `/` and `\`. Build
   paths with `std::filesystem::path` operators (`/`) or Qt's `QDir`, and present a single,
   consistent separator to the user. When displaying a path, normalize it

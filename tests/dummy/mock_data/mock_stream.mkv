@@ -1,0 +1,2 @@
+This is a placeholder file used for CLI parser and path-planning tests.
+It is not a playable video and should not be used by ffmpeg-backed integration tests.

@@ -1,11 +1,13 @@
 #include "core/chapter_plan.h"
 #include "test_support.h"
 
+#include <cstddef>
+
 using namespace vidchopper;
 
 auto main() -> int {
     const auto chapters = build_default_chapters(120000, 6);
-    test_support::expect_eq(chapters.size(), static_cast<usize>(6), "default chapter count should be six");
+    test_support::expect_eq(chapters.size(), static_cast<std::size_t>(6), "default chapter count should be six");
     test_support::expect_eq(chapters.front().start_ms, 0ULL, "first chapter should start at zero");
     test_support::expect_eq(chapters.back().end_ms, 120000ULL, "last chapter should end at source duration");
 
@@ -24,8 +26,9 @@ auto main() -> int {
         invalid.issues.size() >= 3, "validation should report overlap, short duration, and blank name");
 
     const auto compact_chapters = build_default_chapters(4500, 6);
-    test_support::expect_eq(
-        compact_chapters.size(), static_cast<usize>(4), "short clips should not produce sub-second default chapters");
+    test_support::expect_eq(compact_chapters.size(),
+        static_cast<std::size_t>(4),
+        "short clips should not produce sub-second default chapters");
 
     return 0;
 }
