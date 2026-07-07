@@ -5,7 +5,6 @@
 #include <array>
 #include <cstddef>
 #include <cstdio>
-#include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <process.h>
@@ -45,11 +44,6 @@ auto run_capture(const std::string& command) -> std::string {
     return output;
 }
 
-auto run_no_capture(const std::string& command) -> void {
-    const auto exit_code = std::system(command.c_str());
-    test_support::expect_eq(exit_code, 0, "command should succeed");
-}
-
 auto run_args_no_capture(const std::vector<std::string>& command) -> void {
     auto argv = std::vector<char*> {};
     argv.reserve(command.size() + 1);
@@ -62,19 +56,6 @@ auto run_args_no_capture(const std::vector<std::string>& command) -> void {
 
     const auto exit_code = _spawnvp(_P_WAIT, command.front().c_str(), argv.data());
     test_support::expect_true(exit_code == 0, "argv command should succeed");
-}
-
-auto join_command(const std::vector<std::string>& command) -> std::string {
-    auto result = std::string {};
-    for (auto index = std::size_t {0}; index < command.size(); ++index) {
-        if (index > 0) {
-            result.push_back(' ');
-        }
-
-        result += quote(command[index]);
-    }
-
-    return result;
 }
 
 auto probe_duration_ms(const std::filesystem::path& file_path) -> u64 {
@@ -142,7 +123,7 @@ auto main() -> int {
         const auto chapter_index = static_cast<u16>(index);
         const auto output_path = output_path_for(metadata, chapters[index], chapter_index, output_directory, settings);
         const auto command = build_ffmpeg_command(metadata, chapters[index], output_path, settings, environment);
-        run_no_capture(join_command(command));
+        run_args_no_capture(command);
         test_support::expect_true(std::filesystem::exists(output_path), "expected output file to be created");
         const auto duration_ms = probe_duration_ms(output_path);
         test_support::expect_true(duration_ms >= 1500 && duration_ms <= 2500, "output duration should be about 2s");
