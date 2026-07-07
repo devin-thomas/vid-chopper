@@ -15,17 +15,17 @@ auto build_default_chapters(const u64 duration_ms, const u8 requested_count) -> 
         return {};
     }
 
-    const u64 max_count = static_cast<u64>(requested_count);
-    const u64 safe_count = std::min<u64>(max_count, duration_ms / 1000);
+    const auto max_count = static_cast<u64>(requested_count);
+    const auto safe_count = std::min<u64>(max_count, duration_ms / 1000);
     if (safe_count == 0) {
         return {};
     }
 
-    std::vector<ChapterSegment> chapters {};
+    auto chapters = std::vector<ChapterSegment> {};
     chapters.reserve(static_cast<usize>(safe_count));
 
-    u64 start_ms {0};
-    for (u64 index {0}; index < safe_count; ++index) {
+    auto start_ms = u64 {0};
+    for (auto index = u64 {0}; index < safe_count; ++index) {
         const bool is_last = index + 1 == safe_count;
         const u64 end_ms = is_last ? duration_ms : ((duration_ms * (index + 1)) / safe_count);
 
@@ -44,7 +44,7 @@ auto build_default_chapters(const u64 duration_ms, const u8 requested_count) -> 
 auto validate_chapters(const std::vector<ChapterSegment>& chapters,
     const u64 duration_ms,
     const ExportSettings& settings) -> ValidationResult {
-    ValidationResult result {};
+    auto result = ValidationResult {};
     const u64 min_duration_ms = static_cast<u64>(settings.min_chapter_seconds) * 1000;
 
     if (chapters.empty()) {
@@ -56,8 +56,8 @@ auto validate_chapters(const std::vector<ChapterSegment>& chapters,
         result.issues.push_back(ValidationIssue {.message = "Chapter count exceeds the 255 chapter limit."});
     }
 
-    u64 previous_end_ms {0};
-    for (usize index {0}; index < chapters.size(); ++index) {
+    auto previous_end_ms = u64 {0};
+    for (auto index = usize {0}; index < chapters.size(); ++index) {
         const ChapterSegment& chapter = chapters[index];
         const std::string trimmed_name = trim_copy(chapter.name);
 
