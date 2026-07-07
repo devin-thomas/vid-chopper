@@ -4,6 +4,7 @@
 
 #include <charconv>
 #include <cmath>
+#include <cstddef>
 #include <format>
 #include <optional>
 #include <system_error>
@@ -64,8 +65,9 @@ struct ParsedHmsSegments {
     std::string trailing_segment;
 };
 
-auto parse_hms_segments(
-    std::string_view value, const usize min_segments, const usize max_segments) -> std::optional<ParsedHmsSegments> {
+auto parse_hms_segments(std::string_view value,
+    const std::size_t min_segments,
+    const std::size_t max_segments) -> std::optional<ParsedHmsSegments> {
     const std::string trimmed = trim_copy(value);
     if (trimmed.empty()) {
         return std::nullopt;
@@ -79,7 +81,7 @@ auto parse_hms_segments(
     const bool has_hours = segments.size() == max_segments;
     const std::optional<u64> hours = has_hours ? parse_unsigned(segments[0]) : std::optional<u64> {0};
     const std::optional<u64> minutes = parse_unsigned(segments[has_hours ? 1 : 0]);
-    const usize seconds_index = has_hours ? 2 : 1;
+    const auto seconds_index = std::size_t {has_hours ? 2 : 1};
 
     if (!hours.has_value() || !minutes.has_value()) {
         return std::nullopt;
