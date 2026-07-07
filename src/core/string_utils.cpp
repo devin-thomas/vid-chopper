@@ -7,8 +7,8 @@
 namespace vidchopper {
 
 auto trim_copy(std::string_view value) -> std::string {
-    auto start = usize {0};
-    auto end = value.size();
+    usize start {0};
+    usize end = value.size();
 
     while (start < end && std::isspace(static_cast<unsigned char>(value[start])) != 0) {
         ++start;
@@ -33,7 +33,7 @@ auto replace_all_copy(std::string value, std::string_view from, std::string_view
         return value;
     }
 
-    auto position = usize {0};
+    usize position {0};
     while ((position = value.find(from, position)) != std::string::npos) {
         value.replace(position, from.size(), to);
         position += to.size();
@@ -43,11 +43,11 @@ auto replace_all_copy(std::string value, std::string_view from, std::string_view
 }
 
 auto split_quoted_arguments(std::string_view value) -> std::vector<std::string> {
-    auto tokens = std::vector<std::string> {};
-    auto current = std::string {};
-    auto in_quotes = false;
+    std::vector<std::string> tokens {};
+    std::string current {};
+    bool in_quotes {false};
 
-    for (const auto character : value) {
+    for (const char character : value) {
         if (character == '"') {
             in_quotes = !in_quotes;
             continue;
@@ -73,19 +73,19 @@ auto split_quoted_arguments(std::string_view value) -> std::vector<std::string> 
 }
 
 auto sanitize_file_component(std::string_view value) -> std::string {
-    constexpr auto forbidden = std::string_view {"<>:\"/\\|?*"};
+    constexpr std::string_view forbidden {"<>:\"/\\|?*"};
 
-    auto sanitized = std::string {};
+    std::string sanitized {};
     sanitized.reserve(value.size());
 
-    auto previous_was_space = false;
+    bool previous_was_space {false};
 
-    for (const auto raw_character : value) {
+    for (const char raw_character : value) {
         if (static_cast<unsigned char>(raw_character) < 32) {
             continue;
         }
 
-        auto character = raw_character;
+        char character = raw_character;
         if (forbidden.find(character) != std::string::npos) {
             character = '_';
         }
