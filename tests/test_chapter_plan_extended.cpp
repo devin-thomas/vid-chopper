@@ -21,9 +21,8 @@ auto main() -> int {
     // build_default_chapters: exactly 1 second
     {
         const auto chapters = build_default_chapters(1000, 6);
-        test_support::expect_eq(chapters.size(),
-            std::size_t {1},
-            "1 second duration with 6 requested should produce 1 chapter");
+        const auto expected_chapter_count = std::size_t {1};
+        test_support::expect_eq(chapters.size(), expected_chapter_count, "1 second should produce 1 chapter");
         test_support::expect_eq(chapters[0].start_ms, 0ULL, "single chapter should start at 0");
         test_support::expect_eq(chapters[0].end_ms, 1000ULL, "single chapter should end at duration");
     }
