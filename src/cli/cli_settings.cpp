@@ -1,15 +1,14 @@
 #include "cli/cli_settings.h"
 
 #include <fstream>
-#include <string_view>
 #include <system_error>
 
 namespace vidchopper {
 
 namespace {
 
-constexpr std::string_view cli_settings_file_name {"VidChopperCLI.ini"};
-constexpr std::string_view gui_settings_file_name {"VidChopper.ini"};
+constexpr const char* cli_settings_file_name = "VidChopperCLI.ini";
+constexpr const char* gui_settings_file_name = "VidChopper.ini";
 
 [[nodiscard]] auto current_directory() -> Path {
     std::error_code error {};
