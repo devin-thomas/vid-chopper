@@ -8,6 +8,9 @@ deliberate and self-documenting.
 If a change would violate a rule below, either follow the rule or change this document first
 (with justification) — do not silently diverge.
 
+For connector-based work, automated code edits, or future AI-agent handoffs, read
+`AGENTS.md` alongside this guide before changing code.
+
 ---
 
 ## 1. Philosophy & priorities
@@ -46,6 +49,7 @@ tests/         Hand-rolled, dependency-free tests (see §15). fast + slow labels
 resources/     App icon assets (.ico/.png/.qrc/.rc).
 docs/          Static site published to GitHub Pages.
 .devin/skills/ Qt agent-skills (qt-cpp-review, qt-cpp-docs, qt-project).
+AGENTS.md      Connector/AI-agent workflow for branch, PR, formatting, and CI discipline.
 ```
 
 Dependency rule: **`src/qt` → `src/core` only.** Nothing in `core` may include Qt or anything
