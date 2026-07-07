@@ -138,8 +138,9 @@ auto main() -> int {
     std::filesystem::create_directories(output_directory);
 
     const auto environment = EncoderEnvironment {};
-    for (auto index = u16 {0}; index < chapters.size(); ++index) {
-        const auto output_path = output_path_for(metadata, chapters[index], index, output_directory, settings);
+    for (auto index = std::size_t {0}; index < chapters.size(); ++index) {
+        const auto chapter_index = static_cast<u16>(index);
+        const auto output_path = output_path_for(metadata, chapters[index], chapter_index, output_directory, settings);
         const auto command = build_ffmpeg_command(metadata, chapters[index], output_path, settings, environment);
         run_no_capture(join_command(command));
         test_support::expect_true(std::filesystem::exists(output_path), "expected output file to be created");
