@@ -7,7 +7,7 @@
 namespace vidchopper {
 
 auto trim_copy(std::string_view value) -> std::string {
-    usize start {0};
+    auto start = usize {0};
     usize end = value.size();
 
     while (start < end && std::isspace(static_cast<unsigned char>(value[start])) != 0) {
@@ -33,7 +33,7 @@ auto replace_all_copy(std::string value, std::string_view from, std::string_view
         return value;
     }
 
-    usize position {0};
+    auto position = usize {0};
     while ((position = value.find(from, position)) != std::string::npos) {
         value.replace(position, from.size(), to);
         position += to.size();
@@ -43,9 +43,9 @@ auto replace_all_copy(std::string value, std::string_view from, std::string_view
 }
 
 auto split_quoted_arguments(std::string_view value) -> std::vector<std::string> {
-    std::vector<std::string> tokens {};
-    std::string current {};
-    bool in_quotes {false};
+    auto tokens = std::vector<std::string> {};
+    auto current = std::string {};
+    auto in_quotes = bool {false};
 
     for (const char character : value) {
         if (character == '"') {
@@ -73,12 +73,12 @@ auto split_quoted_arguments(std::string_view value) -> std::vector<std::string> 
 }
 
 auto sanitize_file_component(std::string_view value) -> std::string {
-    constexpr std::string_view forbidden {"<>:\"/\\|?*"};
+    constexpr auto forbidden = std::string_view {"<>:\"/\\|?*"};
 
-    std::string sanitized {};
+    auto sanitized = std::string {};
     sanitized.reserve(value.size());
 
-    bool previous_was_space {false};
+    auto previous_was_space = bool {false};
 
     for (const char raw_character : value) {
         if (static_cast<unsigned char>(raw_character) < 32) {
