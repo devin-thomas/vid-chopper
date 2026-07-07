@@ -16,7 +16,7 @@ namespace {
 constexpr const char* cli_settings_file_name = "VidChopperCLI.ini";
 constexpr const char* gui_settings_file_name = "VidChopper.ini";
 
-constexpr auto default_cli_settings_contents = std::string_view {
+constexpr auto default_cli_settings_contents =
     "# VidChopper CLI settings\n"
     "# GUI settings remain in VidChopper.ini and are never read unless --use-gui-config is passed.\n"
     "x264_crf=18\n"
@@ -24,7 +24,7 @@ constexpr auto default_cli_settings_contents = std::string_view {
     "x264_preset=slow\n"
     "nvenc_preset=p5\n"
     "ffmpeg_threads=0\n"
-    "stop_on_first_error=true\n"};
+    "stop_on_first_error=true\n";
 
 [[nodiscard]] auto current_directory() -> Path {
     auto error = std::error_code {};
