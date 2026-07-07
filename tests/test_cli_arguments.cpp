@@ -52,12 +52,10 @@ auto main() -> int {
     test_support::expect_true(!too_many_positionals.ok(), "1:N-style positional input should fail in phase one parser");
 
     const auto paths = resolve_cli_settings_paths(test_support::DummyCliData::executable_path(), true);
-    test_support::expect_eq(paths.cli_settings_path.filename(),
-        Path {"VidChopperCLI.ini"},
-        "CLI should resolve its own settings filename");
-    test_support::expect_eq(paths.gui_settings_path.filename(),
-        Path {"VidChopper.ini"},
-        "GUI settings path should stay separate");
+    const auto cli_filename_matches = paths.cli_settings_path.filename() == Path {"VidChopperCLI.ini"};
+    const auto gui_filename_matches = paths.gui_settings_path.filename() == Path {"VidChopper.ini"};
+    test_support::expect_true(cli_filename_matches, "CLI should resolve its own settings filename");
+    test_support::expect_true(gui_filename_matches, "GUI settings path should stay separate");
     test_support::expect_true(paths.use_gui_config, "settings path should preserve explicit GUI config request");
 
     return 0;
