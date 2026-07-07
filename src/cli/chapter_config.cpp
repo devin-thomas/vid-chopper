@@ -4,6 +4,7 @@
 #include "core/string_utils.h"
 #include "core/timecode.h"
 
+#include <algorithm>
 #include <array>
 #include <charconv>
 #include <fstream>
@@ -11,10 +12,13 @@
 #include <sstream>
 #include <string_view>
 #include <system_error>
+#include <utility>
 
 namespace vidchopper {
 
 namespace {
+
+using KeyValue = std::pair<std::string, std::string>;
 
 struct ChapterDraft {
     std::string name;
@@ -45,17 +49,37 @@ enum class ConfigSection : u8 {
     Chapters = 3,
 };
 
-constexpr auto root_keys = std::to_array<std::string_view>({"$schema", "version", "output", "encoder", "chapters"});
-constexpr auto output_keys = std::to_array<std::string_view>({"folder", "namingPattern"});
-constexpr auto encoder_keys = std::to_array<std::string_view>({"crf", "cq", "preset", "threads"});
-constexpr auto chapter_keys = std::to_array<std::string_view>({"name", "start", "end", "outputName"});
+constexpr auto root_keys = std::to_array<std::string_view>({
+    "$schema",
+    "version",
+    "output",
+    "encoder",
+    "chapters",
+});
+constexpr auto output_keys = std::to_array<std::string_view>({
+    "folder",
+    "namingPattern",
+});
+constexpr auto encoder_keys = std::to_array<std::string_view>({
+    "crf",
+    "cq",
+    "preset",
+    "threads",
+});
+constexpr auto chapter_keys = std::to_array<std::string_view>({
+    "name",
+    "start",
+    "end",
+    "outputName",
+});
 
 [[nodiscard]] auto failure(const Path& path, const std::string& message) -> DraftResult {
     return DraftResult {.error_message = path.string() + ": " + message};
 }
 
 [[nodiscard]] auto failure(const Path& path, const u64 line_number, const std::string& message) -> DraftResult {
-    return failure(path, "line " + std::to_string(line_number) + ": " + message);
+    const std::string line_prefix = "line " + std::to_string(line_number) + ": ";
+    return failure(path, line_prefix + message);
 }
 
 [[nodiscard]] auto read_text_file(const Path& path) -> std::optional<std::string> {
@@ -79,7 +103,13 @@ constexpr auto chapter_keys = std::to_array<std::string_view>({"name", "start", 
 
 [[nodiscard]] auto unquote(std::string value) -> std::string {
     value = trim_copy(value);
-    if (value.size() >= 2 && ((value.front() == '"' && value.back() == '"') || (value.front() == '\'' && value.back() == '\''))) {
+    if (value.size() < 2) {
+        return value;
+    }
+
+    const bool has_double_quotes = value.front() == '"' && value.back() == '"';
+    const bool has_single_quotes = value.front() == '\'' && value.back() == '\'';
+    if (has_double_quotes || has_single_quotes) {
         value = value.substr(1, value.size() - 2);
     }
 
@@ -96,7 +126,7 @@ constexpr auto chapter_keys = std::to_array<std::string_view>({"name", "start", 
     return value;
 }
 
-[[nodiscard]] auto parse_key_value(const std::string& line) -> std::optional<std::pair<std::string, std::string>> {
+[[nodiscard]] auto parse_key_value(const std::string& line) -> std::optional<KeyValue> {
     const std::size_t separator = line.find(':');
     if (separator == std::string::npos) {
         return std::nullopt;
@@ -107,7 +137,7 @@ constexpr auto chapter_keys = std::to_array<std::string_view>({"name", "start", 
     key = unquote(key);
     value = unquote(strip_json_tail(value));
 
-    return std::pair<std::string, std::string> {key, value};
+    return KeyValue {key, value};
 }
 
 [[nodiscard]] auto parse_u8_value(const std::string_view text, const u8 maximum) -> std::optional<u8> {
@@ -185,7 +215,7 @@ auto apply_chapter_value(ChapterDraft& chapter, const std::string_view key, cons
     }
 }
 
-[[nodiscard]] auto parse_json_key(const std::string& line) -> std::optional<std::pair<std::string, std::string>> {
+[[nodiscard]] auto parse_json_key(const std::string& line) -> std::optional<KeyValue> {
     const std::size_t key_start = line.find('"');
     if (key_start == std::string::npos) {
         return std::nullopt;
@@ -204,10 +234,11 @@ auto apply_chapter_value(ChapterDraft& chapter, const std::string_view key, cons
     const std::string key = line.substr(key_start + 1, key_end - key_start - 1);
     std::string value = trim_copy(std::string_view {line}.substr(separator + 1));
     value = unquote(strip_json_tail(value));
-    return std::pair<std::string, std::string> {key, value};
+    return KeyValue {key, value};
 }
 
-[[nodiscard]] auto parse_json_config(const std::string& text, const Path& path, const ExportSettings& base_settings) -> DraftResult {
+[[nodiscard]] auto parse_json_config(
+    const std::string& text, const Path& path, const ExportSettings& base_settings) -> DraftResult {
     auto draft = ConfigDraft {.settings = base_settings};
     auto section = ConfigSection::Root;
     auto current_chapter = ChapterDraft {};
@@ -247,7 +278,7 @@ auto apply_chapter_value(ChapterDraft& chapter, const std::string_view key, cons
             continue;
         }
 
-        const std::optional<std::pair<std::string, std::string>> parsed = parse_json_key(trimmed);
+        const std::optional<KeyValue> parsed = parse_json_key(trimmed);
         if (!parsed.has_value()) {
             return failure(path, line_number, "malformed JSON config line.");
         }
@@ -308,7 +339,8 @@ auto apply_chapter_value(ChapterDraft& chapter, const std::string_view key, cons
     return count;
 }
 
-[[nodiscard]] auto parse_yaml_config(const std::string& text, const Path& path, const ExportSettings& base_settings) -> DraftResult {
+[[nodiscard]] auto parse_yaml_config(
+    const std::string& text, const Path& path, const ExportSettings& base_settings) -> DraftResult {
     auto draft = ConfigDraft {.settings = base_settings};
     auto section = ConfigSection::Root;
     auto current_chapter = ChapterDraft {};
@@ -331,7 +363,7 @@ auto apply_chapter_value(ChapterDraft& chapter, const std::string_view key, cons
             }
             current_chapter = ChapterDraft {.line_number = line_number};
             has_open_chapter = true;
-            const std::optional<std::pair<std::string, std::string>> parsed = parse_key_value(trimmed.substr(2));
+            const std::optional<KeyValue> parsed = parse_key_value(trimmed.substr(2));
             if (parsed.has_value()) {
                 if (!contains_key(parsed->first, chapter_keys)) {
                     return failure(path, line_number, "unknown chapter key '" + parsed->first + "'.");
@@ -347,7 +379,7 @@ auto apply_chapter_value(ChapterDraft& chapter, const std::string_view key, cons
                 has_open_chapter = false;
             }
 
-            const std::optional<std::pair<std::string, std::string>> parsed = parse_key_value(trimmed);
+            const std::optional<KeyValue> parsed = parse_key_value(trimmed);
             if (!parsed.has_value()) {
                 return failure(path, line_number, "malformed YAML config line.");
             }
@@ -372,7 +404,7 @@ auto apply_chapter_value(ChapterDraft& chapter, const std::string_view key, cons
             continue;
         }
 
-        const std::optional<std::pair<std::string, std::string>> parsed = parse_key_value(trimmed);
+        const std::optional<KeyValue> parsed = parse_key_value(trimmed);
         if (!parsed.has_value()) {
             return failure(path, line_number, "malformed YAML config line.");
         }
@@ -411,26 +443,28 @@ auto apply_chapter_value(ChapterDraft& chapter, const std::string_view key, cons
     return DraftResult {.success = true, .draft = std::move(draft)};
 }
 
-[[nodiscard]] auto convert_chapters(const ConfigDraft& draft,
-    const Path& path,
-    const u64 source_duration_ms) -> ChapterConfigLoadResult {
+[[nodiscard]] auto convert_chapters(
+    const ConfigDraft& draft, const Path& path, const u64 source_duration_ms) -> ChapterConfigLoadResult {
     auto config = ChapterConfig {.settings = draft.settings};
     config.chapters.reserve(draft.chapters.size());
 
     for (auto index = std::size_t {0}; index < draft.chapters.size(); ++index) {
         const ChapterDraft& row = draft.chapters[index];
         if (trim_copy(row.name).empty()) {
-            return ChapterConfigLoadResult {.error_message = path.string() + ": chapters[" + std::to_string(index) + "].name is required."};
+            const std::string message = ": chapters[" + std::to_string(index) + "].name is required.";
+            return ChapterConfigLoadResult {.error_message = path.string() + message};
         }
 
         const std::optional<u64> start_ms = parse_millisecond_timecode(row.start);
         if (!start_ms.has_value()) {
-            return ChapterConfigLoadResult {.error_message = path.string() + ": chapters[" + std::to_string(index) + "].start has an invalid timestamp."};
+            const std::string message = ": chapters[" + std::to_string(index) + "].start has an invalid timestamp.";
+            return ChapterConfigLoadResult {.error_message = path.string() + message};
         }
 
         const std::optional<u64> end_ms = parse_millisecond_timecode(row.end);
         if (!end_ms.has_value()) {
-            return ChapterConfigLoadResult {.error_message = path.string() + ": chapters[" + std::to_string(index) + "].end has an invalid timestamp."};
+            const std::string message = ": chapters[" + std::to_string(index) + "].end has an invalid timestamp.";
+            return ChapterConfigLoadResult {.error_message = path.string() + message};
         }
 
         config.chapters.push_back(ChapterSegment {
@@ -443,9 +477,8 @@ auto apply_chapter_value(ChapterDraft& chapter, const std::string_view key, cons
     const ValidationResult validation = validate_chapters(config.chapters, source_duration_ms, config.settings);
     if (!validation.ok()) {
         const ValidationIssue& issue = validation.issues.front();
-        return ChapterConfigLoadResult {
-            .error_message = path.string() + ": chapters[" + std::to_string(issue.chapter_index) + "]: " + issue.message,
-        };
+        const std::string message = ": chapters[" + std::to_string(issue.chapter_index) + "]: " + issue.message;
+        return ChapterConfigLoadResult {.error_message = path.string() + message};
     }
 
     return ChapterConfigLoadResult {.success = true, .config = std::move(config)};
@@ -461,7 +494,8 @@ auto load_chapter_config(const Path& config_path,
     const u64 source_duration_ms,
     const ExportSettings& base_settings) -> ChapterConfigLoadResult {
     const std::string extension = normalized_extension(config_path);
-    if (extension != ".json" && extension != ".yaml" && extension != ".yml") {
+    const bool supported_extension = extension == ".json" || extension == ".yaml" || extension == ".yml";
+    if (!supported_extension) {
         return ChapterConfigLoadResult {.error_message = config_path.string() + ": unknown chapter config extension."};
     }
 
