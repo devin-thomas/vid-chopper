@@ -1,0 +1,7 @@
+{
+  "$schema": "../../docs/schemas/chapter-config.schema.json",
+  "version": 1,
+  "output": {
+    "folder": "%source%_chapters"
+  }
+}

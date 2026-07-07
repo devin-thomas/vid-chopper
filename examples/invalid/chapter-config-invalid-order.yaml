@@ -1,0 +1,9 @@
+$schema: ../../docs/schemas/chapter-config.schema.json
+version: 1
+chapters:
+  - name: Invalid Range
+    start: "00:02:00.000"
+    end: "00:01:00.000"
+  - name: Overlap Example
+    start: "00:00:30.000"
+    end: "00:03:00.000"
