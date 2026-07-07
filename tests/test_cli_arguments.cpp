@@ -32,7 +32,8 @@ auto main() -> int {
     const auto subcommand = parse(test_support::DummyCliData::chop_tokens());
     test_support::expect_true(subcommand.ok(), "chop subcommand should parse");
     test_support::expect_true(subcommand.arguments.dry_run, "dry-run flag should be captured");
-    test_support::expect_eq(subcommand.arguments.input_paths.front(), test_support::DummyCliData::input_video_path(),
+    test_support::expect_eq(subcommand.arguments.input_paths.front(),
+        test_support::DummyCliData::input_video_path(),
         "subcommand should capture the input path");
 
     const auto advanced = parse(test_support::DummyCliData::advanced_tokens());
@@ -52,9 +53,11 @@ auto main() -> int {
     test_support::expect_true(!too_many_positionals.ok(), "1:N-style positional input should fail in phase one parser");
 
     const auto paths = resolve_cli_settings_paths(test_support::DummyCliData::executable_path(), true);
-    test_support::expect_eq(paths.cli_settings_path.filename(), std::filesystem::path {"VidChopperCLI.ini"},
+    test_support::expect_eq(paths.cli_settings_path.filename(),
+        std::filesystem::path {"VidChopperCLI.ini"},
         "CLI should resolve its own settings filename");
-    test_support::expect_eq(paths.gui_settings_path.filename(), std::filesystem::path {"VidChopper.ini"},
+    test_support::expect_eq(paths.gui_settings_path.filename(),
+        std::filesystem::path {"VidChopper.ini"},
         "GUI settings path should stay separate");
     test_support::expect_true(paths.use_gui_config, "settings path should preserve explicit GUI config request");
 
