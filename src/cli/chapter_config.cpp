@@ -250,13 +250,17 @@ auto apply_chapter_value(ChapterDraft& chapter, const std::string_view key, cons
     while (std::getline(stream, line)) {
         ++line_number;
         const std::string trimmed = trim_copy(line);
-        if (trimmed.empty() || trimmed == "{" || trimmed == "[" || trimmed == ",") {
+        if (trimmed.empty() || trimmed == "[" || trimmed == ",") {
             continue;
         }
 
         if (section == ConfigSection::Chapters && trimmed.starts_with('{')) {
             current_chapter = ChapterDraft {.line_number = line_number};
             has_open_chapter = true;
+            continue;
+        }
+
+        if (trimmed == "{") {
             continue;
         }
 
