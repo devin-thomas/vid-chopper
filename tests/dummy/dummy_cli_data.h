@@ -20,15 +20,15 @@ public:
     }
 
     [[nodiscard]] static auto input_video_path() -> std::filesystem::path {
-        return root() / input_video_name;
+        return root() / std::string {input_video_name};
     }
 
     [[nodiscard]] static auto json_config_path() -> std::filesystem::path {
-        return root() / json_config_name;
+        return root() / std::string {json_config_name};
     }
 
     [[nodiscard]] static auto yaml_config_path() -> std::filesystem::path {
-        return root() / yaml_config_name;
+        return root() / std::string {yaml_config_name};
     }
 
     [[nodiscard]] static auto executable_path() -> std::filesystem::path {
