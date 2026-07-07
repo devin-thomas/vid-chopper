@@ -46,7 +46,7 @@ auto replace_all_copy(std::string value, std::string_view from, std::string_view
 auto split_quoted_arguments(std::string_view value) -> std::vector<std::string> {
     auto tokens = std::vector<std::string> {};
     auto current = std::string {};
-    auto in_quotes = bool {false};
+    bool in_quotes {false};
 
     for (const char character : value) {
         if (character == '"') {
@@ -79,7 +79,7 @@ auto sanitize_file_component(std::string_view value) -> std::string {
     auto sanitized = std::string {};
     sanitized.reserve(value.size());
 
-    auto previous_was_space = bool {false};
+    bool previous_was_space {false};
 
     for (const char raw_character : value) {
         if (static_cast<unsigned char>(raw_character) < 32) {
