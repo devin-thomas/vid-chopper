@@ -4,6 +4,10 @@
 
 The `v0.2.0-alpha` feature round is complete, including the Pages rewrite.
 
+CLI mode is now being implemented as the next feature line. The first phase introduces a no-Qt
+`VidChopperCLI.exe` skeleton, command parsing, a separate `VidChopperCLI.ini` boundary, and fast parser
+coverage without changing GUI export behavior.
+
 ## Task Status
 
 - Task 0: enum underlying-type migration for two-state enums - done
@@ -17,6 +21,9 @@ The `v0.2.0-alpha` feature round is complete, including the Pages rewrite.
 - Task 8: app-wide zoom controls and persistence - done
 - Task 9: release `v0.2.0-alpha` - done
 - Task 10: GitHub Pages rewrite to Vite, React, TypeScript, and Tailwind - done
+- VID-CLI-1: no-Qt CLI target skeleton - in progress
+- VID-CLI-2: CLI command contract and invocation model - in progress
+- VID-CLI-3: separate `VidChopperCLI.ini` settings boundary - in progress
 
 ## Release Milestones
 
