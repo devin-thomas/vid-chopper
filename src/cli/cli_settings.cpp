@@ -10,13 +10,13 @@ namespace {
 constexpr auto cli_settings_file_name = "VidChopperCLI.ini";
 constexpr auto gui_settings_file_name = "VidChopper.ini";
 
-[[nodiscard]] auto current_directory() -> std::filesystem::path {
+[[nodiscard]] auto current_directory() -> Path {
     auto error = std::error_code {};
     const auto path = std::filesystem::current_path(error);
-    return error ? std::filesystem::path {"."} : path;
+    return error ? Path {"."} : path;
 }
 
-[[nodiscard]] auto application_directory_for(const std::filesystem::path& executable_path) -> std::filesystem::path {
+[[nodiscard]] auto application_directory_for(const Path& executable_path) -> Path {
     if (executable_path.empty()) {
         return current_directory();
     }
@@ -30,8 +30,7 @@ constexpr auto gui_settings_file_name = "VidChopper.ini";
 
 } // namespace
 
-auto resolve_cli_settings_paths(const std::filesystem::path& executable_path,
-    const bool use_gui_config) -> CliSettingsPaths {
+auto resolve_cli_settings_paths(const Path& executable_path, const bool use_gui_config) -> CliSettingsPaths {
     const auto application_directory = application_directory_for(executable_path);
     return CliSettingsPaths {
         .application_directory = application_directory,
@@ -41,7 +40,7 @@ auto resolve_cli_settings_paths(const std::filesystem::path& executable_path,
     };
 }
 
-auto ensure_cli_settings_file(const std::filesystem::path& settings_path) -> bool {
+auto ensure_cli_settings_file(const Path& settings_path) -> bool {
     auto error = std::error_code {};
     const auto parent = settings_path.parent_path();
     if (!parent.empty()) {
