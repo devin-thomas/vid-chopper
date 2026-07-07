@@ -104,6 +104,7 @@ auto main() -> int {
     };
     auto settings = ExportSettings {};
     settings.ffmpeg_path = "ffmpeg";
+    settings.naming_pattern = "%index%_%name%";
     settings.overwrite_mode = OverwriteMode::Overwrite;
     settings.seek_mode = SeekMode::Fast;
     settings.verify_output_durations = false;
