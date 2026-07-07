@@ -11,7 +11,7 @@ constexpr const char* cli_settings_file_name = "VidChopperCLI.ini";
 constexpr const char* gui_settings_file_name = "VidChopper.ini";
 
 [[nodiscard]] auto current_directory() -> Path {
-    std::error_code error {};
+    auto error = std::error_code {};
     const Path path = std::filesystem::current_path(error);
     return error ? Path {"."} : path;
 }
@@ -41,7 +41,7 @@ auto resolve_cli_settings_paths(const Path& executable_path, const bool use_gui_
 }
 
 auto ensure_cli_settings_file(const Path& settings_path) -> bool {
-    std::error_code error {};
+    auto error = std::error_code {};
     const Path parent = settings_path.parent_path();
     if (!parent.empty()) {
         std::filesystem::create_directories(parent, error);
@@ -50,7 +50,7 @@ auto ensure_cli_settings_file(const Path& settings_path) -> bool {
         }
     }
 
-    std::ofstream stream {settings_path, std::ios::app};
+    auto stream = std::ofstream {settings_path, std::ios::app};
     return stream.good();
 }
 
