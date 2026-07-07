@@ -1,6 +1,7 @@
 #include "cli/cli_settings.h"
 
 #include <fstream>
+#include <string_view>
 #include <system_error>
 
 namespace vidchopper {
