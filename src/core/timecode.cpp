@@ -81,7 +81,7 @@ auto parse_hms_segments(std::string_view value,
     const bool has_hours = segments.size() == max_segments;
     const std::optional<u64> hours = has_hours ? parse_unsigned(segments[0]) : std::optional<u64> {0};
     const std::optional<u64> minutes = parse_unsigned(segments[has_hours ? 1 : 0]);
-    const auto seconds_index = std::size_t {has_hours ? 2 : 1};
+    const auto seconds_index = has_hours ? std::size_t {2} : std::size_t {1};
 
     if (!hours.has_value() || !minutes.has_value()) {
         return std::nullopt;
