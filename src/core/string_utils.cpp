@@ -2,13 +2,14 @@
 
 #include <algorithm>
 #include <cctype>
+#include <cstddef>
 #include <format>
 
 namespace vidchopper {
 
 auto trim_copy(std::string_view value) -> std::string {
-    auto start = usize {0};
-    usize end = value.size();
+    auto start = std::size_t {0};
+    std::size_t end = value.size();
 
     while (start < end && std::isspace(static_cast<unsigned char>(value[start])) != 0) {
         ++start;
@@ -33,7 +34,7 @@ auto replace_all_copy(std::string value, std::string_view from, std::string_view
         return value;
     }
 
-    auto position = usize {0};
+    auto position = std::size_t {0};
     while ((position = value.find(from, position)) != std::string::npos) {
         value.replace(position, from.size(), to);
         position += to.size();
