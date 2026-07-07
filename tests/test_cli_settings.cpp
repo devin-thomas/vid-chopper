@@ -46,18 +46,19 @@ auto main() -> int {
     const CliResolvedSettings cli_only = load_cli_settings(paths);
     const bool loaded_cli = cli_only.loaded_cli_settings;
     const bool loaded_gui_without_opt_in = cli_only.loaded_gui_settings;
+    const bool stop_on_first_error = cli_only.export_settings.stop_on_first_error;
     test_support::expect_true(loaded_cli, "CLI settings should load from VidChopperCLI.ini");
     test_support::expect_true(!loaded_gui_without_opt_in, "GUI settings should require opt-in");
+    test_support::expect_true(!stop_on_first_error, "CLI INI should set stop behavior");
     test_support::expect_eq(cli_only.export_settings.x264_crf, u8 {20}, "CLI CRF should come from CLI INI");
     test_support::expect_eq(cli_only.export_settings.nvenc_cq, u8 {22}, "GUI CQ should be ignored");
     test_support::expect_eq(cli_only.export_settings.ffmpeg_threads, u8 {0}, "GUI threads should be ignored");
-    test_support::expect_true(!cli_only.export_settings.stop_on_first_error, "CLI INI should set stop behavior");
 
     const CliSettingsPaths paths_with_gui = resolve_cli_settings_paths(executable_path, true);
     const CliResolvedSettings with_gui = load_cli_settings(paths_with_gui);
     test_support::expect_true(with_gui.loaded_gui_settings, "GUI settings should load only with opt-in");
     test_support::expect_eq(with_gui.export_settings.x264_crf, u8 {20}, "CLI INI should override GUI CRF");
-    test_support::expect_eq(with_gui.export_settings.nvenc_cq, u8 {41}, "GUI CQ should import when CLI is silent");
+    test_support::expect_eq(with_gui.export_settings.nvenc_cq, u8 {41}, "GUI CQ should import");
     test_support::expect_eq(with_gui.export_settings.ffmpeg_threads, u8 {8}, "GUI threads should import");
 
     auto arguments = CliArguments {};
