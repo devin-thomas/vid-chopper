@@ -1,6 +1,7 @@
 #pragma once
 
-#include <filesystem>
+#include "core/types.h"
+
 #include <string>
 #include <string_view>
 #include <vector>
@@ -15,23 +16,23 @@ public:
     static constexpr auto cli_settings_name = std::string_view {"VidChopperCLI.ini"};
     static constexpr auto gui_settings_name = std::string_view {"VidChopper.ini"};
 
-    [[nodiscard]] static auto root() -> std::filesystem::path {
-        return std::filesystem::path {"tests"} / "dummy" / "mock_data";
+    [[nodiscard]] static auto root() -> vidchopper::Path {
+        return vidchopper::Path {"tests"} / "dummy" / "mock_data";
     }
 
-    [[nodiscard]] static auto input_video_path() -> std::filesystem::path {
+    [[nodiscard]] static auto input_video_path() -> vidchopper::Path {
         return root() / std::string {input_video_name};
     }
 
-    [[nodiscard]] static auto json_config_path() -> std::filesystem::path {
+    [[nodiscard]] static auto json_config_path() -> vidchopper::Path {
         return root() / std::string {json_config_name};
     }
 
-    [[nodiscard]] static auto yaml_config_path() -> std::filesystem::path {
+    [[nodiscard]] static auto yaml_config_path() -> vidchopper::Path {
         return root() / std::string {yaml_config_name};
     }
 
-    [[nodiscard]] static auto executable_path() -> std::filesystem::path {
+    [[nodiscard]] static auto executable_path() -> vidchopper::Path {
         return root() / "bin" / "VidChopperCLI.exe";
     }
 
