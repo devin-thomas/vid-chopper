@@ -5,8 +5,8 @@
 The `v0.2.0-alpha` feature round is complete, including the Pages rewrite.
 
 CLI mode is now being implemented as the next feature line. The first phase introduces a no-Qt
-`VidChopperCLI.exe` skeleton, command parsing, a separate `VidChopperCLI.ini` boundary, and fast parser
-coverage without changing GUI export behavior.
+`VidChopperCLI.exe` skeleton, command parsing, a separate `VidChopperCLI.ini` boundary, fast parser
+coverage, and dummy CLI fixture data without changing GUI export behavior.
 
 ## Task Status
 
