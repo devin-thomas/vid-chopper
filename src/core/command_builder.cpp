@@ -64,8 +64,9 @@ auto append_audio_arguments(std::vector<std::string>& command, const ExportSetti
         return;
     }
 
+    const std::string bitrate = std::to_string(settings.aac_bitrate_kbps) + "k";
     append(command, {ffmpeg_arg::audio_codec, "aac"});
-    append(command, {ffmpeg_arg::audio_bitrate, std::to_string(settings.aac_bitrate_kbps) + "k"});
+    append(command, {ffmpeg_arg::audio_bitrate, bitrate});
 }
 
 } // namespace
@@ -107,11 +108,16 @@ auto output_path_for(const VideoMetadata& metadata,
     const u16 chapter_index,
     const Path& output_directory,
     const ExportSettings& settings) -> Path {
-    std::string chapter_name = settings.sanitize_file_names ? sanitize_file_component(chapter.name) : trim_copy(chapter.name);
+    std::string chapter_name = trim_copy(chapter.name);
+    if (settings.sanitize_file_names) {
+        chapter_name = sanitize_file_component(chapter.name);
+    }
+
     std::string file_name = replace_all_copy(settings.naming_pattern, "%name%", chapter_name);
     file_name = replace_all_copy(file_name, "%source%", metadata.source_path.stem().string());
-    file_name = replace_all_copy(
-        file_name, "%index%", zero_padded_index(static_cast<u16>(chapter_index + 1), settings.index_padding));
+
+    const std::string index_text = zero_padded_index(static_cast<u16>(chapter_index + 1), settings.index_padding);
+    file_name = replace_all_copy(file_name, "%index%", index_text);
     file_name = sanitize_file_component(file_name);
 
     return output_directory / (file_name + output_extension_for(metadata, settings));
