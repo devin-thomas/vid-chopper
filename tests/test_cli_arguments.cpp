@@ -3,7 +3,6 @@
 #include "dummy/dummy_cli_data.h"
 #include "test_support.h"
 
-#include <filesystem>
 #include <initializer_list>
 #include <string>
 #include <vector>
@@ -54,10 +53,10 @@ auto main() -> int {
 
     const auto paths = resolve_cli_settings_paths(test_support::DummyCliData::executable_path(), true);
     test_support::expect_eq(paths.cli_settings_path.filename(),
-        std::filesystem::path {"VidChopperCLI.ini"},
+        Path {"VidChopperCLI.ini"},
         "CLI should resolve its own settings filename");
     test_support::expect_eq(paths.gui_settings_path.filename(),
-        std::filesystem::path {"VidChopper.ini"},
+        Path {"VidChopper.ini"},
         "GUI settings path should stay separate");
     test_support::expect_true(paths.use_gui_config, "settings path should preserve explicit GUI config request");
 
