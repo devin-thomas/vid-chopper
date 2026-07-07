@@ -9,21 +9,20 @@ auto main() -> int {
     // build_default_chapters: zero duration
     {
         const auto chapters = build_default_chapters(0, 6);
-        test_support::expect_eq(chapters.size(), static_cast<std::size_t>(0), "zero duration should produce no chapters");
+        test_support::expect_eq(chapters.size(), std::size_t {0}, "zero duration should produce no chapters");
     }
 
     // build_default_chapters: sub-second duration
     {
         const auto chapters = build_default_chapters(500, 6);
-        test_support::expect_eq(
-            chapters.size(), static_cast<std::size_t>(0), "sub-second duration should produce no chapters");
+        test_support::expect_eq(chapters.size(), std::size_t {0}, "sub-second duration should produce no chapters");
     }
 
     // build_default_chapters: exactly 1 second
     {
         const auto chapters = build_default_chapters(1000, 6);
         test_support::expect_eq(chapters.size(),
-            static_cast<std::size_t>(1),
+            std::size_t {1},
             "1 second duration with 6 requested should produce 1 chapter");
         test_support::expect_eq(chapters[0].start_ms, 0ULL, "single chapter should start at 0");
         test_support::expect_eq(chapters[0].end_ms, 1000ULL, "single chapter should end at duration");
@@ -32,15 +31,13 @@ auto main() -> int {
     // build_default_chapters: requested_count = 0
     {
         const auto chapters = build_default_chapters(60000, 0);
-        test_support::expect_eq(
-            chapters.size(), static_cast<std::size_t>(0), "zero requested count should produce no chapters");
+        test_support::expect_eq(chapters.size(), std::size_t {0}, "zero requested count should produce no chapters");
     }
 
     // build_default_chapters: requested_count = 1
     {
         const auto chapters = build_default_chapters(60000, 1);
-        test_support::expect_eq(
-            chapters.size(), static_cast<std::size_t>(1), "requesting 1 chapter should produce exactly 1");
+        test_support::expect_eq(chapters.size(), std::size_t {1}, "requesting 1 chapter should produce exactly 1");
         test_support::expect_eq(chapters[0].start_ms, 0ULL, "single chapter start");
         test_support::expect_eq(chapters[0].end_ms, 60000ULL, "single chapter end");
     }
@@ -48,7 +45,7 @@ auto main() -> int {
     // build_default_chapters: chapters cover full duration without gaps
     {
         const auto chapters = build_default_chapters(100000, 10);
-        test_support::expect_eq(chapters.size(), static_cast<std::size_t>(10), "should produce requested number of chapters");
+        test_support::expect_eq(chapters.size(), std::size_t {10}, "should produce requested number of chapters");
         test_support::expect_eq(chapters.front().start_ms, 0ULL, "first chapter starts at 0");
         test_support::expect_eq(chapters.back().end_ms, 100000ULL, "last chapter ends at duration");
 
