@@ -3,6 +3,7 @@
 #include "core/string_utils.h"
 
 #include <algorithm>
+#include <cstddef>
 
 namespace vidchopper {
 
@@ -22,7 +23,7 @@ auto build_default_chapters(const u64 duration_ms, const u8 requested_count) -> 
     }
 
     auto chapters = std::vector<ChapterSegment> {};
-    chapters.reserve(static_cast<usize>(safe_count));
+    chapters.reserve(static_cast<std::size_t>(safe_count));
 
     auto start_ms = u64 {0};
     for (auto index = u64 {0}; index < safe_count; ++index) {
@@ -57,7 +58,7 @@ auto validate_chapters(const std::vector<ChapterSegment>& chapters,
     }
 
     auto previous_end_ms = u64 {0};
-    for (auto index = usize {0}; index < chapters.size(); ++index) {
+    for (auto index = std::size_t {0}; index < chapters.size(); ++index) {
         const ChapterSegment& chapter = chapters[index];
         const std::string trimmed_name = trim_copy(chapter.name);
 
