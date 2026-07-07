@@ -1,5 +1,7 @@
 #include "cli/cli_app.h"
 
+#include <cstddef>
+#include <filesystem>
 #include <iostream>
 #include <string>
 #include <vector>
