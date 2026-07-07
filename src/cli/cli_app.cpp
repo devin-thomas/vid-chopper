@@ -8,19 +8,19 @@
 namespace vidchopper {
 
 auto run_cli(const CliRunRequest& request) -> CliExitCode {
-    const auto parsed = parse_cli_arguments(request.arguments);
+    const CliParseResult parsed = parse_cli_arguments(request.arguments);
     if (!parsed.ok()) {
         request.error_output << parsed.error_message << "\n\n" << cli_usage();
         return CliExitCode::MissingConfig;
     }
 
-    const auto& cli_arguments = parsed.arguments;
+    const CliArguments& cli_arguments = parsed.arguments;
     if (cli_arguments.command == CliCommand::Help) {
         request.output << cli_usage();
         return CliExitCode::Success;
     }
 
-    const auto settings_paths = resolve_cli_settings_paths(request.executable_path, cli_arguments.use_gui_config);
+    const CliSettingsPaths settings_paths = resolve_cli_settings_paths(request.executable_path, cli_arguments.use_gui_config);
     if (!ensure_cli_settings_file(settings_paths.cli_settings_path)) {
         request.error_output << "Could not create or open CLI settings file: ";
         request.error_output << settings_paths.cli_settings_path.string() << "\n";
