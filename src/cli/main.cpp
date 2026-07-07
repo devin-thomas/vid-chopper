@@ -1,7 +1,6 @@
 #include "cli/cli_app.h"
 
 #include <cstddef>
-#include <filesystem>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -15,6 +14,12 @@ auto main(int argc, char* argv[]) -> int {
         arguments.emplace_back(argv[index]);
     }
 
-    const auto executable_path = argc > 0 ? std::filesystem::path {argv[0]} : std::filesystem::path {};
-    return run_cli(arguments, executable_path, std::cout, std::cerr);
+    const auto request = CliRunRequest {
+        .arguments = std::move(arguments),
+        .executable_path = argc > 0 ? Path {argv[0]} : Path {},
+        .output = std::cout,
+        .error_output = std::cerr,
+    };
+
+    return static_cast<int>(run_cli(request));
 }
