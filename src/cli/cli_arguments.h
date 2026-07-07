@@ -2,7 +2,6 @@
 
 #include "core/types.h"
 
-#include <filesystem>
 #include <optional>
 #include <string>
 #include <vector>
@@ -16,8 +15,8 @@ enum class CliCommand : u8 {
 
 struct CliArguments {
     CliCommand command {CliCommand::Help};
-    std::vector<std::filesystem::path> input_paths;
-    std::vector<std::filesystem::path> config_paths;
+    std::vector<Path> input_paths;
+    std::vector<Path> config_paths;
     std::optional<u8> crf;
     std::optional<u8> cq;
     std::optional<u8> threads;
