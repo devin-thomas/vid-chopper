@@ -20,7 +20,8 @@ auto run_cli(const CliRunRequest& request) -> CliExitCode {
         return CliExitCode::Success;
     }
 
-    const CliSettingsPaths settings_paths = resolve_cli_settings_paths(request.executable_path, cli_arguments.use_gui_config);
+    const CliSettingsPaths settings_paths =
+        resolve_cli_settings_paths(request.executable_path, cli_arguments.use_gui_config);
     if (!ensure_cli_settings_file(settings_paths.cli_settings_path)) {
         request.error_output << "Could not create or open CLI settings file: ";
         request.error_output << settings_paths.cli_settings_path.string() << "\n";
