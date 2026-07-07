@@ -76,7 +76,8 @@ auto main() -> int {
 
     const CliRunSnapshot help = run_with({"--help"}, executable_path);
     test_support::expect_eq(help.exit_code, CliExitCode::Success, "help should succeed");
-    test_support::expect_true(contains(help.output, "VidChopperCLI.exe <input-video>"), "help should show direct syntax");
+    test_support::expect_true(
+        contains(help.output, "VidChopperCLI.exe <input-video>"), "help should show direct syntax");
     test_support::expect_true(contains(help.output, "VidChopperCLI.exe chop"), "help should show chop syntax");
     test_support::expect_true(help.error_output.empty(), "help should not print errors");
 
