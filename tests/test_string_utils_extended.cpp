@@ -1,6 +1,8 @@
 #include "core/string_utils.h"
 #include "test_support.h"
 
+#include <cstddef>
+
 using namespace vidchopper;
 
 auto main() -> int {
@@ -30,28 +32,28 @@ auto main() -> int {
     // split_quoted_arguments: edge cases
     {
         const auto empty_result = split_quoted_arguments("");
-        test_support::expect_eq(empty_result.size(), static_cast<usize>(0), "empty input yields no tokens");
+        test_support::expect_eq(empty_result.size(), static_cast<std::size_t>(0), "empty input yields no tokens");
 
         const auto whitespace_result = split_quoted_arguments("   ");
-        test_support::expect_eq(whitespace_result.size(), static_cast<usize>(0), "whitespace-only yields no tokens");
+        test_support::expect_eq(whitespace_result.size(), static_cast<std::size_t>(0), "whitespace-only yields no tokens");
 
         const auto single = split_quoted_arguments("single");
-        test_support::expect_eq(single.size(), static_cast<usize>(1), "single word yields one token");
+        test_support::expect_eq(single.size(), static_cast<std::size_t>(1), "single word yields one token");
         test_support::expect_eq(single[0], std::string {"single"}, "single word content");
 
         const auto multi_space = split_quoted_arguments("a   b   c");
-        test_support::expect_eq(multi_space.size(), static_cast<usize>(3), "multiple spaces between tokens");
+        test_support::expect_eq(multi_space.size(), static_cast<std::size_t>(3), "multiple spaces between tokens");
 
         const auto quoted_empty = split_quoted_arguments("\"\"");
-        test_support::expect_eq(quoted_empty.size(), static_cast<usize>(0), "empty quoted string yields no tokens");
+        test_support::expect_eq(quoted_empty.size(), static_cast<std::size_t>(0), "empty quoted string yields no tokens");
 
         const auto mixed = split_quoted_arguments("before \"quoted part\" after");
-        test_support::expect_eq(mixed.size(), static_cast<usize>(3), "mixed quoted/unquoted should yield 3 tokens");
+        test_support::expect_eq(mixed.size(), static_cast<std::size_t>(3), "mixed quoted/unquoted should yield 3 tokens");
         test_support::expect_eq(mixed[1], std::string {"quoted part"}, "quoted token preserves spaces");
 
         const auto adjacent_quotes = split_quoted_arguments("\"first\"\"second\"");
         test_support::expect_eq(
-            adjacent_quotes.size(), static_cast<usize>(1), "adjacent quoted strings merge into one token");
+            adjacent_quotes.size(), static_cast<std::size_t>(1), "adjacent quoted strings merge into one token");
         test_support::expect_eq(adjacent_quotes[0], std::string {"firstsecond"}, "adjacent quotes merge content");
     }
 
