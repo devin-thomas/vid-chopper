@@ -96,6 +96,33 @@ reason they exist:
 
 Do not add `// clang-format off` blocks except as a last resort, and explain why if you do.
 
+### Formatter-sensitive patterns
+
+Do not hand-predict how `clang-format` will wrap long statements. Shorten the code
+structurally, especially in tests.
+
+Prefer naming expected values or predicates:
+
+```cpp
+const auto expected_chapter_count = std::size_t {1};
+test_support::expect_eq(chapters.size(), expected_chapter_count, "1 second should produce 1 chapter");
+
+const bool shows_direct_syntax = contains(help.output, "VidChopperCLI.exe <input-video>");
+test_support::expect_true(shows_direct_syntax, "help should show direct syntax");
+```
+
+Avoid long one-line casts or manually wrapped assertions that only exist to satisfy the column
+limit:
+
+```cpp
+// avoid
+test_support::expect_eq(chapters.size(), static_cast<std::size_t>(1), "1 second duration with 6 requested should produce 1 chapter");
+```
+
+When editing through a connector or any environment where `clang-format -i` cannot be run, do
+not call the change ready until the formatter check is green. If CI reports a formatting error,
+fix the **class of pattern** that caused it, not only the first line mentioned in the log.
+
 ---
 
 ## 5. Static analysis — `.clang-tidy`
@@ -185,6 +212,14 @@ Do not use `auto` when the type is only implied by another variable or function 
 explicit leading type in cases like `const char* const first = text.data();` or
 `const std::optional<u64> parsed = parse_unsigned(value);`.
 
+Do not force this rule onto plain `bool` locals. `clang-tidy` treats `auto flag = bool {false};`
+as redundant casting. Use direct braced bool declarations instead:
+
+```cpp
+bool in_quotes {false};
+bool previous_was_space {false};
+```
+
 ---
 
 ## 9. Trailing return types — everywhere
@@ -209,7 +244,11 @@ Member function definitions repeat the trailing form (`auto MainWindow::build_ui
 `const` is self-documenting and forces deliberate change later. Apply it aggressively after
 carefully reasoning about the logic:
 
-- Mark every local that is not reassigned `const` (`const auto parsed = …;`).
+- Mark every local that is not reassigned `const`.
+- When the RHS names the type directly, `const auto` is correct
+  (`const auto expected_count = std::size_t {3};`).
+- When the type is only implied by another variable or function return, combine `const` with an
+  explicit leading type (`const std::optional<u64> parsed = parse_unsigned(value);`).
 - Mark parameters `const` where it documents intent (`const bool success`, `const u64 ms`).
 - Mark member functions `const` whenever they don't mutate.
 - Prefer `constexpr` for anything computable at compile time (see `FrameRate` accessors,
@@ -388,6 +427,20 @@ ctest --test-dir build/core-release -C Release -L slow --output-on-failure   # n
   escalate if the test/spec is wrong.
 - Enum values, INI keys, output file-name patterns, and ffmpeg argument order are **stable
   contracts** — change them only intentionally and call it out in the PR.
+- Use neutral branch names only. Do not include personal handles, email stems, customer names,
+  or secrets in branch names, commit messages, PR titles, or Linear updates.
+
+### Whole-tree refactor workflow
+
+When removing or renaming a symbol, type alias, file, flag, setting, or public behavior:
+
+1. Search the whole repository for the exact old spelling before the first commit.
+2. Update every affected target class: core, CLI, Qt GUI, tests, CMake, docs, and dummy fixtures.
+3. Re-run or wait for all relevant checks before calling the task ready.
+4. If CI fails, classify the failure pattern and sweep for similar instances before pushing again.
+
+For example, removing a type alias from `core/types.h` is not complete until `src/qt`, all tests,
+and slow integration tests have been checked for the old alias.
 
 ---
 
@@ -409,6 +462,9 @@ ctest --test-dir build/core-release -C Release -L slow --output-on-failure
 # Lint (pinned 18.1.8)
 clang-format --dry-run --Werror $(git ls-files 'src/*.cpp' 'src/*.h' 'tests/*.cpp' 'tests/*.h')
 for f in src/core/*.cpp; do clang-tidy "$f" -- -std=c++20 -Isrc; done
+
+# Exact-spelling sweep before removing/renaming symbols
+rg -n "old_symbol_or_alias" src tests CMakeLists.txt CODING_STYLE.md AGENTS.md
 ```
 
 ---
@@ -420,9 +476,13 @@ for f in src/core/*.cpp; do clang-tidy "$f" -- -std=c++20 -Isrc; done
 - [ ] `clang-tidy` is clean over `src/core`.
 - [ ] Fast tests pass; slow tests pass if ffmpeg is available.
 - [ ] New/changed behavior is covered by tests; intended-identical behavior is golden-locked.
+- [ ] Long test assertions were shortened structurally instead of hand-wrapped.
+- [ ] Removed/renamed symbols were searched across `src`, `tests`, CMake, docs, and fixtures.
 - [ ] Trailing return types, project type aliases, designated initializers, and aggressive
       `const`/`constexpr` are applied.
 - [ ] No new Qt include in `src/core`; UI ownership and string boundaries respected.
 - [ ] No stable contract (enum values, INI keys, naming patterns, ffmpeg arg order) changed
       unintentionally.
+- [ ] Branch name, commit message, PR text, and Linear update contain no personal identifiers,
+      email stems, customer names, or secrets.
 - [ ] Comments explain *why*; any `NOLINT` is justified.
