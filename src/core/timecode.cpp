@@ -14,8 +14,8 @@ namespace vidchopper {
 namespace {
 
 auto split_timecode(std::string_view value, const char delimiter) -> std::vector<std::string> {
-    std::vector<std::string> segments {};
-    std::string current {};
+    auto segments = std::vector<std::string> {};
+    auto current = std::string {};
 
     for (const char character : value) {
         if (character == delimiter) {
@@ -32,7 +32,7 @@ auto split_timecode(std::string_view value, const char delimiter) -> std::vector
 }
 
 auto parse_unsigned(std::string_view value) -> std::optional<u64> {
-    u64 result {0};
+    auto result = u64 {0};
     const char* const first = value.data();
     const char* const last = first + value.size();
     const std::from_chars_result parsed = std::from_chars(first, last, result);
@@ -140,7 +140,7 @@ auto parse_millisecond_timecode(std::string_view value) -> std::optional<u64> {
         return std::nullopt;
     }
 
-    u64 milliseconds {0};
+    auto milliseconds = u64 {0};
     if (second_parts.size() == 2) {
         const std::string& fraction = second_parts[1];
         if (fraction.empty() || fraction.size() > 3) {
