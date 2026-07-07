@@ -43,6 +43,8 @@ apply_vidchopper_warnings(vidchopper_core)
 
 if(VIDCHOPPER_BUILD_CLI)
     add_library(vidchopper_cli
+        src/cli/chapter_config.cpp
+        src/cli/chapter_config.h
         src/cli/cli_app.cpp
         src/cli/cli_app.h
         src/cli/cli_arguments.cpp
@@ -93,6 +95,7 @@ if(VIDCHOPPER_BUILD_TESTS)
     if(TARGET vidchopper_cli)
         add_vidchopper_test(vidchopper_test_cli_arguments tests/test_cli_arguments.cpp fast vidchopper_cli)
         add_vidchopper_test(vidchopper_test_cli_settings tests/test_cli_settings.cpp fast vidchopper_cli)
+        add_vidchopper_test(vidchopper_test_chapter_config tests/test_chapter_config.cpp fast vidchopper_cli)
     endif()
     add_vidchopper_test(vidchopper_test_ffmpeg_integration tests/test_ffmpeg_integration.cpp slow)
 endif()
