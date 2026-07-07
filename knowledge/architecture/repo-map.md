@@ -36,6 +36,7 @@ power-user and automation-facing entry point.
   - hand-rolled test harness
   - `fast` pure-logic coverage
   - CLI parser and settings boundary coverage
+  - `tests/dummy/` mock fixtures for CLI config, settings, path, and future batch/probing tests
   - `slow` ffmpeg-backed integration coverage
 - `docs/`
   - Vite + React + TypeScript + Tailwind Pages app
