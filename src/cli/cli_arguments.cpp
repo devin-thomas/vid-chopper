@@ -63,7 +63,7 @@ constexpr auto flag_threads = std::string_view {"--threads"};
     return token.starts_with('-');
 }
 
-[[nodiscard]] auto next_value(const std::vector<std::string>& tokens, const usize index, const std::string_view flag)
+[[nodiscard]] auto next_value(const std::vector<std::string>& tokens, const usize index)
     -> std::optional<std::string_view> {
     const auto next_index = index + 1;
     if (next_index >= tokens.size() || is_flag(tokens[next_index])) {
@@ -137,7 +137,7 @@ auto parse_cli_arguments(const std::vector<std::string>& tokens) -> CliParseResu
         }
 
         if (token == flag_crf || token == flag_cq || token == flag_threads || token == flag_preset) {
-            const auto value = next_value(tokens, index, token);
+            const auto value = next_value(tokens, index);
             if (!value.has_value()) {
                 return failure("Missing value for " + std::string {token} + ".");
             }
