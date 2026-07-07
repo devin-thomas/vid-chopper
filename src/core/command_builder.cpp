@@ -13,18 +13,18 @@ namespace vidchopper {
 // mistyped literal and future refactors have a single source of truth.
 namespace ffmpeg_arg {
 
-constexpr std::string_view overwrite = "-y";
-constexpr std::string_view no_overwrite = "-n";
-constexpr std::string_view seek = "-ss";
-constexpr std::string_view input = "-i";
-constexpr std::string_view duration = "-t";
-constexpr std::string_view video_codec = "-c:v";
-constexpr std::string_view audio_codec = "-c:a";
-constexpr std::string_view audio_bitrate = "-b:a";
-constexpr std::string_view threads = "-threads";
-constexpr std::string_view map_metadata = "-map_metadata";
-constexpr std::string_view metadata = "-metadata";
-constexpr std::string_view movflags = "-movflags";
+constexpr auto overwrite = std::string_view {"-y"};
+constexpr auto no_overwrite = std::string_view {"-n"};
+constexpr auto seek = std::string_view {"-ss"};
+constexpr auto input = std::string_view {"-i"};
+constexpr auto duration = std::string_view {"-t"};
+constexpr auto video_codec = std::string_view {"-c:v"};
+constexpr auto audio_codec = std::string_view {"-c:a"};
+constexpr auto audio_bitrate = std::string_view {"-b:a"};
+constexpr auto threads = std::string_view {"-threads"};
+constexpr auto map_metadata = std::string_view {"-map_metadata"};
+constexpr auto metadata = std::string_view {"-metadata"};
+constexpr auto movflags = std::string_view {"-movflags"};
 
 } // namespace ffmpeg_arg
 
@@ -128,7 +128,7 @@ auto build_ffmpeg_command(const VideoMetadata& metadata,
     const Path& output_path,
     const ExportSettings& settings,
     const EncoderEnvironment& environment) -> std::vector<std::string> {
-    std::vector<std::string> command {};
+    auto command = std::vector<std::string> {};
     command.reserve(32);
     command.emplace_back(settings.ffmpeg_path);
 
