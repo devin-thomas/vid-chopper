@@ -7,12 +7,12 @@ namespace vidchopper {
 
 namespace {
 
-constexpr auto cli_settings_file_name = "VidChopperCLI.ini";
-constexpr auto gui_settings_file_name = "VidChopper.ini";
+constexpr std::string_view cli_settings_file_name {"VidChopperCLI.ini"};
+constexpr std::string_view gui_settings_file_name {"VidChopper.ini"};
 
 [[nodiscard]] auto current_directory() -> Path {
-    auto error = std::error_code {};
-    const auto path = std::filesystem::current_path(error);
+    std::error_code error {};
+    const Path path = std::filesystem::current_path(error);
     return error ? Path {"."} : path;
 }
 
@@ -31,7 +31,7 @@ constexpr auto gui_settings_file_name = "VidChopper.ini";
 } // namespace
 
 auto resolve_cli_settings_paths(const Path& executable_path, const bool use_gui_config) -> CliSettingsPaths {
-    const auto application_directory = application_directory_for(executable_path);
+    const Path application_directory = application_directory_for(executable_path);
     return CliSettingsPaths {
         .application_directory = application_directory,
         .cli_settings_path = application_directory / cli_settings_file_name,
@@ -41,8 +41,8 @@ auto resolve_cli_settings_paths(const Path& executable_path, const bool use_gui_
 }
 
 auto ensure_cli_settings_file(const Path& settings_path) -> bool {
-    auto error = std::error_code {};
-    const auto parent = settings_path.parent_path();
+    std::error_code error {};
+    const Path parent = settings_path.parent_path();
     if (!parent.empty()) {
         std::filesystem::create_directories(parent, error);
         if (error) {
@@ -50,7 +50,7 @@ auto ensure_cli_settings_file(const Path& settings_path) -> bool {
         }
     }
 
-    auto stream = std::ofstream {settings_path, std::ios::app};
+    std::ofstream stream {settings_path, std::ios::app};
     return stream.good();
 }
 
