@@ -42,8 +42,8 @@ constexpr std::string_view flag_threads {"--threads"};
     }
 
     u32 value {0};
-    const char* first = text.data();
-    const char* last = text.data() + text.size();
+    const char* const first = text.data();
+    const char* const last = text.data() + text.size();
     const std::from_chars_result result = std::from_chars(first, last, value);
     if (result.ec != std::errc {} || result.ptr != last || value > std::numeric_limits<u16>::max()) {
         return std::nullopt;
