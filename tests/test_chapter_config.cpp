@@ -11,7 +11,7 @@ using namespace vidchopper;
 
 namespace {
 
-const auto json_config = std::string {R"json(
+constexpr auto json_config = R"json(
 {
   "$schema": "../docs/schemas/chapter-config.schema.json",
   "version": 1,
@@ -38,9 +38,9 @@ const auto json_config = std::string {R"json(
     }
   ]
 }
-)json"};
+)json";
 
-const auto yaml_config = std::string {R"yaml(
+constexpr auto yaml_config = R"yaml(
 $schema: ../docs/schemas/chapter-config.schema.json
 version: 1
 output:
@@ -58,25 +58,25 @@ chapters:
   - name: Middle
     start: "00:01:00.000"
     end: "00:02:30.000"
-)yaml"};
+)yaml";
 
-const auto yml_config = std::string {R"yaml(
+constexpr auto yml_config = R"yaml(
 version: 1
 chapters:
   - name: Short
     start: "00:00:00.000"
     end: "00:01:00.000"
-)yaml"};
+)yaml";
 
-const auto unknown_key_config = std::string {R"yaml(
+constexpr auto unknown_key_config = R"yaml(
 version: 1
 chapters:
   - name: Opening
     start: "00:00:00.000"
     finish: "00:01:00.000"
-)yaml"};
+)yaml";
 
-const auto invalid_time_config = std::string {R"json(
+constexpr auto invalid_time_config = R"json(
 {
   "version": 1,
   "chapters": [
@@ -87,17 +87,17 @@ const auto invalid_time_config = std::string {R"json(
     }
   ]
 }
-)json"};
+)json";
 
-const auto invalid_order_config = std::string {R"yaml(
+constexpr auto invalid_order_config = R"yaml(
 version: 1
 chapters:
   - name: Backwards
     start: "00:02:00.000"
     end: "00:01:00.000"
-)yaml"};
+)yaml";
 
-auto write_text(const Path& path, const std::string& text) -> void {
+auto write_text(const Path& path, const std::string_view text) -> void {
     std::filesystem::create_directories(path.parent_path());
     auto stream = std::ofstream {path};
     stream << text;
