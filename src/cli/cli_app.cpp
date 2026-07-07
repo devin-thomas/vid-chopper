@@ -28,6 +28,9 @@ auto run_cli(const CliRunRequest& request) -> CliExitCode {
         return CliExitCode::RuntimeError;
     }
 
+    const CliResolvedSettings loaded_settings = load_cli_settings(settings_paths);
+    const ExportSettings effective_settings = apply_cli_flag_overrides(loaded_settings.export_settings, cli_arguments);
+
     if (cli_arguments.input_paths.size() == 1 && cli_arguments.config_paths.empty()) {
         request.error_output << "A JSON or YAML chapter config is required before VidChopperCLI can export.\n"
                              << "Embedded chapter probing and hinting will be added in the next CLI phase.\n";
@@ -43,6 +46,9 @@ auto run_cli(const CliRunRequest& request) -> CliExitCode {
     request.output << "Input: " << cli_arguments.input_paths.front().string() << "\n";
     request.output << "Config: " << cli_arguments.config_paths.front().string() << "\n";
     request.output << "CLI settings: " << settings_paths.cli_settings_path.string() << "\n";
+    request.output << "Settings loaded: CLI=" << (loaded_settings.loaded_cli_settings ? "yes" : "no");
+    request.output << ", GUI=" << (loaded_settings.loaded_gui_settings ? "yes" : "no") << "\n";
+    request.output << "Effective CRF: " << static_cast<int>(effective_settings.x264_crf) << "\n";
 
     if (settings_paths.use_gui_config) {
         request.output << "GUI config import requested: " << settings_paths.gui_settings_path.string() << "\n";
