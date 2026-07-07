@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <filesystem>
 
 namespace vidchopper {
 
@@ -17,5 +18,7 @@ using i64 = std::int64_t;
 
 using usize = std::size_t;
 using f64 = double;
+
+using Path = std::filesystem::path;
 
 } // namespace vidchopper
