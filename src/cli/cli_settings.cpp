@@ -30,8 +30,8 @@ constexpr auto gui_settings_file_name = "VidChopper.ini";
 
 } // namespace
 
-auto resolve_cli_settings_paths(const std::filesystem::path& executable_path, const bool use_gui_config)
-    -> CliSettingsPaths {
+auto resolve_cli_settings_paths(
+    const std::filesystem::path& executable_path, const bool use_gui_config) -> CliSettingsPaths {
     const auto application_directory = application_directory_for(executable_path);
     return CliSettingsPaths {
         .application_directory = application_directory,
