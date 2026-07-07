@@ -12,16 +12,16 @@ namespace {
 
 using TokenList = std::vector<std::string>;
 
-constexpr std::string_view command_chop {"chop"};
-constexpr std::string_view flag_help {"--help"};
-constexpr std::string_view short_flag_help {"-h"};
-constexpr std::string_view flag_dry_run {"--dry-run"};
-constexpr std::string_view flag_use_gui_config {"--use-gui-config"};
-constexpr std::string_view flag_stop_on_first_error {"--stop-on-first-error"};
-constexpr std::string_view flag_crf {"--crf"};
-constexpr std::string_view flag_cq {"--cq"};
-constexpr std::string_view flag_preset {"--preset"};
-constexpr std::string_view flag_threads {"--threads"};
+constexpr auto command_chop = std::string_view {"chop"};
+constexpr auto flag_help = std::string_view {"--help"};
+constexpr auto short_flag_help = std::string_view {"-h"};
+constexpr auto flag_dry_run = std::string_view {"--dry-run"};
+constexpr auto flag_use_gui_config = std::string_view {"--use-gui-config"};
+constexpr auto flag_stop_on_first_error = std::string_view {"--stop-on-first-error"};
+constexpr auto flag_crf = std::string_view {"--crf"};
+constexpr auto flag_cq = std::string_view {"--cq"};
+constexpr auto flag_preset = std::string_view {"--preset"};
+constexpr auto flag_threads = std::string_view {"--threads"};
 
 [[nodiscard]] auto success(CliArguments arguments) -> CliParseResult {
     return CliParseResult {
@@ -41,7 +41,7 @@ constexpr std::string_view flag_threads {"--threads"};
         return std::nullopt;
     }
 
-    u32 value {0};
+    auto value = u32 {0};
     const char* const first = text.data();
     const char* const last = text.data() + text.size();
     const std::from_chars_result result = std::from_chars(first, last, value);
@@ -66,7 +66,7 @@ constexpr std::string_view flag_threads {"--threads"};
 }
 
 [[nodiscard]] auto next_value(const TokenList& tokens, const usize index) -> std::optional<std::string_view> {
-    const usize next_index = index + 1;
+    const auto next_index = usize {index + 1};
     if (next_index >= tokens.size() || is_flag(tokens[next_index])) {
         return std::nullopt;
     }
@@ -95,14 +95,14 @@ auto CliParseResult::ok() const noexcept -> bool {
 }
 
 auto parse_cli_arguments(const std::vector<std::string>& tokens) -> CliParseResult {
-    CliArguments arguments {};
+    auto arguments = CliArguments {};
 
     if (tokens.empty()) {
         return success(arguments);
     }
 
-    usize index {0};
-    const std::string_view first_token {tokens[index]};
+    auto index = usize {0};
+    const auto first_token = std::string_view {tokens[index]};
     if (first_token == flag_help || first_token == short_flag_help) {
         return success(arguments);
     }
@@ -115,7 +115,7 @@ auto parse_cli_arguments(const std::vector<std::string>& tokens) -> CliParseResu
     }
 
     for (; index < tokens.size(); ++index) {
-        const std::string_view token {tokens[index]};
+        const auto token = std::string_view {tokens[index]};
 
         if (token == flag_help || token == short_flag_help) {
             arguments.command = CliCommand::Help;
