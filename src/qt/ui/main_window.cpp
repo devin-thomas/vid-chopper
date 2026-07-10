@@ -16,6 +16,7 @@
 #include <QCloseEvent>
 #include <QDir>
 #include <QDesktopServices>
+#include <QFile>
 #include <QFileDialog>
 #include <QFont>
 #include <QFontMetrics>
@@ -38,17 +39,33 @@
 #include <QScrollBar>
 #include <QStatusBar>
 #include <QTableView>
+#include <QTextStream>
+#include <QTimer>
 #include <QToolButton>
 #include <QUrl>
 #include <QVBoxLayout>
 #include <QWheelEvent>
 
+#include <array>
 #include <algorithm>
 #include <filesystem>
 
 namespace vidchopper {
 
 namespace {
+
+#ifndef VIDCHOPPER_DISPLAY_VERSION
+#define VIDCHOPPER_DISPLAY_VERSION "0.2.0-alpha"
+#endif
+
+constexpr auto demo_chapter_names = std::array {
+    "Intro",
+    "Setup Overview",
+    "Key Features",
+    "Demo",
+    "Tips & Tricks",
+    "Outro",
+};
 
 auto normalize_path_for_storage(const std::filesystem::path& path) -> std::filesystem::path {
     auto error = std::error_code {};
@@ -92,14 +109,35 @@ auto translated_log_message(const LogEntry& entry) -> QString {
     return entry.message;
 }
 
+auto demo_window_title() -> QString {
+    const auto version = QStringLiteral(VIDCHOPPER_DISPLAY_VERSION);
+    const auto lowered = version.toLower();
+    const auto is_prerelease =
+        lowered.contains("alpha") || lowered.contains("beta") || lowered.contains("nightly");
+    return is_prerelease ? QStringLiteral("VidChopper %1").arg(version) : QStringLiteral("VidChopper");
+}
+
+auto build_seeded_demo_chapters(const u64 duration_ms) -> std::vector<ChapterSegment> {
+    auto chapters = build_default_chapters(duration_ms, static_cast<u8>(demo_chapter_names.size()));
+    for (auto index = usize {0}; index < chapters.size() && index < demo_chapter_names.size(); ++index) {
+        chapters[index].name = demo_chapter_names[index];
+    }
+    return chapters;
+}
+
 } // namespace
 
-MainWindow::MainWindow(QWidget* parent)
+MainWindow::MainWindow(DemoLaunchOptions demo_options, QWidget* parent)
     : QMainWindow(parent)
+    , demo_options_(std::move(demo_options))
     , chapter_model_(new ChapterTableModel {this})
     , export_coordinator_(new ExportCoordinator {this}) {
-    setWindowTitle("VidChopper");
+    setWindowTitle(demo_window_title());
     resize(1280, 860);
+
+    if (demo_options_.window_size.has_value()) {
+        resize(demo_options_.window_size->width, demo_options_.window_size->height);
+    }
 
     const auto settings_store = create_settings_store(this);
     settings_store_ = settings_store.settings;
@@ -152,6 +190,10 @@ MainWindow::MainWindow(QWidget* parent)
     connect(export_coordinator_, &ExportCoordinator::finished, this, &MainWindow::handle_export_finished);
 
     append_log_message(LogCategory::Config, QStringLiteral("Config file: %1").arg(config_path_));
+
+    if (demo_options_.enabled()) {
+        QTimer::singleShot(0, this, &MainWindow::activate_demo_scene);
+    }
 }
 
 auto MainWindow::closeEvent(QCloseEvent* event) -> void {
@@ -357,7 +399,7 @@ auto MainWindow::open_video() -> void {
         "Video Files (*.mp4 *.mkv *.mov *.m4v *.avi *.webm);;All Files (*.*)");
 
     if (!file_path.isEmpty()) {
-        load_video(file_path);
+        static_cast<void>(load_video(file_path));
     }
 }
 
@@ -511,12 +553,12 @@ auto MainWindow::handle_export_finished(const bool success, const QStringList& e
     }
 }
 
-auto MainWindow::load_video(const QString& source_path) -> void {
+auto MainWindow::load_video(const QString& source_path) -> bool {
     const auto probe_result = FfprobeService::probe_video(QString::fromStdString(settings_.ffprobe_path), source_path);
     if (!probe_result.success) {
         QMessageBox::critical(this, "ffprobe error", probe_result.error_message);
         append_log_message(LogCategory::Error, probe_result.error_message);
-        return;
+        return false;
     }
 
     metadata_ = probe_result.metadata;
@@ -539,6 +581,7 @@ auto MainWindow::load_video(const QString& source_path) -> void {
 
     refresh_summary();
     append_log_message(LogCategory::Probe, QStringLiteral("Loaded %1").arg(display_path(metadata_->source_path)));
+    return true;
 }
 
 auto MainWindow::apply_settings_to_ui() -> void {
@@ -660,6 +703,105 @@ auto MainWindow::set_output_directory_path(const std::filesystem::path& path, co
     output_directory_path_ = normalize_path_for_storage(path);
     output_directory_edit_->setText(display_path(output_directory_path_));
     output_directory_overridden_ = overridden;
+}
+
+auto MainWindow::activate_demo_scene() -> void {
+    if (demo_scene_applied_ || !demo_options_.enabled()) {
+        return;
+    }
+
+    demo_scene_applied_ = true;
+
+    auto success = false;
+    switch (demo_options_.scene) {
+    case DemoScene::Workspace:
+        success = seed_workspace_demo(false);
+        break;
+    case DemoScene::WorkspaceLogs:
+        success = seed_workspace_demo(true);
+        break;
+    case DemoScene::SettingsPrecision:
+        success = seed_settings_precision_demo();
+        break;
+    case DemoScene::None:
+        success = true;
+        break;
+    }
+
+    const auto status = success ? QStringLiteral("ready") : QStringLiteral("error");
+    QTimer::singleShot(0, this, [this, status]() { write_demo_ready_file(status); });
+}
+
+auto MainWindow::seed_workspace_demo(const bool show_logs) -> bool {
+    if (!load_video(QString::fromStdWString(demo_options_.demo_source.wstring()))) {
+        return false;
+    }
+
+    chapter_model_->set_display_mode(TimestampDisplayMode::Milliseconds);
+    chapter_model_->set_chapters(build_seeded_demo_chapters(metadata_->duration_ms));
+    chapter_source_value_label_->setText("Seeded demo layout");
+    chapter_count_spin_->setValue(chapter_model_->chapter_count());
+
+    const auto output_directory = demo_options_.demo_source.parent_path() / "captures";
+    std::filesystem::create_directories(output_directory);
+    set_output_directory_path(output_directory, true);
+
+    select_demo_chapter_row(3);
+    append_log_message(LogCategory::App, "Seeded demo workspace prepared.");
+    append_log_message(LogCategory::App, QStringLiteral("Output path: %1").arg(output_directory_edit_->text()));
+
+    if (show_logs) {
+        update_log_disclosure(true);
+        append_log_message(LogCategory::ExportLifecycle, "Reviewing chapter plan before export.");
+        append_log_message(LogCategory::ExportProgress, "Previewing output naming and destination.");
+    } else {
+        update_log_disclosure(false);
+    }
+
+    return true;
+}
+
+auto MainWindow::seed_settings_precision_demo() -> bool {
+    if (!seed_workspace_demo(false)) {
+        return false;
+    }
+
+    auto* dialog = new AdvancedSettingsDialog {this};
+    dialog->setAttribute(Qt::WA_DeleteOnClose, false);
+    dialog->setModal(false);
+    dialog->set_settings(settings_);
+    dialog->set_active_page(AdvancedSettingsDialog::Page::Precision);
+    dialog->show();
+    dialog->raise();
+    dialog->activateWindow();
+    demo_settings_dialog_ = dialog;
+    return true;
+}
+
+auto MainWindow::select_demo_chapter_row(const int row) -> void {
+    if (row < 0 || row >= chapter_model_->chapter_count()) {
+        return;
+    }
+
+    chapter_table_->selectRow(row);
+    chapter_table_->scrollTo(chapter_model_->index(row, 0), QAbstractItemView::PositionAtCenter);
+}
+
+auto MainWindow::write_demo_ready_file(const QString& status) const -> void {
+    if (demo_options_.demo_ready_file.empty()) {
+        return;
+    }
+
+    const auto ready_path = demo_options_.demo_ready_file;
+    std::filesystem::create_directories(ready_path.parent_path());
+
+    auto file = QFile {QString::fromStdWString(ready_path.wstring())};
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text)) {
+        return;
+    }
+
+    auto stream = QTextStream {&file};
+    stream << status << '\n';
 }
 
 auto MainWindow::confirm_exit() -> bool {

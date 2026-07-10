@@ -1,0 +1,53 @@
+{
+  "sampleVideo": {
+    "filename": "vidchopper-demo-source.mp4",
+    "durationSeconds": 18,
+    "size": "1280x720",
+    "frameRate": 24,
+    "audioFrequency": 440
+  },
+  "captures": [
+    {
+      "scene": "workspace",
+      "asset": "vidchopper-real-main.png",
+      "windowSize": "1294x925",
+      "capture": "window"
+    },
+    {
+      "scene": "workspace",
+      "asset": "vidchopper-real-summary.png",
+      "windowSize": "1294x925",
+      "capture": "crop",
+      "crop": {
+        "x": 18,
+        "y": 72,
+        "width": 1262,
+        "height": 468
+      }
+    },
+    {
+      "scene": "workspace-logs",
+      "asset": "vidchopper-real-export.png",
+      "windowSize": "1294x925",
+      "capture": "crop",
+      "crop": {
+        "x": 18,
+        "y": 358,
+        "width": 1262,
+        "height": 520
+      }
+    },
+    {
+      "scene": "settings-precision",
+      "asset": "vidchopper-real-settings.png",
+      "windowSize": "1440x980",
+      "capture": "crop",
+      "crop": {
+        "x": 402,
+        "y": 118,
+        "width": 716,
+        "height": 522
+      }
+    }
+  ]
+}

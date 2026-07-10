@@ -1,9 +1,11 @@
 #pragma once
 
 #include "core/models.h"
+#include "qt/demo_launch_options.h"
 #include "qt/logging.h"
 
 #include <QMainWindow>
+#include <QPointer>
 
 #include <vector>
 #include <optional>
@@ -26,12 +28,13 @@ namespace vidchopper {
 
 class ChapterTableModel;
 class ExportCoordinator;
+class AdvancedSettingsDialog;
 
 class MainWindow final : public QMainWindow {
     Q_OBJECT
 
 public:
-    explicit MainWindow(QWidget* parent = nullptr);
+    explicit MainWindow(DemoLaunchOptions demo_options = {}, QWidget* parent = nullptr);
 
 protected:
     auto closeEvent(QCloseEvent* event) -> void override;
@@ -53,7 +56,7 @@ private slots:
 private:
     auto create_menus() -> void;
     auto build_ui() -> void;
-    auto load_video(const QString& source_path) -> void;
+    auto load_video(const QString& source_path) -> bool;
     auto apply_settings_to_ui() -> void;
     auto apply_zoom_percent(int zoom_percent, bool persist) -> void;
     auto refresh_summary() -> void;
@@ -63,6 +66,11 @@ private:
     auto refresh_log_view() -> void;
     auto append_log_message(LogCategory category, const QString& message) -> void;
     auto set_output_directory_path(const std::filesystem::path& path, bool overridden) -> void;
+    auto activate_demo_scene() -> void;
+    auto seed_workspace_demo(bool show_logs) -> bool;
+    auto seed_settings_precision_demo() -> bool;
+    auto select_demo_chapter_row(int row) -> void;
+    auto write_demo_ready_file(const QString& status) const -> void;
     [[nodiscard]] auto confirm_exit() -> bool;
     [[nodiscard]] auto current_screen_size() const -> QSize;
     [[nodiscard]] auto current_output_directory() const -> std::filesystem::path;
@@ -97,6 +105,9 @@ private:
     int base_font_point_size_ {10};
     int zoom_percent_ {100};
     bool output_directory_overridden_ {false};
+    bool demo_scene_applied_ {false};
+    DemoLaunchOptions demo_options_;
+    QPointer<AdvancedSettingsDialog> demo_settings_dialog_;
 };
 
 } // namespace vidchopper

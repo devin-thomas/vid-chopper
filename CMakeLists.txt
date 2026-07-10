@@ -9,6 +9,7 @@ project(
 
 option(VIDCHOPPER_BUILD_GUI "Build the Qt GUI target" ON)
 option(VIDCHOPPER_BUILD_TESTS "Build the test targets" ON)
+set(VIDCHOPPER_DISPLAY_VERSION "0.2.0-alpha" CACHE STRING "User-facing version string for prerelease labeling")
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -70,6 +71,7 @@ if(VIDCHOPPER_BUILD_TESTS)
     add_vidchopper_test(vidchopper_test_string_utils_extended tests/test_string_utils_extended.cpp fast)
     add_vidchopper_test(vidchopper_test_models tests/test_models.cpp fast)
     add_vidchopper_test(vidchopper_test_enum_clamp tests/test_enum_clamp.cpp fast)
+    add_vidchopper_test(vidchopper_test_demo_launch_options tests/test_demo_launch_options.cpp fast)
     add_vidchopper_test(vidchopper_test_ffmpeg_integration tests/test_ffmpeg_integration.cpp slow)
 endif()
 
@@ -91,6 +93,7 @@ if(VIDCHOPPER_BUILD_GUI)
         src/qt/main.cpp
         src/qt/app_settings.cpp
         src/qt/app_settings.h
+        src/qt/demo_launch_options.h
         src/qt/dark_palette.cpp
         src/qt/dark_palette.h
         src/qt/services/export_coordinator.cpp
@@ -110,6 +113,7 @@ if(VIDCHOPPER_BUILD_GUI)
     )
 
     target_link_libraries(VidChopper PRIVATE Qt6::Core Qt6::Gui Qt6::Widgets vidchopper_core)
+    target_compile_definitions(VidChopper PRIVATE VIDCHOPPER_DISPLAY_VERSION="${VIDCHOPPER_DISPLAY_VERSION}")
 
     if(MSVC)
         target_compile_options(VidChopper PRIVATE /W4 /permissive- /EHsc /MP /utf-8 /Zc:__cplusplus)

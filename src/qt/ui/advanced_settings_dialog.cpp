@@ -28,9 +28,9 @@ AdvancedSettingsDialog::AdvancedSettingsDialog(QWidget* parent)
     setWindowTitle("Advanced Settings");
     resize(680, 520);
 
-    auto* tabs = new QTabWidget {this};
+    tabs_ = new QTabWidget {this};
 
-    auto* encoding_tab = new QWidget {tabs};
+    auto* encoding_tab = new QWidget {tabs_};
     auto* encoding_form = new QFormLayout {encoding_tab};
     encoder_combo_ = new QComboBox {encoding_tab};
     encoder_combo_->addItems({"Auto", "x264", "HEVC NVENC"});
@@ -60,9 +60,9 @@ AdvancedSettingsDialog::AdvancedSettingsDialog(QWidget* parent)
     encoding_form->addRow("AAC bitrate", aac_bitrate_spin_);
     encoding_form->addRow("FFmpeg threads", threads_spin_);
     encoding_form->addRow("", auto_gpu_checkbox_);
-    tabs->addTab(encoding_tab, "Encoding");
+    tabs_->addTab(encoding_tab, "Encoding");
 
-    auto* output_tab = new QWidget {tabs};
+    auto* output_tab = new QWidget {tabs_};
     auto* output_form = new QFormLayout {output_tab};
     container_combo_ = new QComboBox {output_tab};
     container_combo_->addItems({"Match source", "MP4", "MKV"});
@@ -84,9 +84,9 @@ AdvancedSettingsDialog::AdvancedSettingsDialog(QWidget* parent)
     output_form->addRow("", sanitize_names_checkbox_);
     output_form->addRow("", open_folder_checkbox_);
     output_form->addRow("", copy_metadata_checkbox_);
-    tabs->addTab(output_tab, "Output");
+    tabs_->addTab(output_tab, "Output");
 
-    auto* precision_tab = new QWidget {tabs};
+    auto* precision_tab = new QWidget {tabs_};
     auto* precision_form = new QFormLayout {precision_tab};
     seek_combo_ = new QComboBox {precision_tab};
     seek_combo_->addItems({"Accurate trim", "Fast seek"});
@@ -112,9 +112,9 @@ AdvancedSettingsDialog::AdvancedSettingsDialog(QWidget* parent)
     precision_form->addRow("", verify_durations_checkbox_);
     precision_form->addRow("", write_json_manifest_checkbox_);
     precision_form->addRow("", write_csv_manifest_checkbox_);
-    tabs->addTab(precision_tab, "Precision");
+    tabs_->addTab(precision_tab, "Precision");
 
-    auto* confirmations_tab = new QWidget {tabs};
+    auto* confirmations_tab = new QWidget {tabs_};
     auto* confirmations_layout = new QVBoxLayout {confirmations_tab};
     confirm_remove_checkbox_ = new QCheckBox {"Confirm before removing selected chapters", confirmations_tab};
     confirm_exit_checkbox_ = new QCheckBox {"Confirm before closing the app", confirmations_tab};
@@ -127,9 +127,9 @@ AdvancedSettingsDialog::AdvancedSettingsDialog(QWidget* parent)
     confirmations_layout->addWidget(confirm_exit_checkbox_);
     confirmations_layout->addWidget(warning_label);
     confirmations_layout->addStretch(1);
-    tabs->addTab(confirmations_tab, "Confirmations");
+    tabs_->addTab(confirmations_tab, "Confirmations");
 
-    auto* tools_tab = new QWidget {tabs};
+    auto* tools_tab = new QWidget {tabs_};
     auto* tools_form = new QFormLayout {tools_tab};
     ffmpeg_path_edit_ = new QLineEdit {"ffmpeg", tools_tab};
     ffprobe_path_edit_ = new QLineEdit {"ffprobe", tools_tab};
@@ -137,7 +137,7 @@ AdvancedSettingsDialog::AdvancedSettingsDialog(QWidget* parent)
     tools_form->addRow("ffmpeg executable", ffmpeg_path_edit_);
     tools_form->addRow("ffprobe executable", ffprobe_path_edit_);
     tools_form->addRow("Extra ffmpeg args", extra_args_edit_);
-    tabs->addTab(tools_tab, "Tools");
+    tabs_->addTab(tools_tab, "Tools");
 
     auto* buttons = new QDialogButtonBox {
         QDialogButtonBox::Ok | QDialogButtonBox::Cancel | QDialogButtonBox::RestoreDefaults, this};
@@ -152,8 +152,12 @@ AdvancedSettingsDialog::AdvancedSettingsDialog(QWidget* parent)
         "Tokens: %source% uses the source filename stem, %index% uses the padded chapter number, and %name% uses the chapter title.",
         this,
     });
-    layout->addWidget(tabs);
+    layout->addWidget(tabs_);
     layout->addWidget(buttons);
+}
+
+auto AdvancedSettingsDialog::set_active_page(const Page page) -> void {
+    tabs_->setCurrentIndex(static_cast<int>(page));
 }
 
 auto AdvancedSettingsDialog::set_settings(const ExportSettings& settings) -> void {

@@ -8,15 +8,26 @@
 #include <QLineEdit>
 #include <QSpinBox>
 
+class QTabWidget;
+
 namespace vidchopper {
 
 class AdvancedSettingsDialog final : public QDialog {
     Q_OBJECT
 
 public:
+    enum class Page : int {
+        Encoding = 0,
+        Output = 1,
+        Precision = 2,
+        Confirmations = 3,
+        Tools = 4,
+    };
+
     explicit AdvancedSettingsDialog(QWidget* parent = nullptr);
 
     auto set_settings(const ExportSettings& settings) -> void;
+    auto set_active_page(Page page) -> void;
     [[nodiscard]] auto settings() const -> ExportSettings;
 
 private:
@@ -54,6 +65,7 @@ private:
     QCheckBox* prefer_embedded_checkbox_ {nullptr};
     QCheckBox* confirm_remove_checkbox_ {nullptr};
     QCheckBox* confirm_exit_checkbox_ {nullptr};
+    QTabWidget* tabs_ {nullptr};
 };
 
 } // namespace vidchopper
