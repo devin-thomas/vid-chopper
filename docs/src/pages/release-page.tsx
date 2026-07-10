@@ -1,30 +1,64 @@
+import { useEffect, useRef } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import appIcon from "../assets/app-icon.png";
-import { releaseFacts, releaseHighlights, releaseZipUrl, releasesUrl } from "../content/site";
+import releaseShot from "../assets/vidchopper-real-export.png";
+import {
+  changelogEntries,
+  previousReleases,
+  releaseChecklist,
+  releaseFacts,
+  releaseHighlights,
+  releaseVersion,
+  releaseZipUrl,
+  releasesUrl,
+} from "../content/site";
 
 export function ReleasePage() {
+  const [searchParams] = useSearchParams();
+  const changelogRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (searchParams.get("section") === "changelog") {
+      changelogRef.current?.scrollIntoView({ block: "start", behavior: "smooth" });
+    }
+  }, [searchParams]);
+
   return (
     <main className="page-stack">
       <section className="subpage-hero release-hero">
-        <div>
+        <div className="release-hero-copy">
+          <div className="hero-kicker">Release portal</div>
           <h1>Download the current portable Windows release without building Qt locally.</h1>
           <p>
-            The `v0.2.0-alpha` prerelease is the intended end-user path: unzip it, launch VidChopper.exe, then point
-            the app at ffmpeg and ffprobe if they are not already on your PATH.
+            The current prerelease is the intended end-user path: unzip it, launch VidChopper.exe, then point the app
+            at ffmpeg and ffprobe if they are not already on your PATH.
           </p>
-        </div>
-        <div className="release-hero-card">
-          <div className="release-mark">
-            <img src={appIcon} alt="" />
-            <span>Portable Windows release</span>
+          <div className="hero-actions">
+            <a className="cta-primary" href={releaseZipUrl}>
+              Download {releaseVersion} ZIP
+            </a>
+            <Link className="cta-secondary" to="/docs">
+              Read docs first
+            </Link>
           </div>
-          <div className="release-chip">Current release</div>
-          <h2>v0.2.0-alpha</h2>
-          <a className="cta-primary" href={releaseZipUrl}>
-            Download Windows ZIP
-          </a>
-          <a className="cta-secondary" href={releasesUrl}>
-            Browse release history
-          </a>
+        </div>
+        <div className="release-hero-stack">
+          <div className="product-shot product-shot-release">
+            <div className="shot-badge shot-badge-top">Current shipped UI</div>
+            <img src={releaseShot} alt="Real VidChopper export controls and chapter table from the Windows release." />
+          </div>
+          <div className="release-hero-card">
+            <div className="release-mark">
+              <img src={appIcon} alt="" />
+              <span>Portable Windows release</span>
+            </div>
+            <div className="release-chip">Current release</div>
+            <h2>{releaseVersion}</h2>
+            <p>
+              Download the same packaged app surface shown here: Qt runtime bundled, VC++ runtime bundled, `ffmpeg`
+              and `ffprobe` configured separately.
+            </p>
+          </div>
         </div>
       </section>
 
@@ -63,9 +97,9 @@ export function ReleasePage() {
         <div>
           <h2>Install in three steps</h2>
           <ol>
-            <li>Download and unzip the Windows x64 release archive.</li>
-            <li>Launch VidChopper.exe from any writable location.</li>
-            <li>Install ffmpeg and ffprobe separately, or set custom tool paths in Advanced Settings.</li>
+            {releaseChecklist.map((step) => (
+              <li key={step}>{step}</li>
+            ))}
           </ol>
         </div>
         <div className="release-note-card">
@@ -88,13 +122,34 @@ export function ReleasePage() {
         </div>
         <div className="release-history-panel">
           <h2>Previous releases</h2>
-          <p>
-            VidChopper is still in prerelease mode. The GitHub release history is the source of truth for ZIP assets,
-            notes, and future version progression.
-          </p>
+          <div className="release-list">
+            {previousReleases.map((release) => (
+              <div key={release.version} className="release-list-row">
+                <strong>{release.version}</strong>
+                <span>{release.date}</span>
+                <p>{release.note}</p>
+              </div>
+            ))}
+          </div>
           <a className="ghost-link" href={releasesUrl}>
             Open GitHub releases
           </a>
+        </div>
+      </section>
+
+      <section ref={changelogRef} className="release-history changelog-panel">
+        <div className="release-history-panel">
+          <h2>Changelog</h2>
+          <p>The current prerelease story is grounded in actual shipped repo behavior, not placeholder bullets.</p>
+        </div>
+        <div className="release-history-panel changelog-list">
+          {changelogEntries.map((entry) => (
+            <article key={entry.title} className="changelog-entry">
+              <div className="release-chip">{entry.tag}</div>
+              <h3>{entry.title}</h3>
+              <p>{entry.detail}</p>
+            </article>
+          ))}
         </div>
       </section>
     </main>

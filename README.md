@@ -6,14 +6,14 @@ VidChopper is a Windows desktop application for turning one source video into ch
 
 If you want to run VidChopper on Windows 10/11 x64 without building from source, use the current `v0.2.0-alpha` GitHub prerelease zip:
 
-- [Download the `v0.2.0-alpha` Windows x64 release zip](https://github.com/devin-thomas/vid-chopper/releases/download/v0.2.0-alpha/VidChopper-windows-x64.zip)
+- [Download the `v0.2.0-alpha` Windows x64 release zip](https://github.com/devin-thomas/vid-chopper/releases/download/v0.2.0-alpha/VidChopper-0.2.0-alpha-windows-x64.zip)
 - [Browse all GitHub releases](https://github.com/devin-thomas/vid-chopper/releases)
 
 The release zip is a portable build that includes `VidChopper.exe`, the required Qt runtime files, and the Microsoft Visual C++ runtime. It does **not** bundle `ffmpeg` or `ffprobe`, so those still need to be on `PATH` or configured in the advanced settings dialog.
 
 ### Quick Start
 
-1. Download and unzip `VidChopper-windows-x64.zip`.
+1. Download and unzip `VidChopper-0.2.0-alpha-windows-x64.zip`.
 2. Launch `VidChopper.exe`.
 3. Install `ffmpeg` and `ffprobe` separately, or point VidChopper at custom tool paths in Advanced Settings.
 
@@ -21,7 +21,7 @@ The release zip is a portable build that includes `VidChopper.exe`, the required
 
 The repository is structured as a production-oriented desktop application rather than a tutorial exercise. The current codebase includes:
 
-- A GitHub Releases workflow that packages the Windows GUI build into a portable `VidChopper-windows-x64.zip` asset
+- A GitHub Releases workflow that packages the Windows GUI build into a portable versioned Windows ZIP asset
 - A Qt 6 desktop shell for loading a video, importing embedded chapters, editing chapter timing and names, choosing output locations, and exporting clips
 - A C++ core library for chapter validation, timestamp parsing and formatting, file naming, output planning, and `ffmpeg` command construction
 - Automatic preference for HEVC NVENC when an NVIDIA GPU and `hevc_nvenc` support are both detected, with x264 used otherwise
@@ -87,7 +87,7 @@ Published GitHub releases trigger a Windows packaging workflow that:
 
 - builds the `windows-gui-release` preset on `windows-2022`
 - runs `windeployqt` to bundle the required Qt runtime and VC++ runtime beside `VidChopper.exe`
-- zips the portable folder as `VidChopper-windows-x64.zip`
+- zips the portable folder as `VidChopper-<version>-windows-x64.zip`
 - uploads that zip back onto the GitHub release as the installable asset
 
 That release asset is the intended end-user download. Building from source is only necessary for development, debugging, or local modification work.

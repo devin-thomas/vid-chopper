@@ -10,7 +10,7 @@ reconstructing the codebase from scratch.
 
 - Primary branch: `main`
 - Current prerelease: `v0.2.0-alpha`
-- Public release asset: `VidChopper-windows-x64.zip`
+- Public release asset: `VidChopper-0.2.0-alpha-windows-x64.zip`
 - Pages state:
   - Task 10 is now implemented as a Vite + React + TypeScript + Tailwind app under `docs/`
 - Feature-plan state:

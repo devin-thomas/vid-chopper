@@ -5,7 +5,7 @@
 - Branch: `main`
 - Current prerelease tag: `v0.2.0-alpha`
 - Release URL: `https://github.com/devin-thomas/vid-chopper/releases/tag/v0.2.0-alpha`
-- Release asset: `VidChopper-windows-x64.zip`
+- Release asset: `VidChopper-0.2.0-alpha-windows-x64.zip`
 
 ## CI Workflow
 
@@ -39,7 +39,7 @@ Behavior:
 3. Build the GUI preset.
 4. Rebuild the core preset and run `fast` tests.
 5. Package the portable Windows directory.
-6. Upload `VidChopper-windows-x64.zip` as both an artifact and a release asset.
+6. Upload `VidChopper-<version>-windows-x64.zip` as both an artifact and a release asset.
 
 ## Pages Workflow
 

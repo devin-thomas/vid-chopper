@@ -23,7 +23,7 @@ The `v0.2.0-alpha` feature round is complete, including the Pages rewrite.
 - Desktop feature round landed on `main`.
 - Pages deployment workflow landed on `main`.
 - `v0.2.0-alpha` was published as a GitHub prerelease.
-- The release workflow produced and attached `VidChopper-windows-x64.zip`.
+- The release workflow produced and attached `VidChopper-0.2.0-alpha-windows-x64.zip`.
 - The Pages rewrite now publishes a multi-page site that covers the product landing page, release portal, and developer docs surface.
 
 ## Pages Rewrite Direction That Shipped

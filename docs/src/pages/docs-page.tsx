@@ -1,65 +1,85 @@
+import { useState } from "react";
 import appIcon from "../assets/app-icon.png";
-import { docsLinks, repositoryUrl } from "../content/site";
-
-const docSections = [
-  {
-    title: "Getting started",
-    body: "Download the Windows ZIP if you want the app, or build from source with CMake and a Qt 6.9 SDK if you are working on the desktop codebase.",
-  },
-  {
-    title: "Architecture",
-    body: "The repo is intentionally split into a Qt-free `src/core` and a Qt Widgets `src/qt` shell so the export logic stays testable without Qt.",
-  },
-  {
-    title: "Coding style",
-    body: "C++20, trailing return types, project integer aliases, designated initializers, aggressive const-correctness, and a hard Qt/core boundary are not optional house style preferences.",
-  },
-  {
-    title: "Quality gates",
-    body: "The release path depends on clang-format, clang-tidy over the core, fast and slow core tests, GUI build validation, and Pages/release workflows.",
-  },
-  {
-    title: "Knowledge base",
-    body: "Future-agent continuity now lives in the split `knowledge/` directory, mirrored into Linear documents for the VidChopper team.",
-  },
-] as const;
+import { docsGuideposts, docsLinks, docsQuickLinks, repositoryUrl } from "../content/site";
 
 export function DocsPage() {
-  return (
-    <main className="page-stack">
-      <section className="subpage-hero docs-hero">
-        <div>
-          <h1>Developer docs for the shipped desktop app, not generic scaffolding notes.</h1>
-          <p>
-            This page points at the real repository docs, the split knowledge base, and the current build, testing,
-            and release workflow shape so a future agent or contributor can re-enter the project quickly.
-          </p>
-        </div>
-        <aside className="toc-panel">
-          <div className="toc-art">
-            <img src={appIcon} alt="" />
-          </div>
-          <h2>On this page</h2>
-          <ul>
-            <li>Source docs</li>
-            <li>Project guideposts</li>
-            <li>Build + release path</li>
-            <li>Agent knowledge base</li>
-          </ul>
-        </aside>
-      </section>
+  const [query, setQuery] = useState("");
+  const lowered = query.trim().toLowerCase();
 
-      <section className="docs-layout">
+  const filteredLinks = docsLinks.filter((link) =>
+    lowered.length === 0
+      ? true
+      : `${link.title} ${link.description}`.toLowerCase().includes(lowered),
+  );
+
+  const filteredGuideposts = docsGuideposts.filter((section) =>
+    lowered.length === 0
+      ? true
+      : `${section.title} ${section.body}`.toLowerCase().includes(lowered),
+  );
+
+  return (
+    <main className="page-stack docs-page-shell">
+      <section className="docs-layout docs-layout-full">
         <nav className="docs-sidebar" aria-label="Documentation sections">
-          {docSections.map((section) => (
-            <a key={section.title} href={`#${section.title.toLowerCase().replaceAll(" ", "-")}`}>
-              {section.title}
-            </a>
-          ))}
+          <div className="docs-sidebar-brand">
+            <img src={appIcon} alt="" />
+            <div>
+              <strong>VidChopper</strong>
+              <span>Developer Docs</span>
+            </div>
+          </div>
+          <label className="docs-search">
+            <span className="sr-only">Filter docs</span>
+            <input
+              type="search"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Filter docs, guides, and links"
+            />
+          </label>
+          <div className="docs-sidebar-section">
+            <span>Guideposts</span>
+            {docsGuideposts.map((section) => (
+              <a key={section.title} href={`#${section.title.toLowerCase().replaceAll(" ", "-")}`}>
+                {section.title}
+              </a>
+            ))}
+          </div>
+          <div className="docs-sidebar-section">
+            <span>Sources</span>
+            {docsLinks.map((link) => (
+              <a key={link.title} href={link.href}>
+                {link.title}
+              </a>
+            ))}
+          </div>
         </nav>
         <div className="docs-content">
+          <section className="docs-hero-grid">
+            <div className="docs-hero-copy">
+              <div className="hero-kicker">Developer documentation</div>
+              <h1>Build, ship, and extend the real desktop app without re-learning the repo from scratch.</h1>
+              <p>
+                This page points at the source docs, the split knowledge base, the build and release workflow, and the
+                future-agent handoff material that now lives with the product.
+              </p>
+              <div className="hero-actions">
+                <a className="cta-primary" href={`${repositoryUrl}/tree/main/knowledge`}>
+                  Open knowledge base
+                </a>
+                <a className="cta-secondary" href={repositoryUrl}>
+                  View repository
+                </a>
+              </div>
+            </div>
+            <aside className="docs-hero-art">
+              <img src={appIcon} alt="" />
+            </aside>
+          </section>
+
           <section className="docs-card-stack">
-            {docsLinks.map((link) => (
+            {filteredLinks.map((link) => (
               <article key={link.title} className="doc-link-card">
                 <h2>{link.title}</h2>
                 <p>{link.description}</p>
@@ -69,8 +89,12 @@ export function DocsPage() {
           </section>
 
           <section className="docs-guide-grid">
-            {docSections.map((section) => (
-              <article key={section.title} id={section.title.toLowerCase().replaceAll(" ", "-")} className="guide-card">
+            {filteredGuideposts.map((section) => (
+              <article
+                key={section.title}
+                id={section.title.toLowerCase().replaceAll(" ", "-")}
+                className="guide-card"
+              >
                 <h2>{section.title}</h2>
                 <p>{section.body}</p>
               </article>
@@ -79,7 +103,7 @@ export function DocsPage() {
 
           <section className="docs-callout">
             <div>
-              <h2>Repository entry points</h2>
+              <h2>Agent knowledge base is a first-class project artifact now.</h2>
               <ul>
                 <li>`README.md` for the product, build path, and release flow.</li>
                 <li>`CODING_STYLE.md` for the repo’s engineering contract.</li>
@@ -87,11 +111,33 @@ export function DocsPage() {
                 <li>`knowledge/` for architecture, workflows, progress, and installed-skill notes.</li>
               </ul>
             </div>
-            <a className="cta-secondary" href={repositoryUrl}>
-              Open the repository
+            <a className="cta-secondary" href={`${repositoryUrl}/tree/main/knowledge`}>
+              Open knowledge base
             </a>
           </section>
         </div>
+        <aside className="docs-rail">
+          <div className="docs-rail-card">
+            <h2>On this page</h2>
+            <ul>
+              {docsGuideposts.map((section) => (
+                <li key={section.title}>
+                  <a href={`#${section.title.toLowerCase().replaceAll(" ", "-")}`}>{section.title}</a>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div className="docs-rail-card">
+            <h2>Quick links</h2>
+            <ul>
+              {docsQuickLinks.map((link) => (
+                <li key={link.label}>
+                  <a href={link.href}>{link.label}</a>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </aside>
       </section>
     </main>
   );

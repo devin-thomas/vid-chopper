@@ -12,7 +12,6 @@ jobs:
   windows-release:
     runs-on: windows-2022
     env:
-      RELEASE_ASSET_NAME: VidChopper-windows-x64.zip
       RELEASE_DIR: dist\VidChopper
 
     steps:
@@ -20,6 +19,18 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.release.tag_name }}
+
+      - name: Compute release asset metadata
+        id: release_meta
+        shell: pwsh
+        run: |
+          $tag = "${{ github.event.release.tag_name }}"
+          $version = if ($tag.StartsWith("v")) { $tag.Substring(1) } else { $tag }
+          $assetName = "VidChopper-$version-windows-x64.zip"
+
+          "release_version=$version" >> $env:GITHUB_OUTPUT
+          "asset_name=$assetName" >> $env:GITHUB_OUTPUT
+          "asset_path=dist\$assetName" >> $env:GITHUB_OUTPUT
 
       - name: Set up CMake
         uses: lukka/get-cmake@v4.3.3
@@ -32,7 +43,7 @@ jobs:
           target: desktop
 
       - name: Configure GUI build
-        run: cmake --preset windows-gui-release
+        run: cmake --preset windows-gui-release -DVIDCHOPPER_DISPLAY_VERSION=${{ steps.release_meta.outputs.release_version }}
 
       - name: Build VidChopper
         run: cmake --build --preset windows-gui-release
@@ -49,7 +60,7 @@ jobs:
           $ErrorActionPreference = "Stop"
           $appDir = Join-Path $PWD $env:RELEASE_DIR
           $exePath = Join-Path $PWD "build/windows-gui-release/Release/VidChopper.exe"
-          $zipPath = Join-Path $PWD ("dist/" + $env:RELEASE_ASSET_NAME)
+          $zipPath = Join-Path $PWD "${{ steps.release_meta.outputs.asset_path }}"
 
           if (!(Test-Path $exePath)) {
             throw "Built executable not found at $exePath"
@@ -67,11 +78,11 @@ jobs:
       - name: Upload packaged zip as workflow artifact
         uses: actions/upload-artifact@v4
         with:
-          name: vidchopper-windows-x64
-          path: dist\VidChopper-windows-x64.zip
+          name: vidchopper-windows-x64-${{ steps.release_meta.outputs.release_version }}
+          path: ${{ steps.release_meta.outputs.asset_path }}
 
       - name: Attach zip to GitHub release
         shell: pwsh
         env:
           GITHUB_TOKEN: ${{ github.token }}
-        run: gh release upload "${{ github.event.release.tag_name }}" "dist\VidChopper-windows-x64.zip" --clobber
+        run: gh release upload "${{ github.event.release.tag_name }}" "${{ steps.release_meta.outputs.asset_path }}" --clobber
