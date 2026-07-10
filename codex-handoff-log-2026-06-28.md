@@ -431,19 +431,16 @@ The worktree was already dirty during this effort. Another Codex session must av
 - `tools/capture-demo-assets.ps1`
 - `codex-handoff-log-2026-06-28.md`
 
-## Current Frontend Leftovers to Review
+## Reconciliation Cleanup
 
-These files still likely exist and should be reviewed for removal or retirement after confirming they are unused:
+The route and import audit during VID-29 confirmed that these files were unreachable after the Pages
+rewrite, so they were removed:
 
 - `docs/src/pages/features-page.tsx`
 - `docs/src/components/desktop-frame.tsx`
 
-Reason:
-
-- the route model has been collapsed away from the standalone features page
-- these may now be dead files or obsolete references
-
-Do not delete blindly without checking imports first.
+The UUID-named root PNG was not referenced by the product or docs. It was preserved on disk and added
+to `.gitignore` as a local visual attachment rather than deleted.
 
 ## High-Signal Commands Already Run
 
@@ -593,3 +590,24 @@ Priorities:
 
 Do not reset or discard any existing changes.
 ```
+
+## VID-29 Reconciliation Result
+
+The 2026-07-10 reconciliation branch preserved the demo-launch code, deterministic capture tooling,
+Pages rewrite, release metadata, screenshots, handoff documentation, and CLI architecture plan before
+merging the fetched `origin/main` CLI commits. The merge retained the no-Qt CLI target, CLI tests,
+schema docs, examples, and dummy fixtures, and resolved the CMake/test-registration and progress-history
+conflicts without changing the roadmap order.
+
+Verification completed:
+
+- `npm run build` in `docs/`
+- `cmake --preset core-release`
+- `cmake --build --preset core-release`
+- all 17 `fast` tests
+- the 1 `slow` ffmpeg integration test
+- `VidChopperCLI.exe --help`
+
+The GUI configure/capture path remains environment-blocked because the Qt 6 SDK is not installed in this
+checkout. Linear `VID-16` remains absent from `main`; the config loader branch must be integrated by its
+own task.
