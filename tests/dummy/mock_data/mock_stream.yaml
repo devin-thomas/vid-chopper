@@ -1,0 +1,20 @@
+version: 1
+source: mock_stream.mkv
+output:
+  folderPattern: "%source%_chapters"
+  namingPattern: "%index% - %name%"
+encoding:
+  crf: 18
+  cq: 22
+  preset: slow
+  threads: 4
+chapters:
+  - name: Intro
+    start: "00:00:00.000"
+    end: "00:01:00.000"
+  - name: Main Segment
+    start: "00:01:00.000"
+    end: "00:02:30.000"
+  - name: Outro
+    start: "00:02:30.000"
+    end: "00:03:00.000"

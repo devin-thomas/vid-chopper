@@ -1,0 +1,35 @@
+{
+  "format": {
+    "duration": "180.000000"
+  },
+  "streams": [
+    {
+      "codec_type": "video",
+      "avg_frame_rate": "30000/1001",
+      "r_frame_rate": "30000/1001"
+    }
+  ],
+  "chapters": [
+    {
+      "start_time": "0.000000",
+      "end_time": "60.000000",
+      "tags": {
+        "title": "Intro"
+      }
+    },
+    {
+      "start_time": "60.000000",
+      "end_time": "150.000000",
+      "tags": {
+        "title": "Main Segment"
+      }
+    },
+    {
+      "start_time": "150.000000",
+      "end_time": "180.000000",
+      "tags": {
+        "title": "Outro"
+      }
+    }
+  ]
+}

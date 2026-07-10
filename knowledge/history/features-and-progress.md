@@ -4,6 +4,11 @@
 
 The `v0.2.0-alpha` feature round is complete, including the Pages rewrite.
 
+The current `main` branch now includes the first no-Qt CLI phase: the `VidChopperCLI.exe` target,
+command contract, separate `VidChopperCLI.ini` settings boundary, JSON/YAML schema, and dummy
+fixture coverage. The config loader integration remains a separate follow-up because its implementation
+is not yet on `main`.
+
 ## Task Status
 
 - Task 0: enum underlying-type migration for two-state enums - done
@@ -17,6 +22,11 @@ The `v0.2.0-alpha` feature round is complete, including the Pages rewrite.
 - Task 8: app-wide zoom controls and persistence - done
 - Task 9: release `v0.2.0-alpha` - done
 - Task 10: GitHub Pages rewrite to Vite, React, TypeScript, and Tailwind - done
+- VID-CLI-1: no-Qt CLI target skeleton - done on `main`
+- VID-CLI-2: CLI command contract and invocation model - done on `main`
+- VID-CLI-3: separate `VidChopperCLI.ini` settings boundary - done on `main`
+- VID-CLI-4: JSON/YAML chapter configuration schema - done on `main`
+- VID-CLI-5: JSON/YAML ChapterFile loader integration - not on `main` (reopened)
 
 ## Release Milestones
 
@@ -25,6 +35,13 @@ The `v0.2.0-alpha` feature round is complete, including the Pages rewrite.
 - `v0.2.0-alpha` was published as a GitHub prerelease.
 - The release workflow produced and attached `VidChopper-0.2.0-alpha-windows-x64.zip`.
 - The Pages rewrite now publishes a multi-page site that covers the product landing page, release portal, and developer docs surface.
+
+## Reconciliation Note
+
+The VID-29 reconciliation merged the fetched `origin/main` CLI commits into the preserved demo,
+Pages, release-metadata, and Qt work. Linear issues `VID-12` through `VID-15` now have matching
+implementation on `main`; `VID-16` remains absent from `main` and must not be treated as complete
+until the config loader is integrated into this branch.
 
 ## Pages Rewrite Direction That Shipped
 

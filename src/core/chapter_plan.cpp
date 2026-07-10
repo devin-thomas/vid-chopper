@@ -3,6 +3,7 @@
 #include "core/string_utils.h"
 
 #include <algorithm>
+#include <cstddef>
 
 namespace vidchopper {
 
@@ -22,12 +23,12 @@ auto build_default_chapters(const u64 duration_ms, const u8 requested_count) -> 
     }
 
     auto chapters = std::vector<ChapterSegment> {};
-    chapters.reserve(static_cast<usize>(safe_count));
+    chapters.reserve(static_cast<std::size_t>(safe_count));
 
     auto start_ms = u64 {0};
     for (auto index = u64 {0}; index < safe_count; ++index) {
-        const auto is_last = index + 1 == safe_count;
-        const auto end_ms = is_last ? duration_ms : ((duration_ms * (index + 1)) / safe_count);
+        const bool is_last = index + 1 == safe_count;
+        const u64 end_ms = is_last ? duration_ms : ((duration_ms * (index + 1)) / safe_count);
 
         chapters.push_back(ChapterSegment {
             .name = "Chapter " + std::to_string(index + 1),
@@ -45,7 +46,7 @@ auto validate_chapters(const std::vector<ChapterSegment>& chapters,
     const u64 duration_ms,
     const ExportSettings& settings) -> ValidationResult {
     auto result = ValidationResult {};
-    const auto min_duration_ms = static_cast<u64>(settings.min_chapter_seconds) * 1000;
+    const u64 min_duration_ms = static_cast<u64>(settings.min_chapter_seconds) * 1000;
 
     if (chapters.empty()) {
         result.issues.push_back(ValidationIssue {.message = "At least one chapter is required."});
@@ -57,9 +58,9 @@ auto validate_chapters(const std::vector<ChapterSegment>& chapters,
     }
 
     auto previous_end_ms = u64 {0};
-    for (auto index = usize {0}; index < chapters.size(); ++index) {
-        const auto& chapter = chapters[index];
-        const auto trimmed_name = trim_copy(chapter.name);
+    for (auto index = std::size_t {0}; index < chapters.size(); ++index) {
+        const ChapterSegment& chapter = chapters[index];
+        const std::string trimmed_name = trim_copy(chapter.name);
 
         if (trimmed_name.empty()) {
             result.issues.push_back(ValidationIssue {
@@ -103,9 +104,8 @@ auto validate_chapters(const std::vector<ChapterSegment>& chapters,
     return result;
 }
 
-auto default_output_directory(
-    const std::filesystem::path& source_path, const ExportSettings& settings) -> std::filesystem::path {
-    auto folder_name = replace_all_copy(settings.output_folder_pattern, "%source%", source_path.stem().string());
+auto default_output_directory(const Path& source_path, const ExportSettings& settings) -> Path {
+    std::string folder_name = replace_all_copy(settings.output_folder_pattern, "%source%", source_path.stem().string());
     folder_name = sanitize_file_component(folder_name);
     return source_path.parent_path() / folder_name;
 }

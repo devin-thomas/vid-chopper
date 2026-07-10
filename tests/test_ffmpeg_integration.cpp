@@ -3,8 +3,8 @@
 #include "test_support.h"
 
 #include <array>
+#include <cstddef>
 #include <cstdio>
-#include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <process.h>
@@ -44,11 +44,6 @@ auto run_capture(const std::string& command) -> std::string {
     return output;
 }
 
-auto run_no_capture(const std::string& command) -> void {
-    const auto exit_code = std::system(command.c_str());
-    test_support::expect_eq(exit_code, 0, "command should succeed");
-}
-
 auto run_args_no_capture(const std::vector<std::string>& command) -> void {
     auto argv = std::vector<char*> {};
     argv.reserve(command.size() + 1);
@@ -61,19 +56,6 @@ auto run_args_no_capture(const std::vector<std::string>& command) -> void {
 
     const auto exit_code = _spawnvp(_P_WAIT, command.front().c_str(), argv.data());
     test_support::expect_true(exit_code == 0, "argv command should succeed");
-}
-
-auto join_command(const std::vector<std::string>& command) -> std::string {
-    auto result = std::string {};
-    for (auto index = usize {0}; index < command.size(); ++index) {
-        if (index > 0) {
-            result.push_back(' ');
-        }
-
-        result += quote(command[index]);
-    }
-
-    return result;
 }
 
 auto probe_duration_ms(const std::filesystem::path& file_path) -> u64 {
@@ -117,37 +99,36 @@ auto main() -> int {
     const auto metadata = VideoMetadata {
         .source_path = source_path,
         .duration_ms = 6000,
-        .frame_rate = {.numerator = 24, .denominator = 1},
+        .frame_rate = FrameRate {.numerator = 24, .denominator = 1},
         .source_extension = ".mp4",
     };
-
     auto settings = ExportSettings {};
-    settings.overwrite_mode = OverwriteMode::Overwrite;
-    settings.audio_mode = AudioMode::Aac;
-    settings.encoder_kind = EncoderKind::X264;
+    settings.ffmpeg_path = "ffmpeg";
     settings.naming_pattern = "%index%_%name%";
+    settings.overwrite_mode = OverwriteMode::Overwrite;
+    settings.seek_mode = SeekMode::Fast;
+    settings.verify_output_durations = false;
+    settings.write_json_manifest = false;
+    settings.write_csv_manifest = false;
 
     const auto chapters = std::vector<ChapterSegment> {
-        {.name = "One", .start_ms = 0, .end_ms = 2000},
-        {.name = "Two", .start_ms = 2000, .end_ms = 4000},
-        {.name = "Three", .start_ms = 4000, .end_ms = 6000},
+        {.name = "Intro", .start_ms = 0, .end_ms = 2000},
+        {.name = "Outro", .start_ms = 2000, .end_ms = 4000},
     };
 
     const auto output_directory = root / "out";
     std::filesystem::create_directories(output_directory);
 
-    for (auto index = u16 {0}; index < chapters.size(); ++index) {
-        const auto output_path = output_path_for(metadata, chapters[index], index, output_directory, settings);
-        const auto command =
-            build_ffmpeg_command(metadata, chapters[index], output_path, settings, EncoderEnvironment {});
+    const auto environment = EncoderEnvironment {};
+    for (auto index = std::size_t {0}; index < chapters.size(); ++index) {
+        const auto chapter_index = static_cast<u16>(index);
+        const auto output_path = output_path_for(metadata, chapters[index], chapter_index, output_directory, settings);
+        const auto command = build_ffmpeg_command(metadata, chapters[index], output_path, settings, environment);
         run_args_no_capture(command);
-        test_support::expect_true(std::filesystem::exists(output_path), "chapter output should exist");
-
+        test_support::expect_true(std::filesystem::exists(output_path), "expected output file to be created");
         const auto duration_ms = probe_duration_ms(output_path);
-        test_support::expect_true(
-            duration_ms >= 1500 && duration_ms <= 2500, "chapter duration should stay close to two seconds");
+        test_support::expect_true(duration_ms >= 1500 && duration_ms <= 2500, "output duration should be about 2s");
     }
 
-    std::filesystem::remove_all(root);
     return 0;
 }

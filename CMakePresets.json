@@ -8,20 +8,22 @@
   "configurePresets": [
     {
       "name": "core-release",
-      "displayName": "Core Release",
+      "displayName": "Core + CLI Release",
       "generator": "Visual Studio 17 2022",
       "binaryDir": "${sourceDir}/build/core-release",
       "cacheVariables": {
+        "VIDCHOPPER_BUILD_CLI": "ON",
         "VIDCHOPPER_BUILD_GUI": "OFF",
         "VIDCHOPPER_BUILD_TESTS": "ON"
       }
     },
     {
       "name": "windows-gui-release",
-      "displayName": "Windows GUI Release",
+      "displayName": "Windows GUI + CLI Release",
       "inherits": "core-release",
       "binaryDir": "${sourceDir}/build/windows-gui-release",
       "cacheVariables": {
+        "VIDCHOPPER_BUILD_CLI": "ON",
         "VIDCHOPPER_BUILD_GUI": "ON",
         "VIDCHOPPER_BUILD_TESTS": "OFF"
       }
