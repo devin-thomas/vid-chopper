@@ -6,8 +6,8 @@ The `v0.2.0-alpha` feature round is complete, including the Pages rewrite.
 
 The current `main` branch now includes the first no-Qt CLI phase: the `VidChopperCLI.exe` target,
 command contract, separate `VidChopperCLI.ini` settings boundary, JSON/YAML schema, and dummy
-fixture coverage. The config loader integration remains a separate follow-up because its implementation
-is not yet on `main`.
+fixture coverage. The ChapterFile loader is implemented on the `vid-16-chapterfile-loader` branch and
+must be merged before the current `main` status can be updated.
 
 ## Task Status
 
@@ -26,7 +26,7 @@ is not yet on `main`.
 - VID-CLI-2: CLI command contract and invocation model - done on `main`
 - VID-CLI-3: separate `VidChopperCLI.ini` settings boundary - done on `main`
 - VID-CLI-4: JSON/YAML chapter configuration schema - done on `main`
-- VID-CLI-5: JSON/YAML ChapterFile loader integration - not on `main` (reopened)
+- VID-CLI-5: JSON/YAML ChapterFile loader integration - implemented on `vid-16-chapterfile-loader`
 
 ## Release Milestones
 
@@ -40,8 +40,8 @@ is not yet on `main`.
 
 The VID-29 reconciliation merged the fetched `origin/main` CLI commits into the preserved demo,
 Pages, release-metadata, and Qt work. Linear issues `VID-12` through `VID-15` now have matching
-implementation on `main`; `VID-16` remains absent from `main` and must not be treated as complete
-until the config loader is integrated into this branch.
+implementation on `main`; VID-16 adds the Qt-free ChapterFile loader and is ready for the next
+integration step once this focused branch is merged.
 
 ## Pages Rewrite Direction That Shipped
 

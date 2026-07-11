@@ -80,9 +80,17 @@
   },
   "$defs": {
     "timecode": {
-      "type": "string",
-      "pattern": "^([0-9]+:)?[0-5]?[0-9]:[0-5][0-9](\\.[0-9]{1,3})?$",
-      "description": "MM:SS, MM:SS.mmm, HH:MM:SS, or HH:MM:SS.mmm. Timeline ordering is validated by the loader."
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^([0-9]+:)?[0-5]?[0-9]:[0-5][0-9](\\.[0-9]{1,3})?$"
+        },
+        {
+          "type": "integer",
+          "minimum": 0
+        }
+      ],
+      "description": "MM:SS, MM:SS.mmm, HH:MM:SS, HH:MM:SS.mmm, or non-negative integer milliseconds. Timeline ordering is validated by the loader."
     }
   }
 }

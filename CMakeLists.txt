@@ -43,7 +43,12 @@ target_compile_features(vidchopper_core PUBLIC cxx_std_20)
 apply_vidchopper_warnings(vidchopper_core)
 
 if(VIDCHOPPER_BUILD_CLI)
+    find_package(nlohmann_json CONFIG REQUIRED)
+    find_package(yaml-cpp CONFIG REQUIRED)
+
     add_library(vidchopper_cli
+        src/cli/chapter_config.cpp
+        src/cli/chapter_config.h
         src/cli/cli_app.cpp
         src/cli/cli_app.h
         src/cli/cli_arguments.cpp
@@ -53,7 +58,11 @@ if(VIDCHOPPER_BUILD_CLI)
     )
 
     target_include_directories(vidchopper_cli PUBLIC "${PROJECT_SOURCE_DIR}/src")
-    target_link_libraries(vidchopper_cli PUBLIC vidchopper_core)
+    target_link_libraries(vidchopper_cli PUBLIC
+        vidchopper_core
+        nlohmann_json::nlohmann_json
+        yaml-cpp::yaml-cpp
+    )
     target_compile_features(vidchopper_cli PUBLIC cxx_std_20)
     apply_vidchopper_warnings(vidchopper_cli)
 
@@ -96,6 +105,7 @@ if(VIDCHOPPER_BUILD_TESTS)
         add_vidchopper_test(vidchopper_test_cli_arguments tests/test_cli_arguments.cpp fast vidchopper_cli)
         add_vidchopper_test(vidchopper_test_cli_settings tests/test_cli_settings.cpp fast vidchopper_cli)
         add_vidchopper_test(vidchopper_test_cli_contract tests/test_cli_contract.cpp fast vidchopper_cli)
+        add_vidchopper_test(vidchopper_test_chapter_config tests/test_chapter_config.cpp fast vidchopper_cli)
     endif()
     add_vidchopper_test(vidchopper_test_ffmpeg_integration tests/test_ffmpeg_integration.cpp slow)
 endif()

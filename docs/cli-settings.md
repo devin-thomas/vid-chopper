@@ -18,14 +18,14 @@ Effective CLI settings are resolved in this order:
 1. Built-in CLI defaults from `ExportSettings`.
 2. Optional GUI import from `VidChopper.ini`, only when `--use-gui-config` is passed.
 3. CLI-owned settings from `VidChopperCLI.ini`.
-4. Explicit chapter config fields. This slot is reserved for the JSON/YAML config loader.
+4. Explicit chapter config fields from the JSON/YAML ChapterFile loader.
 5. Explicit CLI flags.
 
 This means GUI settings are never read implicitly, CLI-owned settings win over optional GUI import, and CLI flags always win over loaded settings.
 
 ## Persisted CLI keys
 
-The initial CLI settings file persists the first settings the CLI can safely own before the JSON/YAML config loader exists:
+The CLI settings file persists the settings the CLI owns independently of a JSON/YAML ChapterFile:
 
 ```ini
 x264_crf=18

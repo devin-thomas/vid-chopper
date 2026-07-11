@@ -1,6 +1,8 @@
 build/
 out/
 node_modules/
+.vcpkg/
+vcpkg_installed/
 .vs/
 .vscode/
 .idea/

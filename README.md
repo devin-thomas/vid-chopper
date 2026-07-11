@@ -58,12 +58,23 @@ start with [`knowledge/README.md`](knowledge/README.md).
 - Windows 10 or newer
 - C++20-capable MSVC toolchain
 - CMake 3.28+
+- vcpkg with the repository's pinned `nlohmann-json` and `yaml-cpp` manifest dependencies
 - `ffmpeg` and `ffprobe` on `PATH`, or custom paths configured in the advanced settings dialog
 - Qt 6.9 desktop libraries for the full GUI build
 
 ### Local Core-Only Validation
 
 The repository intentionally separates the non-Qt core from the GUI shell. That allows fast local verification on machines that have MSVC and `ffmpeg`, but not the Qt SDK.
+
+Set up the pinned vcpkg toolchain once, then keep `VCPKG_ROOT` set for the preset commands:
+
+```powershell
+git clone https://github.com/microsoft/vcpkg.git .vcpkg
+.\.vcpkg\bootstrap-vcpkg.bat -disableMetrics
+$env:VCPKG_ROOT = (Resolve-Path .vcpkg).Path
+```
+
+The CLI's Qt-free ChapterFile loader accepts `.json`, `.yaml`, and `.yml` files, applies the documented output and encoder overrides, and validates the resulting chapters before export planning.
 
 ```powershell
 cmake --preset core-release

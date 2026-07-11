@@ -1,6 +1,6 @@
 # VidChopper CLI chapter config schema
 
-The CLI chapter config is the explicit chapter source for `VidChopperCLI.exe`. JSON and YAML are interchangeable: the same object shape, field names, timestamp policy, and validation rules apply to both formats.
+The CLI chapter config is the explicit chapter source for `VidChopperCLI.exe`. JSON and YAML are interchangeable: the same object shape, field names, timestamp policy, and validation rules apply to both formats. The Qt-free loader lives in `src/cli/chapter_config.cpp` and uses `nlohmann-json` and `yaml-cpp` from the pinned vcpkg manifest.
 
 ## Top-level shape
 
@@ -35,8 +35,8 @@ Only `chapters` is required. `version` is optional for now, but examples include
 | `encoder.preset` | string | No | Encoder preset override for this config. |
 | `encoder.threads` | integer `0..255` | No | ffmpeg thread-count override for this config. `0` means ffmpeg default. |
 | `chapters[].name` | string | Yes | Human-readable chapter name. |
-| `chapters[].start` | timestamp string | Yes | Inclusive chapter start time. |
-| `chapters[].end` | timestamp string | Yes | Exclusive chapter end time. |
+| `chapters[].start` | timestamp string or non-negative integer milliseconds | Yes | Inclusive chapter start time. |
+| `chapters[].end` | timestamp string or non-negative integer milliseconds | Yes | Exclusive chapter end time. |
 | `chapters[].outputName` | string | No | Optional per-chapter output-name override. |
 
 Unknown fields are invalid. The loader should reject them with a human-readable validation error instead of silently ignoring misspelled config.
@@ -54,6 +54,12 @@ MM:SS.mm
 MM:SS.mmm
 HH:MM:SS
 HH:MM:SS.mmm
+```
+
+Non-negative integer millisecond values are also accepted, which is useful for generated configs:
+
+```json
+{ "start": 60000, "end": "00:02:30.000" }
 ```
 
 Rules:
@@ -94,7 +100,7 @@ encoder.crf: must be an integer from 0 to 51
 output.namingPattern: unknown placeholder %bad%
 ```
 
-The schema file catches structural issues such as missing `chapters`, unknown fields, and numeric ranges. Timeline checks such as `end > start` and overlap detection are domain validation rules for the loader.
+The schema file catches structural issues such as missing `chapters`, unknown fields, and numeric ranges. Timeline checks such as `end > start` and overlap detection are domain validation rules for the loader. JSON parser failures include a byte location; YAML parser failures include line and column; both forms include the source path.
 
 ## Files added for this schema
 
@@ -103,3 +109,6 @@ The schema file catches structural issues such as missing `chapters`, unknown fi
 - `examples/chapter-config.yaml`
 - `examples/invalid/chapter-config-missing-chapters.json`
 - `examples/invalid/chapter-config-invalid-order.yaml`
+- `src/cli/chapter_config.h` and `src/cli/chapter_config.cpp`
+- `tests/test_chapter_config.cpp`
+- `vcpkg.json`

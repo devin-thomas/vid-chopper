@@ -22,7 +22,7 @@ power-user and automation-facing entry point.
   - no-Qt command-line entry point and CLI-specific orchestration
   - command parsing
   - CLI settings path handling
-  - future JSON/YAML chapter config loading and batch planning
+  - JSON/YAML ChapterFile loading and batch planning
 - `src/qt/`
   - Qt 6 Widgets shell
   - main window
