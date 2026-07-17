@@ -26,16 +26,16 @@ endfunction()
 
 add_library(vidchopper_core
     src/core/chapter_plan.cpp
-    src/core/chapter_plan.h
+    src/core/chapter_plan.hpp
     src/core/command_builder.cpp
-    src/core/command_builder.h
-    src/core/enum_utils.h
-    src/core/models.h
+    src/core/command_builder.hpp
+    src/core/enum_utils.hpp
+    src/core/models.hpp
     src/core/string_utils.cpp
-    src/core/string_utils.h
+    src/core/string_utils.hpp
     src/core/timecode.cpp
-    src/core/timecode.h
-    src/core/types.h
+    src/core/timecode.hpp
+    src/core/types.hpp
 )
 
 target_include_directories(vidchopper_core PUBLIC "${PROJECT_SOURCE_DIR}/src")
@@ -48,13 +48,13 @@ if(VIDCHOPPER_BUILD_CLI)
 
     add_library(vidchopper_cli
         src/cli/chapter_config.cpp
-        src/cli/chapter_config.h
+        src/cli/chapter_config.hpp
         src/cli/cli_app.cpp
-        src/cli/cli_app.h
+        src/cli/cli_app.hpp
         src/cli/cli_arguments.cpp
-        src/cli/cli_arguments.h
+        src/cli/cli_arguments.hpp
         src/cli/cli_settings.cpp
-        src/cli/cli_settings.h
+        src/cli/cli_settings.hpp
     )
 
     target_include_directories(vidchopper_cli PUBLIC "${PROJECT_SOURCE_DIR}/src")
@@ -127,22 +127,22 @@ if(VIDCHOPPER_BUILD_GUI)
     add_executable(VidChopper
         src/qt/main.cpp
         src/qt/app_settings.cpp
-        src/qt/app_settings.h
-        src/qt/demo_launch_options.h
+        src/qt/app_settings.hpp
+        src/qt/demo_launch_options.hpp
         src/qt/dark_palette.cpp
-        src/qt/dark_palette.h
+        src/qt/dark_palette.hpp
         src/qt/services/export_coordinator.cpp
-        src/qt/services/export_coordinator.h
+        src/qt/services/export_coordinator.hpp
         src/qt/services/ffprobe_service.cpp
-        src/qt/services/ffprobe_service.h
+        src/qt/services/ffprobe_service.hpp
         src/qt/services/gpu_detector.cpp
-        src/qt/services/gpu_detector.h
+        src/qt/services/gpu_detector.hpp
         src/qt/ui/advanced_settings_dialog.cpp
-        src/qt/ui/advanced_settings_dialog.h
+        src/qt/ui/advanced_settings_dialog.hpp
         src/qt/ui/chapter_table_model.cpp
-        src/qt/ui/chapter_table_model.h
+        src/qt/ui/chapter_table_model.hpp
         src/qt/ui/main_window.cpp
-        src/qt/ui/main_window.h
+        src/qt/ui/main_window.hpp
         resources/app_icon.qrc
         ${VIDCHOPPER_WIN_RESOURCE}
     )

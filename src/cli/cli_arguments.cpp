@@ -1,4 +1,4 @@
-#include "cli/cli_arguments.h"
+#include "cli/cli_arguments.hpp"
 
 #include <charconv>
 #include <cstddef>

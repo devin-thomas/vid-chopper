@@ -1,4 +1,4 @@
-#include "qt/dark_palette.h"
+#include "qt/dark_palette.hpp"
 
 #include <QApplication>
 #include <QPalette>

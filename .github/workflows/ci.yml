@@ -28,7 +28,7 @@ jobs:
 
       - name: Check formatting (clang-format)
         run: |
-          mapfile -t files < <(find src tests -name '*.cpp' -o -name '*.h')
+          mapfile -t files < <(find src tests -name '*.cpp' -o -name '*.hpp')
           clang-format --dry-run --Werror "${files[@]}"
 
       - name: Lint core (clang-tidy)

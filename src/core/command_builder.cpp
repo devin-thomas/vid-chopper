@@ -1,7 +1,7 @@
-#include "core/command_builder.h"
+#include "core/command_builder.hpp"
 
-#include "core/string_utils.h"
-#include "core/timecode.h"
+#include "core/string_utils.hpp"
+#include "core/timecode.hpp"
 
 #include <initializer_list>
 #include <string_view>

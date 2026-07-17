@@ -15,7 +15,7 @@ VidChopper resolves tradeoffs in this order:
 
 - Keep `src/core` Qt-free.
 - Stay on C++20, not C++23.
-- Use project fixed-width aliases from `src/core/types.h`.
+- Use project fixed-width aliases from `src/core/types.hpp`.
 - Use trailing return types everywhere, including `-> void`.
 - Prefer `auto` with typed braced initialization.
 - Apply `const`, `constexpr`, `[[nodiscard]]`, and explicit narrowing conversions aggressively.

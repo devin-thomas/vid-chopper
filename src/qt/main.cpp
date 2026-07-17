@@ -1,7 +1,7 @@
-#include "qt/app_settings.h"
-#include "qt/dark_palette.h"
-#include "qt/demo_launch_options.h"
-#include "qt/ui/main_window.h"
+#include "qt/app_settings.hpp"
+#include "qt/dark_palette.hpp"
+#include "qt/demo_launch_options.hpp"
+#include "qt/ui/main_window.hpp"
 
 #include <QApplication>
 #include <QIcon>

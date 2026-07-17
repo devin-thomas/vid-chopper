@@ -1,7 +1,7 @@
 #pragma once
 
-#include "core/models.h"
-#include "qt/logging.h"
+#include "core/models.hpp"
+#include "qt/logging.hpp"
 
 #include <QByteArray>
 #include <QObject>

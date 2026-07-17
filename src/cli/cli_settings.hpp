@@ -1,8 +1,8 @@
 #pragma once
 
-#include "cli/cli_arguments.h"
-#include "core/models.h"
-#include "core/types.h"
+#include "cli/cli_arguments.hpp"
+#include "core/models.hpp"
+#include "core/types.hpp"
 
 namespace vidchopper {
 

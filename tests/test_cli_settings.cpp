@@ -1,5 +1,5 @@
-#include "cli/cli_settings.h"
-#include "test_support.h"
+#include "cli/cli_settings.hpp"
+#include "test_support.hpp"
 
 #include <filesystem>
 #include <fstream>

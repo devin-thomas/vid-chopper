@@ -34,5 +34,5 @@ Checks: >
   -cppcoreguidelines-avoid-c-arrays
 
 WarningsAsErrors: '*'
-HeaderFilterRegex: 'src/core/.*\.h$'
+HeaderFilterRegex: 'src/core/.*\.hpp$'
 FormatStyle: file

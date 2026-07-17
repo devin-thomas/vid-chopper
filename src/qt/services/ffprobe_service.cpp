@@ -1,4 +1,4 @@
-#include "qt/services/ffprobe_service.h"
+#include "qt/services/ffprobe_service.hpp"
 
 #include <QFileInfo>
 #include <QJsonArray>

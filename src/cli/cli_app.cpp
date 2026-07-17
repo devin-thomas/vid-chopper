@@ -1,7 +1,7 @@
-#include "cli/cli_app.h"
+#include "cli/cli_app.hpp"
 
-#include "cli/cli_arguments.h"
-#include "cli/cli_settings.h"
+#include "cli/cli_arguments.hpp"
+#include "cli/cli_settings.hpp"
 
 #include <ostream>
 

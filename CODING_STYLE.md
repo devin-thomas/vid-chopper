@@ -77,9 +77,9 @@ Run before every commit:
 
 ```bash
 # format in place
-clang-format -i $(git ls-files 'src/*.cpp' 'src/*.h' 'tests/*.cpp' 'tests/*.h')
+clang-format -i $(git ls-files 'src/*.cpp' 'src/*.hpp' 'tests/*.cpp' 'tests/*.hpp')
 # or just verify (what CI does)
-clang-format --dry-run --Werror $(git ls-files 'src/*.cpp' 'src/*.h' 'tests/*.cpp' 'tests/*.h')
+clang-format --dry-run --Werror $(git ls-files 'src/*.cpp' 'src/*.hpp' 'tests/*.cpp' 'tests/*.hpp')
 ```
 
 The config (LLVM-based) is tuned to the codebase rather than the reverse. Key choices and the
@@ -131,7 +131,7 @@ fix the **class of pattern** that caused it, not only the first line mentioned i
 
 ## 5. Static analysis — `.clang-tidy`
 
-- Scope: **`src/core` only** (`HeaderFilterRegex: 'src/core/.*\.h$'`). The Qt layer is compiled
+- Scope: **`src/core` only** (`HeaderFilterRegex: 'src/core/.*\.hpp$'`). The Qt layer is compiled
   in CI but **not** tidied — clang-tidy can't parse Qt without the SDK and core-guideline checks
   fight moc/signal-slot code.
 - `WarningsAsErrors: '*'` — a tidy warning in core is a build failure.
@@ -177,7 +177,7 @@ Units belong in names: milliseconds are `*_ms`, kbps is `*_kbps`, seconds `*_sec
 
 ## 7. Fixed-width type aliases and standard sizes
 
-Use the project aliases from `core/types.h`, not raw `int`/`unsigned`:
+Use the project aliases from `core/types.hpp`, not raw `int`/`unsigned`:
 
 ```
 u8 u16 u32 u64   i8 i16 i32 i64   f64   Path
@@ -286,7 +286,7 @@ const auto frame_rate = FrameRate {.numerator = 24, .denominator = 1};
   (`u64 start_ms {0};`).
 - For value/aggregate structs, default the comparisons instead of hand-writing them:
   `[[nodiscard]] auto operator<=>(const T&) const = default;` (or `operator==` when ordering
-  isn't meaningful). See `models.h`.
+  isn't meaningful). See `models.hpp`.
 - Prefer a small **named options struct** (with designated init at the call site) over multiple
   positional `bool`/`int` parameters.
 
@@ -308,7 +308,7 @@ Use these in preference to hand-rolled equivalents:
 - **`std::to_array`** for fixed tables of constants (setting tables, command fragments).
 - **`std::string_view`** for non-owning string parameters in core helpers; `QStringView` in
   Qt-heavy inspection helpers.
-- **Concepts** to constrain templates (see `ScopedEnum` in `enum_utils.h`). Prefer a named
+- **Concepts** to constrain templates (see `ScopedEnum` in `enum_utils.hpp`). Prefer a named
   concept over `enable_if`; it reads as documentation.
 - **`[[nodiscard]]`** on every pure function and every fallible/validation/builder function.
 - **`enum class`** with **explicit values** and a **fixed underlying type**, sized to the option
@@ -327,13 +327,13 @@ in one of many scattered literals is a real bug class.
 `SortIncludes: Never` + `IncludeBlocks: Preserve` mean **you** order includes; group them with
 blank lines in this order:
 
-1. The matching header for this `.cpp` (`#include "qt/ui/main_window.h"` first in `main_window.cpp`).
+1. The matching header for this `.cpp` (`#include "qt/ui/main_window.hpp"` first in `main_window.cpp`).
 2. Project headers (`"core/…"`, `"qt/…"`), grouped.
 3. Qt headers (`<QtWidget>` style), grouped.
 4. Standard library headers, grouped.
 
 Use `#pragma once` in every header (not include guards). Include what you use; forward-declare
-Qt classes in headers (`class QLabel;`) to keep header includes light, as `main_window.h` does.
+Qt classes in headers (`class QLabel;`) to keep header includes light, as `main_window.hpp` does.
 
 ---
 
@@ -349,7 +349,7 @@ top of the `.cpp` (see the `Column` enum in `chapter_table_model.cpp` and the se
 
 The test harness is **hand-rolled and dependency-free** — keep it that way (no GTest/Catch).
 
-- Helpers live in `tests/test_support.h`: `expect_true`, `expect_eq`, `fail`. Each test is a
+- Helpers live in `tests/test_support.hpp`: `expect_true`, `expect_eq`, `fail`. Each test is a
   standalone `auto main() -> int` that returns `0` on success and throws on failure.
 - **Golden tests** pin byte-exact output for anything meant to be behavior-preserving
   (timecode strings, ffmpeg argument streams, zero-padded names, INI round-trips, enum-clamp
@@ -443,7 +443,7 @@ When removing or renaming a symbol, type alias, file, flag, setting, or public b
 3. Re-run or wait for all relevant checks before calling the task ready.
 4. If CI fails, classify the failure pattern and sweep for similar instances before pushing again.
 
-For example, removing a type alias from `core/types.h` is not complete until `src/qt`, all tests,
+For example, removing a type alias from `core/types.hpp` is not complete until `src/qt`, all tests,
 and slow integration tests have been checked for the old alias.
 
 ---
@@ -464,7 +464,7 @@ ctest --test-dir build/core-release -C Release -L fast --output-on-failure
 ctest --test-dir build/core-release -C Release -L slow --output-on-failure
 
 # Lint (pinned 18.1.8)
-clang-format --dry-run --Werror $(git ls-files 'src/*.cpp' 'src/*.h' 'tests/*.cpp' 'tests/*.h')
+clang-format --dry-run --Werror $(git ls-files 'src/*.cpp' 'src/*.hpp' 'tests/*.cpp' 'tests/*.hpp')
 for f in src/core/*.cpp; do clang-tidy "$f" -- -std=c++20 -Isrc; done
 
 # Exact-spelling sweep before removing/renaming symbols

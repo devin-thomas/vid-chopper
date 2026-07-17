@@ -1,5 +1,5 @@
-#include "qt/demo_launch_options.h"
-#include "test_support.h"
+#include "qt/demo_launch_options.hpp"
+#include "test_support.hpp"
 
 #include <array>
 

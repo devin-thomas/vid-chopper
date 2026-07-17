@@ -86,11 +86,11 @@ Added and wired a hidden demo-launch option model.
 
 Primary added/modified files:
 
-- `src/qt/demo_launch_options.h`
+- `src/qt/demo_launch_options.hpp`
 - `src/qt/main.cpp`
-- `src/qt/ui/main_window.h`
+- `src/qt/ui/main_window.hpp`
 - `src/qt/ui/main_window.cpp`
-- `src/qt/ui/advanced_settings_dialog.h`
+- `src/qt/ui/advanced_settings_dialog.hpp`
 - `src/qt/ui/advanced_settings_dialog.cpp`
 - `tests/test_demo_launch_options.cpp`
 
@@ -120,7 +120,7 @@ The parser was hardened further during the resumed session:
 
 Relevant files:
 
-- `src/qt/demo_launch_options.h`
+- `src/qt/demo_launch_options.hpp`
 - `tests/test_demo_launch_options.cpp`
 - `CMakeLists.txt`
 
@@ -224,7 +224,7 @@ Observed result:
 
 ### Added During This Overall Effort
 
-- `src/qt/demo_launch_options.h`
+- `src/qt/demo_launch_options.hpp`
 - `tests/test_demo_launch_options.cpp`
 - `tools/demo-capture-manifest.json`
 - `tools/capture-demo-assets.ps1`
@@ -247,9 +247,9 @@ Observed result:
 - `knowledge/operations/publishing-and-workflows.md`
 - `src/qt/main.cpp`
 - `src/qt/ui/advanced_settings_dialog.cpp`
-- `src/qt/ui/advanced_settings_dialog.h`
+- `src/qt/ui/advanced_settings_dialog.hpp`
 - `src/qt/ui/main_window.cpp`
-- `src/qt/ui/main_window.h`
+- `src/qt/ui/main_window.hpp`
 
 ## Local Environment Facts Discovered
 
@@ -415,9 +415,9 @@ The worktree was already dirty during this effort. Another Codex session must av
 - `knowledge/operations/publishing-and-workflows.md`
 - `src/qt/main.cpp`
 - `src/qt/ui/advanced_settings_dialog.cpp`
-- `src/qt/ui/advanced_settings_dialog.h`
+- `src/qt/ui/advanced_settings_dialog.hpp`
 - `src/qt/ui/main_window.cpp`
-- `src/qt/ui/main_window.h`
+- `src/qt/ui/main_window.hpp`
 
 ### Untracked files observed
 
@@ -425,7 +425,7 @@ The worktree was already dirty during this effort. Another Codex session must av
 - `docs/src/assets/vidchopper-real-export.png`
 - `docs/src/assets/vidchopper-real-main.png`
 - `docs/src/assets/vidchopper-real-summary.png`
-- `src/qt/demo_launch_options.h`
+- `src/qt/demo_launch_options.hpp`
 - `tests/test_demo_launch_options.cpp`
 - `tools/demo-capture-manifest.json`
 - `tools/capture-demo-assets.ps1`

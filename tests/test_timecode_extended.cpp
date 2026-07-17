@@ -1,5 +1,5 @@
-#include "core/timecode.h"
-#include "test_support.h"
+#include "core/timecode.hpp"
+#include "test_support.hpp"
 
 using namespace vidchopper;
 

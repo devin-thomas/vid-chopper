@@ -1,4 +1,4 @@
-#include "qt/ui/advanced_settings_dialog.h"
+#include "qt/ui/advanced_settings_dialog.hpp"
 
 #include <QDialogButtonBox>
 #include <QFormLayout>

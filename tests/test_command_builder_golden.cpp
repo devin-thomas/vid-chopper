@@ -1,5 +1,5 @@
-#include "core/command_builder.h"
-#include "test_support.h"
+#include "core/command_builder.hpp"
+#include "test_support.hpp"
 
 #include <string>
 #include <vector>

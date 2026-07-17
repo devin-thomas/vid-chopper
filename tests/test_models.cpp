@@ -1,5 +1,5 @@
-#include "core/models.h"
-#include "test_support.h"
+#include "core/models.hpp"
+#include "test_support.hpp"
 
 #include <cmath>
 #include <type_traits>

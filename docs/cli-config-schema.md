@@ -109,6 +109,6 @@ The schema file catches structural issues such as missing `chapters`, unknown fi
 - `examples/chapter-config.yaml`
 - `examples/invalid/chapter-config-missing-chapters.json`
 - `examples/invalid/chapter-config-invalid-order.yaml`
-- `src/cli/chapter_config.h` and `src/cli/chapter_config.cpp`
+- `src/cli/chapter_config.hpp` and `src/cli/chapter_config.cpp`
 - `tests/test_chapter_config.cpp`
 - `vcpkg.json`

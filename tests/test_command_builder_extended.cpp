@@ -1,6 +1,6 @@
-#include "core/command_builder.h"
-#include "core/chapter_plan.h"
-#include "test_support.h"
+#include "core/command_builder.hpp"
+#include "core/chapter_plan.hpp"
+#include "test_support.hpp"
 
 #include <algorithm>
 

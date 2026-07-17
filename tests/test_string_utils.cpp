@@ -1,5 +1,5 @@
-#include "core/string_utils.h"
-#include "test_support.h"
+#include "core/string_utils.hpp"
+#include "test_support.hpp"
 
 #include <cstddef>
 

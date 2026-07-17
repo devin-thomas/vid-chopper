@@ -1,4 +1,4 @@
-#include "qt/services/gpu_detector.h"
+#include "qt/services/gpu_detector.hpp"
 
 #include <QProcess>
 

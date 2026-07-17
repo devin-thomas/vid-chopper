@@ -1,4 +1,4 @@
-#include "cli/cli_app.h"
+#include "cli/cli_app.hpp"
 
 #include <cstddef>
 #include <iostream>

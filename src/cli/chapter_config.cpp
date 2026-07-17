@@ -1,8 +1,8 @@
-#include "cli/chapter_config.h"
+#include "cli/chapter_config.hpp"
 
-#include "core/chapter_plan.h"
-#include "core/string_utils.h"
-#include "core/timecode.h"
+#include "core/chapter_plan.hpp"
+#include "core/string_utils.hpp"
+#include "core/timecode.hpp"
 
 #include <nlohmann/json.hpp>
 #include <yaml-cpp/yaml.h>

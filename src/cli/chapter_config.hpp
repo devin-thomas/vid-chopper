@@ -1,7 +1,7 @@
 #pragma once
 
-#include "core/models.h"
-#include "core/types.h"
+#include "core/models.hpp"
+#include "core/types.hpp"
 
 #include <string>
 #include <vector>

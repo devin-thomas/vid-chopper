@@ -1,6 +1,6 @@
-#include "core/chapter_plan.h"
-#include "core/models.h"
-#include "test_support.h"
+#include "core/chapter_plan.hpp"
+#include "core/models.hpp"
+#include "test_support.hpp"
 
 #include <vector>
 

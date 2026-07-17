@@ -1,6 +1,6 @@
-#include "core/timecode.h"
+#include "core/timecode.hpp"
 
-#include "core/string_utils.h"
+#include "core/string_utils.hpp"
 
 #include <charconv>
 #include <cmath>

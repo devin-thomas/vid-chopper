@@ -1,6 +1,6 @@
-#include "core/chapter_plan.h"
+#include "core/chapter_plan.hpp"
 
-#include "core/string_utils.h"
+#include "core/string_utils.hpp"
 
 #include <algorithm>
 #include <cstddef>

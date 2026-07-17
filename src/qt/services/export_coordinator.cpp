@@ -1,7 +1,7 @@
-#include "qt/services/export_coordinator.h"
+#include "qt/services/export_coordinator.hpp"
 
-#include "core/command_builder.h"
-#include "qt/services/ffprobe_service.h"
+#include "core/command_builder.hpp"
+#include "qt/services/ffprobe_service.hpp"
 
 #include <QDir>
 #include <QFile>

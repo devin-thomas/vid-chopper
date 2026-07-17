@@ -1,6 +1,6 @@
-#include "cli/cli_settings.h"
+#include "cli/cli_settings.hpp"
 
-#include "core/string_utils.h"
+#include "core/string_utils.hpp"
 
 #include <charconv>
 #include <fstream>

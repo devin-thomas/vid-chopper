@@ -1,7 +1,7 @@
-#include "qt/ui/chapter_table_model.h"
+#include "qt/ui/chapter_table_model.hpp"
 
-#include "core/string_utils.h"
-#include "core/timecode.h"
+#include "core/string_utils.hpp"
+#include "core/timecode.hpp"
 
 #include <QBrush>
 #include <QSet>

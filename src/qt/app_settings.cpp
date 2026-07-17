@@ -1,4 +1,4 @@
-#include "qt/app_settings.h"
+#include "qt/app_settings.hpp"
 
 #include <QCoreApplication>
 #include <QDir>

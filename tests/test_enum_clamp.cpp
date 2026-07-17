@@ -1,6 +1,6 @@
-#include "core/enum_utils.h"
-#include "core/models.h"
-#include "test_support.h"
+#include "core/enum_utils.hpp"
+#include "core/models.hpp"
+#include "test_support.hpp"
 
 using namespace vidchopper;
 

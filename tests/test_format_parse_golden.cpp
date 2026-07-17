@@ -1,6 +1,6 @@
-#include "core/string_utils.h"
-#include "core/timecode.h"
-#include "test_support.h"
+#include "core/string_utils.hpp"
+#include "core/timecode.hpp"
+#include "test_support.hpp"
 
 using namespace vidchopper;
 

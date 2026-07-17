@@ -1,6 +1,6 @@
-#include "cli/chapter_config.h"
+#include "cli/chapter_config.hpp"
 
-#include "test_support.h"
+#include "test_support.hpp"
 
 #include <cstddef>
 #include <filesystem>

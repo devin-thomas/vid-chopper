@@ -1,8 +1,8 @@
 #pragma once
 
-#include "core/models.h"
-#include "qt/demo_launch_options.h"
-#include "qt/logging.h"
+#include "core/models.hpp"
+#include "qt/demo_launch_options.hpp"
+#include "qt/logging.hpp"
 
 #include <QMainWindow>
 #include <QPointer>

@@ -1,14 +1,14 @@
-#include "qt/ui/main_window.h"
+#include "qt/ui/main_window.hpp"
 
-#include "core/chapter_plan.h"
-#include "core/command_builder.h"
-#include "core/timecode.h"
-#include "qt/app_settings.h"
-#include "qt/services/export_coordinator.h"
-#include "qt/services/ffprobe_service.h"
-#include "qt/services/gpu_detector.h"
-#include "qt/ui/advanced_settings_dialog.h"
-#include "qt/ui/chapter_table_model.h"
+#include "core/chapter_plan.hpp"
+#include "core/command_builder.hpp"
+#include "core/timecode.hpp"
+#include "qt/app_settings.hpp"
+#include "qt/services/export_coordinator.hpp"
+#include "qt/services/ffprobe_service.hpp"
+#include "qt/services/gpu_detector.hpp"
+#include "qt/ui/advanced_settings_dialog.hpp"
+#include "qt/ui/chapter_table_model.hpp"
 
 #include <QAction>
 #include <QApplication>
@@ -112,8 +112,7 @@ auto translated_log_message(const LogEntry& entry) -> QString {
 auto demo_window_title() -> QString {
     const auto version = QStringLiteral(VIDCHOPPER_DISPLAY_VERSION);
     const auto lowered = version.toLower();
-    const auto is_prerelease =
-        lowered.contains("alpha") || lowered.contains("beta") || lowered.contains("nightly");
+    const auto is_prerelease = lowered.contains("alpha") || lowered.contains("beta") || lowered.contains("nightly");
     return is_prerelease ? QStringLiteral("VidChopper %1").arg(version) : QStringLiteral("VidChopper");
 }
 

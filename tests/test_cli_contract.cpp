@@ -1,5 +1,5 @@
-#include "cli/cli_app.h"
-#include "test_support.h"
+#include "cli/cli_app.hpp"
+#include "test_support.hpp"
 
 #include <filesystem>
 #include <sstream>

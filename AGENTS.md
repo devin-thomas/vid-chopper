@@ -68,7 +68,7 @@ Before removing or renaming any symbol, alias, setting, flag, enum value, file, 
 
 Examples:
 
-- Removing a type alias from `core/types.h` requires checking Qt files and tests, not only core.
+- Removing a type alias from `core/types.hpp` requires checking Qt files and tests, not only core.
 - Replacing shell command execution on Windows requires checking paths with spaces and slow ffmpeg tests.
 - Changing CLI parsing requires checking parser tests, app-level behavior tests, usage text, and CMake registration.
 

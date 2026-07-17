@@ -1,7 +1,7 @@
-#include "cli/cli_arguments.h"
-#include "cli/cli_settings.h"
-#include "dummy/dummy_cli_data.h"
-#include "test_support.h"
+#include "cli/cli_arguments.hpp"
+#include "cli/cli_settings.hpp"
+#include "dummy/dummy_cli_data.hpp"
+#include "test_support.hpp"
 
 #include <initializer_list>
 #include <string>
