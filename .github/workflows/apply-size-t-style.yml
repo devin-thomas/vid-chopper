@@ -31,7 +31,6 @@ jobs:
           from pathlib import Path
           import subprocess
 
-          workflow_path = Path('.github/workflows/apply-size-t-style.yml')
           result = subprocess.run(
               [
                   'git',
@@ -40,7 +39,7 @@ jobs:
                   'std::size_t',
                   '--',
                   '.',
-                  ':(exclude).github/workflows/apply-size-t-style.yml',
+                  ':(exclude).github/**',
               ],
               check=False,
               capture_output=True,
@@ -70,24 +69,6 @@ jobs:
               '  `namespace vidchopper`; do not prefix call sites with `std::`.',
           )
           style_path.write_text(style_text, encoding='utf-8')
-
-          ci_path = Path('.github/workflows/ci.yml')
-          ci_text = ci_path.read_text(encoding='utf-8')
-          ci_text = ci_text.replace(
-              "      - name: Inventory qualified size_t usage\n"
-              "        run: grep -RIn --include='*.cpp' --include='*.hpp' --include='*.md' 'std::size_t' src tests AGENTS.md CODING_STYLE.md || true\n",
-              "      - name: Check unqualified size_t style\n"
-              "        run: |\n"
-              "          matches=$(grep -RIn --include='*.cpp' --include='*.hpp' --include='*.md' 'std::size_t' src tests AGENTS.md CODING_STYLE.md \\\n"
-              "            | grep -v '^src/core/types.hpp:.*using std::size_t;' || true)\n"
-              "          if [ -n \"$matches\" ]; then\n"
-              "            echo \"$matches\"\n"
-              "            exit 1\n"
-              "          fi\n",
-          )
-          ci_path.write_text(ci_text, encoding='utf-8')
-
-          workflow_path.unlink()
           PY
 
       - name: Commit directly to main
@@ -95,6 +76,6 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
+          git add -u
           git commit -m "Use unqualified size_t throughout"
           git push origin HEAD:main
