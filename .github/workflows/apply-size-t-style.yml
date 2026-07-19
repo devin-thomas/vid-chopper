@@ -6,6 +6,9 @@ on:
       - main
     paths:
       - .github/workflows/apply-size-t-style.yml
+  pull_request:
+    branches:
+      - main
 
 permissions:
   contents: write
