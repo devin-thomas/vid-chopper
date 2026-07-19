@@ -66,8 +66,8 @@ constexpr auto flag_threads = std::string_view {"--threads"};
     return token.starts_with('-');
 }
 
-[[nodiscard]] auto next_value(const TokenList& tokens, const std::size_t index) -> std::optional<std::string_view> {
-    const auto next_index = std::size_t {index + 1};
+[[nodiscard]] auto next_value(const TokenList& tokens, const size_t index) -> std::optional<std::string_view> {
+    const auto next_index = size_t {index + 1};
     if (next_index >= tokens.size() || is_flag(tokens[next_index])) {
         return std::nullopt;
     }
@@ -102,7 +102,7 @@ auto parse_cli_arguments(const std::vector<std::string>& tokens) -> CliParseResu
         return success(arguments);
     }
 
-    auto index = std::size_t {0};
+    auto index = size_t {0};
     const auto first_token = std::string_view {tokens[index]};
     if (first_token == flag_help || first_token == short_flag_help) {
         return success(arguments);

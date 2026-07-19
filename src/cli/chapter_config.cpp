@@ -314,7 +314,7 @@ constexpr auto chapter_keys = std::to_array<std::string_view>({"name", "start", 
             }
 
             config.chapters.reserve(value.size());
-            for (auto index = std::size_t {0}; index < value.size(); ++index) {
+            for (auto index = size_t {0}; index < value.size(); ++index) {
                 const Json& chapter = value[index];
                 const std::string prefix = std::format("chapters[{}].", index);
                 if (!chapter.is_object()) {
@@ -485,7 +485,7 @@ constexpr auto chapter_keys = std::to_array<std::string_view>({"name", "start", 
                 return failure(path, "chapters must contain at least one chapter.");
             }
             config.chapters.reserve(value.size());
-            for (auto index = std::size_t {0}; index < value.size(); ++index) {
+            for (auto index = size_t {0}; index < value.size(); ++index) {
                 const YAML::Node chapter = value[index];
                 const std::string prefix = std::format("chapters[{}].", index);
                 if (!chapter.IsMap()) {

@@ -108,7 +108,7 @@ structurally, especially in tests.
 Prefer naming expected values or predicates:
 
 ```cpp
-const auto expected_chapter_count = std::size_t {1};
+const auto expected_chapter_count = size_t {1};
 test_support::expect_eq(chapters.size(), expected_chapter_count, "1 second should produce 1 chapter");
 
 const bool shows_direct_syntax = contains(help.output, "VidChopperCLI.exe <input-video>");
@@ -120,7 +120,7 @@ limit:
 
 ```cpp
 // avoid
-test_support::expect_eq(chapters.size(), static_cast<std::size_t>(1), "1 second duration with 6 requested should produce 1 chapter");
+test_support::expect_eq(chapters.size(), static_cast<size_t>(1), "1 second duration with 6 requested should produce 1 chapter");
 ```
 
 When editing through a connector or any environment where `clang-format -i` cannot be run, do
@@ -184,8 +184,9 @@ u8 u16 u32 u64   i8 i16 i32 i64   f64   Path
 ```
 
 - Pick the smallest type that fits the domain (`u8 default_chapter_count`, `u16 aac_bitrate_kbps`).
-- Use `std::size_t` for STL container sizes, string positions, `reserve`, and indexes that are
-  directly compared with `.size()` or `.find()` results. Do not hide this behind a project alias.
+- Use unqualified `size_t` for STL container sizes, string positions, `reserve`, and indexes that are
+  directly compared with `.size()` or `.find()` results. `core/types.hpp` imports it once into
+  `namespace vidchopper`; do not prefix call sites with `std::`.
 - Use `std::ptrdiff_t` for portable signed sizes when signed size math is genuinely required;
   `ssize_t` is POSIX-only and should not appear in portable Windows-targeted C++.
 - Use `u64` for domain quantities that are conceptually 64-bit values, such as timestamps,
@@ -206,7 +207,7 @@ side names the type directly:
 auto total = u64 {0};
 auto names = std::vector<std::string> {};
 auto dialog = AdvancedSettingsDialog {this};
-auto index = std::size_t {0};
+auto index = size_t {0};
 ```
 
 Not `u64 total = 0;` or `std::vector<std::string> names;`. The type is on the right, the
@@ -250,7 +251,7 @@ carefully reasoning about the logic:
 
 - Mark every local that is not reassigned `const`.
 - When the RHS names the type directly, `const auto` is correct
-  (`const auto expected_count = std::size_t {3};`).
+  (`const auto expected_count = size_t {3};`).
 - When the type is only implied by another variable or function return, combine `const` with an
   explicit leading type (`const std::optional<u64> parsed = parse_unsigned(value);`).
 - Mark parameters `const` where it documents intent (`const bool success`, `const u64 ms`).

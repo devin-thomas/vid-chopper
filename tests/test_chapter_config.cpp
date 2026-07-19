@@ -74,7 +74,7 @@ auto main() -> int {
     const ChapterConfigLoadResult json_result = load_chapter_config(json_path, 180000, ExportSettings {});
     require_success(json_result, "JSON config should load");
     test_support::expect_eq(json_result.config.schema_version, u32 {1}, "JSON schema version");
-    test_support::expect_eq(json_result.config.chapters.size(), std::size_t {2}, "JSON chapter count");
+    test_support::expect_eq(json_result.config.chapters.size(), size_t {2}, "JSON chapter count");
     test_support::expect_eq(json_result.config.chapters[0].name, std::string {"Opening 🎬"}, "Unicode chapter name");
     test_support::expect_eq(json_result.config.chapters[1].start_ms, u64 {60000}, "numeric string time");
     test_support::expect_eq(

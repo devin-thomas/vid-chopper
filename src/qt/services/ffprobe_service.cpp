@@ -116,7 +116,7 @@ auto FfprobeService::probe_video(const QString& ffprobe_path, const QString& sou
         ? std::string {".mp4"}
         : "." + QFileInfo(source_path).suffix().toLower().toStdString();
 
-    metadata.embedded_chapters.reserve(static_cast<std::size_t>(chapters.size()));
+    metadata.embedded_chapters.reserve(static_cast<size_t>(chapters.size()));
     for (auto index = 0; index < chapters.size(); ++index) {
         const auto chapter = chapters[index].toObject();
         const auto tags = chapter["tags"].toObject();

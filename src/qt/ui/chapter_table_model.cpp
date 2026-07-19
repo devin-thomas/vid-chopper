@@ -126,7 +126,7 @@ auto ChapterTableModel::setData(const QModelIndex& index, const QVariant& value,
         return false;
     }
 
-    auto& chapter = chapters_[static_cast<std::size_t>(index.row())];
+    auto& chapter = chapters_[static_cast<size_t>(index.row())];
     switch (index.column()) {
     case Column::Name:
         chapter.name = trim_copy(value.toString().toStdString());
@@ -259,7 +259,7 @@ auto ChapterTableModel::chapter_at(const int row) const -> const ChapterSegment*
         return nullptr;
     }
 
-    return &chapters_[static_cast<std::size_t>(row)];
+    return &chapters_[static_cast<size_t>(row)];
 }
 
 auto ChapterTableModel::format_time(const u64 milliseconds) const -> QString {

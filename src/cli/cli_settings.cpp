@@ -144,7 +144,7 @@ auto apply_setting(ExportSettings& settings, const std::string_view key, const s
             continue;
         }
 
-        const std::size_t separator = trimmed.find('=');
+        const size_t separator = trimmed.find('=');
         if (separator == std::string::npos) {
             continue;
         }

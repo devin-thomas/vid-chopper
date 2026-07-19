@@ -68,12 +68,12 @@ auto ExportCoordinator::start_export(const VideoMetadata& metadata,
         return;
     }
 
-    for (auto index = std::size_t {0}; index < chapters.size(); ++index) {
+    for (auto index = size_t {0}; index < chapters.size(); ++index) {
         const auto chapter_index = static_cast<u16>(index);
         const auto output_path = output_path_for(metadata, chapters[index], chapter_index, output_directory_, settings);
         auto command = build_ffmpeg_command(metadata, chapters[index], output_path, settings, environment);
         auto arguments = QStringList {};
-        for (auto command_index = std::size_t {1}; command_index < command.size(); ++command_index) {
+        for (auto command_index = size_t {1}; command_index < command.size(); ++command_index) {
             arguments.push_back(QString::fromStdString(command[command_index]));
         }
 

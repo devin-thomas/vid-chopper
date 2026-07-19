@@ -50,7 +50,7 @@ Avoid names that contain personal identifiers or generated Linear branch stems w
 Good test style:
 
 ```cpp
-const auto expected_count = std::size_t {1};
+const auto expected_count = size_t {1};
 test_support::expect_eq(chapters.size(), expected_count, "1 second should produce 1 chapter");
 
 const bool shows_usage = contains(output, "Usage:");

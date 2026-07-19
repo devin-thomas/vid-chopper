@@ -16,7 +16,7 @@ auto main() -> int {
     test_support::expect_eq(zero_padded_index(7, 3), std::string {"007"}, "index helper should pad values");
 
     const auto tokens = split_quoted_arguments("-movflags +faststart \"-metadata comment=hello world\"");
-    test_support::expect_eq(tokens.size(), std::size_t {3}, "quoted arguments should preserve grouped tokens");
+    test_support::expect_eq(tokens.size(), size_t {3}, "quoted arguments should preserve grouped tokens");
     test_support::expect_eq(
         tokens.back(), std::string {"-metadata comment=hello world"}, "quoted token should keep spaces");
 
