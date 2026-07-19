@@ -1,2 +1,2 @@
 temporary trigger for the direct-to-main size_t style sweep
-trigger clang-format for the completed repository-wide replacement
+verify the final cleaned and formatted main branch
