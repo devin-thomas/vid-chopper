@@ -1,0 +1,97 @@
+name: Apply size_t style
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/apply-size-t-style.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Apply repository-wide style change
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import subprocess
+
+          workflow_path = Path('.github/workflows/apply-size-t-style.yml')
+          result = subprocess.run(
+              [
+                  'git',
+                  'grep',
+                  '-Il',
+                  'std::size_t',
+                  '--',
+                  '.',
+                  ':(exclude).github/workflows/apply-size-t-style.yml',
+              ],
+              check=False,
+              capture_output=True,
+              text=True,
+          )
+
+          for filename in result.stdout.splitlines():
+              path = Path(filename)
+              text = path.read_text(encoding='utf-8')
+              path.write_text(text.replace('std::size_t', 'size_t'), encoding='utf-8')
+
+          types_path = Path('src/core/types.hpp')
+          types_text = types_path.read_text(encoding='utf-8')
+          if '#include <cstddef>\n' not in types_text:
+              types_text = types_text.replace('#include <cstdint>\n', '#include <cstddef>\n#include <cstdint>\n', 1)
+          if 'using std::size_t;\n' not in types_text:
+              types_text = types_text.replace('namespace vidchopper {\n', 'namespace vidchopper {\n\nusing std::size_t;\n', 1)
+          types_path.write_text(types_text, encoding='utf-8')
+
+          style_path = Path('CODING_STYLE.md')
+          style_text = style_path.read_text(encoding='utf-8')
+          style_text = style_text.replace(
+              '- Use `size_t` for STL container sizes, string positions, `reserve`, and indexes that are\n'
+              '  directly compared with `.size()` or `.find()` results. Do not hide this behind a project alias.',
+              '- Use unqualified `size_t` for STL container sizes, string positions, `reserve`, and indexes that are\n'
+              '  directly compared with `.size()` or `.find()` results. `core/types.hpp` imports it once into\n'
+              '  `namespace vidchopper`; do not prefix call sites with `std::`.',
+          )
+          style_path.write_text(style_text, encoding='utf-8')
+
+          ci_path = Path('.github/workflows/ci.yml')
+          ci_text = ci_path.read_text(encoding='utf-8')
+          ci_text = ci_text.replace(
+              "      - name: Inventory qualified size_t usage\n"
+              "        run: grep -RIn --include='*.cpp' --include='*.hpp' --include='*.md' 'std::size_t' src tests AGENTS.md CODING_STYLE.md || true\n",
+              "      - name: Check unqualified size_t style\n"
+              "        run: |\n"
+              "          matches=$(grep -RIn --include='*.cpp' --include='*.hpp' --include='*.md' 'std::size_t' src tests AGENTS.md CODING_STYLE.md \\\n"
+              "            | grep -v '^src/core/types.hpp:.*using std::size_t;' || true)\n"
+              "          if [ -n \"$matches\" ]; then\n"
+              "            echo \"$matches\"\n"
+              "            exit 1\n"
+              "          fi\n",
+          )
+          ci_path.write_text(ci_text, encoding='utf-8')
+
+          workflow_path.unlink()
+          PY
+
+      - name: Commit directly to main
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Use unqualified size_t throughout"
+          git push origin HEAD:main
