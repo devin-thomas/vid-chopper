@@ -15,8 +15,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Inventory qualified size_t usage
-        run: grep -RIn --include='*.cpp' --include='*.hpp' --include='*.md' 'std::size_t' src tests AGENTS.md CODING_STYLE.md || true
+      - name: Check unqualified size_t style
+        run: |
+          matches=$(grep -RIn --include='*.cpp' --include='*.hpp' --include='*.md' 'std::size_t' src tests AGENTS.md CODING_STYLE.md \
+            | grep -v '^src/core/types.hpp:.*using std::size_t;' || true)
+          if [ -n "$matches" ]; then
+            echo "$matches"
+            exit 1
+          fi
 
       - name: Set up Python
         uses: actions/setup-python@v5
