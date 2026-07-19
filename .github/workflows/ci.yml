@@ -15,6 +15,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Inventory qualified size_t usage
+        run: grep -RIn --include='*.cpp' --include='*.hpp' --include='*.md' 'std::size_t' src tests AGENTS.md CODING_STYLE.md || true
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
