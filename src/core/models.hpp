@@ -55,7 +55,7 @@ struct ChapterSegment {
     std::string name;
     u64 start_ms {0};
     u64 end_ms {0};
-    std::string output_name {};
+    std::string output_name;
 
     [[nodiscard]] auto operator<=>(const ChapterSegment&) const = default;
 };

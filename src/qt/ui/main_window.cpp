@@ -48,6 +48,7 @@
 
 #include <array>
 #include <algorithm>
+#include <cstddef>
 #include <filesystem>
 
 namespace vidchopper {
@@ -118,7 +119,7 @@ auto demo_window_title() -> QString {
 
 auto build_seeded_demo_chapters(const u64 duration_ms) -> std::vector<ChapterSegment> {
     auto chapters = build_default_chapters(duration_ms, static_cast<u8>(demo_chapter_names.size()));
-    for (auto index = usize {0}; index < chapters.size() && index < demo_chapter_names.size(); ++index) {
+    for (auto index = std::size_t {0}; index < chapters.size() && index < demo_chapter_names.size(); ++index) {
         chapters[index].name = demo_chapter_names[index];
     }
     return chapters;
