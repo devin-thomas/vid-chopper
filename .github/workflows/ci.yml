@@ -111,14 +111,4 @@ jobs:
         run: cmake --preset windows-gui-release
 
       - name: Build VidChopper
-        shell: cmd
-        run: cmake --build --preset windows-gui-release > gui-build.log 2>&1 || (type gui-build.log & exit /b 1)
-
-      - name: Upload GUI build log on failure
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: gui-build-log
-          path: gui-build.log
-          if-no-files-found: error
-          retention-days: 1
+        run: cmake --build --preset windows-gui-release
