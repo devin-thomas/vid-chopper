@@ -65,9 +65,8 @@ struct ParsedHmsSegments {
     std::string trailing_segment;
 };
 
-auto parse_hms_segments(std::string_view value,
-    const size_t min_segments,
-    const size_t max_segments) -> std::optional<ParsedHmsSegments> {
+auto parse_hms_segments(
+    std::string_view value, const size_t min_segments, const size_t max_segments) -> std::optional<ParsedHmsSegments> {
     const std::string trimmed = trim_copy(value);
     if (trimmed.empty()) {
         return std::nullopt;

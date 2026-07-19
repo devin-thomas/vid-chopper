@@ -26,9 +26,8 @@ auto main() -> int {
         invalid.issues.size() >= 3, "validation should report overlap, short duration, and blank name");
 
     const auto compact_chapters = build_default_chapters(4500, 6);
-    test_support::expect_eq(compact_chapters.size(),
-        static_cast<size_t>(4),
-        "short clips should not produce sub-second default chapters");
+    test_support::expect_eq(
+        compact_chapters.size(), static_cast<size_t>(4), "short clips should not produce sub-second default chapters");
 
     return 0;
 }

@@ -52,8 +52,7 @@ auto main() -> int {
         test_support::expect_eq(mixed[1], std::string {"quoted part"}, "quoted token preserves spaces");
 
         const auto adjacent_quotes = split_quoted_arguments("\"first\"\"second\"");
-        test_support::expect_eq(
-            adjacent_quotes.size(), size_t {1}, "adjacent quoted strings merge into one token");
+        test_support::expect_eq(adjacent_quotes.size(), size_t {1}, "adjacent quoted strings merge into one token");
         test_support::expect_eq(adjacent_quotes[0], std::string {"firstsecond"}, "adjacent quotes merge content");
     }
 
