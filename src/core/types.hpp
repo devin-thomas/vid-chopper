@@ -8,8 +8,6 @@ namespace vidchopper {
 
 using std::size_t;
 
-using size_t;
-
 using u8 = std::uint8_t;
 using u16 = std::uint16_t;
 using u32 = std::uint32_t;
