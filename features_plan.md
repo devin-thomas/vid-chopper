@@ -1,8 +1,9 @@
-# VidChopper Feature Plan — towards v0.2.0-alpha
+# VidChopper v0.2.0-alpha Feature Round — Archived
 
-Living tracker for the v0.2.0-alpha feature round. Update the status of each task as it
-completes so work can be resumed easily. The implementation in this checkout follows the
-repository coding style documented on the `devin/enum-bool-underlying` branch.
+Historical record of the completed `v0.2.0-alpha` feature round. Linear is the authoritative
+source for current roadmap state and task status; use the
+[vid-chopper project](https://linear.app/devin-main/project/vid-chopper-d0e76dad962c) before
+starting new work. This snapshot was reconciled with Linear and `main` on 2026-07-27.
 
 Status legend: `TODO` · `IN PROGRESS` · `DONE`
 
@@ -17,13 +18,12 @@ Linear tracking:
 - `VID-8` Task 7
 - `VID-9` Task 8
 
-Delivery: one PR per task, smallest-first. Config lands before scaling so zoom persists into
-the INI. Release is penultimate; the Pages rewrite is last.
+All listed work shipped. Current `0.3.0-alpha` CLI and release work is tracked under Linear
+roadmap issue [`VID-27`](https://linear.app/devin-main/issue/VID-27).
 
 ---
 
 ## Task 0 — enum→bool underlying type — `DONE`
-Branch: `devin/enum-bool-underlying`
 - Any `enum class` with exactly two enumerators that currently has underlying type `u8` is
   switched to underlying type `bool`.
 - Values stay `0` and `1`, so `QSettings` and INI persistence is byte-identical and enum

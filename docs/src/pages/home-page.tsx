@@ -183,7 +183,8 @@ export function HomePage() {
           <h2>Release momentum is already visible in the repo history.</h2>
           <p>
             The `v0.2.0-alpha` round shipped the desktop feature pass, the release packaging path, and the Pages
-            rewrite. What remains is polish, seeded capture continuity, and stronger release storytelling over time.
+            rewrite. The next release completes the Qt-free CLI, proves the ChapterBuilder companion contract, and
+            packages both executables behind explicit verification gates.
           </p>
         </div>
         <div className="roadmap-list">
