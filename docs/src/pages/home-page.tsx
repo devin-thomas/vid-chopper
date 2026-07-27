@@ -148,7 +148,7 @@ export function HomePage() {
             <Icon name="download" /> Download {releaseVersion}
           </a>
           <a className="cta-secondary" href={releasesUrl}>
-            View all GitHub releases
+            <Icon name="github" /> View all GitHub releases
           </a>
         </div>
       </section>

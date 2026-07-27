@@ -79,7 +79,7 @@ export function Shell() {
         <div className="footer-links">
           <Link to="/releases?section=changelog">Changelog</Link>
           <Link to="/docs">Docs</Link>
-          <a href={repositoryUrl}>Repository</a>
+          <a href={repositoryUrl}><Icon name="github" /> Repository</a>
           <a href={releaseZipUrl}>Latest ZIP</a>
         </div>
       </footer>

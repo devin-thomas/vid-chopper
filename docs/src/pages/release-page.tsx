@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import appIcon from "../assets/app-icon.png";
 import releaseShot from "../assets/vidchopper-real-export.png";
+import { Icon } from "../components/icon";
 import {
   changelogEntries,
   previousReleases,
@@ -132,7 +133,7 @@ export function ReleasePage() {
             ))}
           </div>
           <a className="ghost-link" href={releasesUrl}>
-            Open GitHub releases
+            <Icon name="github" /> Open GitHub releases
           </a>
         </div>
       </section>

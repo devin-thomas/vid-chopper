@@ -1,5 +1,6 @@
 import { useState } from "react";
 import appIcon from "../assets/app-icon.png";
+import { Icon } from "../components/icon";
 import { docsGuideposts, docsLinks, docsQuickLinks, repositoryUrl } from "../content/site";
 
 export function DocsPage() {
@@ -69,7 +70,7 @@ export function DocsPage() {
                   Open knowledge base
                 </a>
                 <a className="cta-secondary" href={repositoryUrl}>
-                  View repository
+                  <Icon name="github" /> View repository
                 </a>
               </div>
             </div>
