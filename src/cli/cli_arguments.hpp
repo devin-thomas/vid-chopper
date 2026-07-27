@@ -22,6 +22,7 @@ struct CliArguments {
     std::optional<u8> threads;
     std::string preset;
     bool dry_run {false};
+    bool use_embedded_chapters {false};
     bool use_gui_config {false};
     bool stop_on_first_error {false};
 

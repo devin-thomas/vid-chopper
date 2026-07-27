@@ -1,5 +1,6 @@
 #include "cli/cli_app.hpp"
 
+#include "cli/chapter_source_policy.hpp"
 #include "cli/cli_arguments.hpp"
 #include "cli/cli_settings.hpp"
 
@@ -11,7 +12,7 @@ auto run_cli(const CliRunRequest& request) -> CliExitCode {
     const CliParseResult parsed = parse_cli_arguments(request.arguments);
     if (!parsed.ok()) {
         request.error_output << parsed.error_message << "\n\n" << cli_usage();
-        return CliExitCode::MissingConfig;
+        return CliExitCode::Error;
     }
 
     const CliArguments& cli_arguments = parsed.arguments;
@@ -25,26 +26,36 @@ auto run_cli(const CliRunRequest& request) -> CliExitCode {
     if (!ensure_cli_settings_file(settings_paths.cli_settings_path)) {
         request.error_output << "Could not create or open CLI settings file: ";
         request.error_output << settings_paths.cli_settings_path.string() << "\n";
-        return CliExitCode::RuntimeError;
+        return CliExitCode::Error;
     }
 
     const CliResolvedSettings loaded_settings = load_cli_settings(settings_paths);
     const ExportSettings effective_settings = apply_cli_flag_overrides(loaded_settings.export_settings, cli_arguments);
 
     if (cli_arguments.input_paths.size() == 1 && cli_arguments.config_paths.empty()) {
-        request.error_output << "A JSON or YAML chapter config is required before VidChopperCLI can export.\n"
-                             << "Embedded chapter probing and hinting will be added in the next CLI phase.\n";
-        return CliExitCode::MissingConfig;
+        if (cli_arguments.use_embedded_chapters) {
+            request.output << "Chapter source: embedded chapters (explicit).\n";
+        } else {
+            request.error_output << "A JSON or YAML chapter config is required before VidChopperCLI can export.\n"
+                                 << "If this source contains embedded chapters, rerun exactly:\n"
+                                 << embedded_rerun_command(cli_arguments.input_paths.front()) << "\n";
+            return CliExitCode::Error;
+        }
     }
 
-    if (cli_arguments.input_paths.empty() || cli_arguments.config_paths.empty()) {
-        request.error_output << "Expected an input video and one chapter config.\n\n" << cli_usage();
-        return CliExitCode::MissingConfig;
+    if (cli_arguments.input_paths.empty()
+        || (cli_arguments.config_paths.empty() && !cli_arguments.use_embedded_chapters)) {
+        request.error_output << "Expected an input video and one explicit chapter source.\n\n" << cli_usage();
+        return CliExitCode::Error;
     }
 
     request.output << "VidChopperCLI phase 1 skeleton\n";
     request.output << "Input: " << cli_arguments.input_paths.front().string() << "\n";
-    request.output << "Config: " << cli_arguments.config_paths.front().string() << "\n";
+    if (cli_arguments.use_embedded_chapters) {
+        request.output << "Config: --embedded\n";
+    } else {
+        request.output << "Config: " << cli_arguments.config_paths.front().string() << "\n";
+    }
     request.output << "CLI settings: " << settings_paths.cli_settings_path.string() << "\n";
     request.output << "Settings loaded: CLI=" << (loaded_settings.loaded_cli_settings ? "yes" : "no");
     request.output << ", GUI=" << (loaded_settings.loaded_gui_settings ? "yes" : "no") << "\n";
