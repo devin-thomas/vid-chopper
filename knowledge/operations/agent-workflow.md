@@ -7,6 +7,10 @@ been worked.
 ## Default Mode
 
 - Deliver working code, not just plans.
+- Treat the Linear `vid-chopper` project as the authoritative source for current roadmap state,
+  issue status, ordering, and acceptance criteria.
+- Treat repository planning documents as dated snapshots; reconcile them to Linear rather than
+  inferring task status from stale branch or handoff text.
 - Gather enough context up front to avoid thrashing.
 - Prefer repo-native patterns and existing helpers over new abstractions.
 - If a dedicated tool exists for the action, prefer it over shell improvisation.
@@ -34,7 +38,9 @@ been worked.
 ## Future-Agent Checklist
 
 1. Read `knowledge/README.md`.
-2. Read the relevant coding-style split docs.
-3. Read `features_plan.md` and `knowledge/history/features-and-progress.md`.
-4. Check `git status --short --branch`.
-5. Preserve unrelated untracked or dirty user files unless the user explicitly says otherwise.
+2. Fetch the relevant Linear issue and its acceptance criteria.
+3. Read the relevant coding-style split docs.
+4. Read the dated snapshot in `knowledge/history/features-and-progress.md`; use `features_plan.md`
+   only as the archived `v0.2.0-alpha` record.
+5. Check `git status --short --branch`.
+6. Preserve unrelated untracked or dirty user files unless the user explicitly says otherwise.

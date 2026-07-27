@@ -16,8 +16,8 @@ export const docsLinks = [
     href: `${repositoryUrl}/blob/main/CODING_STYLE.md`,
   },
   {
-    title: "Feature Plan",
-    description: "Task-by-task status for the v0.2.0-alpha round and the Pages rewrite milestone.",
+    title: "Release History",
+    description: "Archived task-by-task record for the completed v0.2.0-alpha feature round.",
     href: `${repositoryUrl}/blob/main/features_plan.md`,
   },
   {
@@ -115,9 +115,9 @@ export const keyFeatures = [
 
 export const roadmap = [
   { item: "Desktop feature round through v0.2.0-alpha", status: "Shipped" },
-  { item: "Portable ZIP release packaging and release workflow", status: "Shipped" },
-  { item: "GitHub Pages rewrite to React, TypeScript, and Tailwind", status: "Shipped" },
-  { item: "Next focus: polish the docs surface and release-story continuity over future releases", status: "Next" },
+  { item: "Complete Qt-free CLI and safety gates for v0.3.0-alpha", status: "Next" },
+  { item: "Verify the ChapterBuilder companion contract end to end", status: "Release gate" },
+  { item: "Converge GUI and CLI on one shared engine for v1.0.0-beta", status: "Later" },
 ] as const;
 
 export const docsGuideposts = [

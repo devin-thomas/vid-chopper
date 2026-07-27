@@ -28,6 +28,12 @@ The repository is structured as a production-oriented desktop application rather
 - A staged test suite split into fast unit-level coverage and slower `ffmpeg` integration coverage
 - A Vite + React + TypeScript + Tailwind Pages site in `docs/` for the product landing page, release portal, and developer docs
 
+The next release objective is `v0.3.0-alpha`: complete the Qt-free CLI, package
+`VidChopperCLI.exe` beside the GUI, and verify a ChapterBuilder-produced ChapterFile through dry-run,
+export, and release-archive smoke testing. Linear's
+[vid-chopper project](https://linear.app/devin-main/project/vid-chopper-d0e76dad962c) is the
+authoritative roadmap; repository progress documents are dated snapshots.
+
 ## Key Features
 
 - Load a local video and probe it with `ffprobe`
@@ -75,6 +81,9 @@ $env:VCPKG_ROOT = (Resolve-Path .vcpkg).Path
 ```
 
 The CLI's Qt-free ChapterFile loader accepts `.json`, `.yaml`, and `.yml` files, applies the documented output and encoder overrides, and validates the resulting chapters before export planning.
+
+The current CLI target is still a skeleton: it parses its command contract and settings, while probing,
+real planning, and export execution remain `v0.3.0-alpha` work.
 
 ```powershell
 cmake --preset core-release
@@ -132,10 +141,12 @@ Chapter boundaries can fall between keyframes. Re-encoding with x264 or HEVC NVE
 - Export currently runs sequentially, which is simpler and safer for accurate progress tracking than concurrent multi-process encoding
 - Frame-mode editing uses the probed video frame rate rounded to a whole-number display FPS for the table editor
 - Existing embedded chapters are imported as editable start/end segments, but advanced source metadata mapping is intentionally conservative
+- `VidChopperCLI.exe` does not yet probe or export; the current public package contains only the GUI
 
 ## Repository Structure
 
 - `src/core/`: domain logic, timestamp handling, chapter planning, naming, and `ffmpeg` command construction
+- `src/cli/`: Qt-free command parsing, settings, and ChapterFile loading under active `v0.3.0-alpha` development
 - `src/qt/`: Qt application shell, settings persistence, chapter table model, ffprobe integration, GPU detection, and export coordination
 - `tests/`: staged native tests
 - `docs/`: Vite + React + TypeScript + Tailwind GitHub Pages app

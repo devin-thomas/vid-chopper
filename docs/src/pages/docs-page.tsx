@@ -107,8 +107,8 @@ export function DocsPage() {
               <ul>
                 <li>`README.md` for the product, build path, and release flow.</li>
                 <li>`CODING_STYLE.md` for the repo’s engineering contract.</li>
-                <li>`features_plan.md` for release-task progress.</li>
-                <li>`knowledge/` for architecture, workflows, progress, and installed-skill notes.</li>
+                <li>`features_plan.md` for the archived `v0.2.0-alpha` feature round.</li>
+                <li>`knowledge/` for dated architecture, workflow, and progress snapshots.</li>
               </ul>
             </div>
             <a className="cta-secondary" href={`${repositoryUrl}/tree/main/knowledge`}>

@@ -9,12 +9,17 @@ reconstructing the codebase from scratch.
 ## Current State
 
 - Primary branch: `main`
-- Current prerelease: `v0.2.0-alpha`
+- Latest published prerelease: `v0.2.0-alpha`
 - Public release asset: `VidChopper-0.2.0-alpha-windows-x64.zip`
-- Pages state:
-  - Task 10 is now implemented as a Vite + React + TypeScript + Tailwind app under `docs/`
-- Feature-plan state:
-  - Tasks 0-10 are complete at the time of this update
+- Current delivery roadmap: Linear [`VID-27`](https://linear.app/devin-main/issue/VID-27) for
+  `0.3.0-alpha`, containing the complete Qt-free CLI and release safety gates
+- Current implementation frontier: [`VID-17`](https://linear.app/devin-main/issue/VID-17), the
+  explicit CLI chapter-source policy
+- Companion release gate: [`VID-47`](https://linear.app/devin-main/issue/VID-47), proving a
+  ChapterBuilder-produced file through dry-run, export, and packaged CLI verification
+- Later roadmap: Linear [`VID-28`](https://linear.app/devin-main/issue/VID-28) for the shared-engine
+  `1.0.0-beta` convergence
+- Last reconciled with Linear and `main`: 2026-07-27
 
 ## Read First
 
@@ -43,7 +48,10 @@ reconstructing the codebase from scratch.
 
 ## Maintenance Rules
 
-- Update `knowledge/history/features-and-progress.md` whenever feature-plan status changes.
+- Treat Linear as the authoritative source for roadmap state, issue status, ordering, and acceptance
+  criteria. Repository documents are dated snapshots and must not create a competing task system.
+- Update `knowledge/history/features-and-progress.md` when a release frontier or published milestone
+  changes.
 - Update `knowledge/operations/publishing-and-workflows.md` whenever CI, release, or Pages behavior changes.
 - Keep `knowledge/operations/pages-rewrite-brief.md` in sync with future site-direction changes.
 - Keep `CODING_STYLE.md` as the repo source of truth; keep the split files here aligned with it.
