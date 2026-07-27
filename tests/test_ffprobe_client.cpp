@@ -32,7 +32,7 @@ namespace {
 
 auto main() -> int {
     const auto executable = Path {R"(C:\Program Files\ffmpeg\ffprobe.exe)"};
-    const auto source = Path {R"(C:\match clips\set.mkv)"};
+    const auto source = Path {R"(C:\Users\RUNNER~1\AppData\Local\Temp\match clips\set.mkv)"};
     const auto success_process = ProcessResult {
         .state = ProcessExitState::Success,
         .standard_output = fixture_text(),
@@ -43,6 +43,7 @@ auto main() -> int {
     test_support::expect_eq(valid.metadata.frame_rate,
         FrameRate {.numerator = 30000, .denominator = 1001},
         "average frame rate should parse as a rational");
+    test_support::expect_eq(valid.metadata.source_path, source, "source path identity should be preserved");
     test_support::expect_eq(valid.metadata.source_extension, std::string {".mkv"}, "extension should be normalized");
     test_support::expect_eq(valid.metadata.embedded_chapters.size(), size_t {3}, "ordered chapters should parse");
     test_support::expect_eq(

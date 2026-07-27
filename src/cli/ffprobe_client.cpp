@@ -11,7 +11,6 @@
 #include <optional>
 #include <ranges>
 #include <string_view>
-#include <system_error>
 #include <utility>
 
 namespace vidchopper {
@@ -77,16 +76,6 @@ using Json = nlohmann::json;
                  : std::nullopt;
 }
 
-[[nodiscard]] auto normalized_source_path(const Path& source_path) -> Path {
-    auto error = std::error_code {};
-    const Path canonical = std::filesystem::weakly_canonical(source_path, error);
-    if (!error) {
-        return canonical;
-    }
-    const Path absolute = std::filesystem::absolute(source_path, error);
-    return error ? source_path : absolute.lexically_normal();
-}
-
 [[nodiscard]] auto parse_metadata(const Json& root, const Path& source_path) -> std::optional<VideoMetadata> {
     if (!root.is_object() || !root.contains("format") || !root["format"].is_object()
         || !root["format"].contains("duration") || !root.contains("streams") || !root["streams"].is_array()) {
@@ -115,7 +104,7 @@ using Json = nlohmann::json;
     }
 
     auto metadata = VideoMetadata {
-        .source_path = normalized_source_path(source_path),
+        .source_path = source_path,
         .duration_ms = *duration,
         .frame_rate = *frame_rate,
         .source_extension = source_path.extension().empty() ? ".mp4" : source_path.extension().string(),
