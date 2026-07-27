@@ -33,12 +33,21 @@ auto run_cli(const CliRunRequest& request) -> CliExitCode {
     const ExportSettings effective_settings = apply_cli_flag_overrides(loaded_settings.export_settings, cli_arguments);
 
     if (cli_arguments.input_paths.size() == 1 && cli_arguments.config_paths.empty()) {
+        const Path& source_path = cli_arguments.input_paths.front();
+        const FfprobeResult probe =
+            FfprobeClient {request.process_executor}.probe(effective_settings.ffprobe_path, source_path);
+        if (!probe.ok()) {
+            request.error_output << probe.error_message << "\n";
+            return CliExitCode::Error;
+        }
         if (cli_arguments.use_embedded_chapters) {
+            if (probe.metadata.embedded_chapters.empty()) {
+                request.error_output << chapter_source_guidance(probe.metadata) << "\n";
+                return CliExitCode::Error;
+            }
             request.output << "Chapter source: embedded chapters (explicit).\n";
         } else {
-            request.error_output << "A JSON or YAML chapter config is required before VidChopperCLI can export.\n"
-                                 << "If this source contains embedded chapters, rerun exactly:\n"
-                                 << embedded_rerun_command(cli_arguments.input_paths.front()) << "\n";
+            request.error_output << chapter_source_guidance(probe.metadata) << "\n";
             return CliExitCode::Error;
         }
     }
