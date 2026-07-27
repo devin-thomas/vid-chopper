@@ -3,6 +3,7 @@
 #include "core/types.hpp"
 
 #include <chrono>
+#include <functional>
 #include <string>
 #include <vector>
 
@@ -34,6 +35,8 @@ struct ProcessResult {
     [[nodiscard]] auto ok() const noexcept -> bool;
     [[nodiscard]] auto operator==(const ProcessResult&) const -> bool = default;
 };
+
+using ProcessExecutor = std::function<ProcessResult(const ProcessRequest&)>;
 
 [[nodiscard]] auto run_process(const ProcessRequest& request) -> ProcessResult;
 [[nodiscard]] auto process_exit_state_name(ProcessExitState state) -> std::string;
