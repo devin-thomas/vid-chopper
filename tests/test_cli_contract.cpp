@@ -5,6 +5,7 @@
 #include <sstream>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 using namespace vidchopper;
@@ -21,7 +22,25 @@ struct CliRunSnapshot {
     return text.find(needle) != std::string_view::npos;
 }
 
-[[nodiscard]] auto run_with(const std::vector<std::string>& arguments, const Path& executable_path) -> CliRunSnapshot {
+[[nodiscard]] auto probe_with_chapters(const ProcessRequest&) -> ProcessResult {
+    return ProcessResult {
+        .state = ProcessExitState::Success,
+        .standard_output =
+            R"({"format":{"duration":"2"},"streams":[{"codec_type":"video","avg_frame_rate":"30/1"}],"chapters":[{"start_time":"0","end_time":"2","tags":{"title":"Match"}}]})",
+    };
+}
+
+[[nodiscard]] auto probe_without_chapters(const ProcessRequest&) -> ProcessResult {
+    return ProcessResult {
+        .state = ProcessExitState::Success,
+        .standard_output =
+            R"({"format":{"duration":"2"},"streams":[{"codec_type":"video","avg_frame_rate":"30/1"}],"chapters":[]})",
+    };
+}
+
+[[nodiscard]] auto run_with(const std::vector<std::string>& arguments,
+    const Path& executable_path,
+    ProcessExecutor executor = probe_with_chapters) -> CliRunSnapshot {
     auto output = std::ostringstream {};
     auto error_output = std::ostringstream {};
     const auto request = CliRunRequest {
@@ -29,6 +48,7 @@ struct CliRunSnapshot {
         .executable_path = executable_path,
         .output = output,
         .error_output = error_output,
+        .process_executor = std::move(executor),
     };
 
     const CliExitCode exit_code = run_cli(request);
@@ -68,15 +88,29 @@ auto main() -> int {
     test_support::expect_true(
         contains(embedded.output, "Config: --embedded"), "embedded invocation should not report a chapter file");
 
+    const CliRunSnapshot embedded_missing =
+        run_with({input_path, "--embedded"}, executable_path, probe_without_chapters);
+    test_support::expect_eq(
+        embedded_missing.exit_code, CliExitCode::Error, "embedded mode should fail when chapters are absent");
+    test_support::expect_true(contains(embedded_missing.error_output, "JSON or YAML chapter config is required"),
+        "embedded mode should guide sources without embedded chapters");
+
     const CliRunSnapshot missing_config = run_with({input_path}, executable_path);
     test_support::expect_eq(missing_config.exit_code, CliExitCode::Error, "missing config should use exit code 1");
-    test_support::expect_true(contains(missing_config.error_output, "JSON or YAML chapter config is required"),
-        "missing config should explain explicit chapter source requirement");
+    test_support::expect_true(contains(missing_config.error_output, "Embedded chapters were found"),
+        "missing config should report discovered embedded chapters without selecting them");
     test_support::expect_true(!contains(missing_config.output, "VidChopperCLI phase 1 skeleton"),
         "missing config should not enter command execution path");
     test_support::expect_true(
         contains(missing_config.error_output, "VidChopperCLI.exe \"" + input_path + "\" --embedded"),
         "missing config should preserve the source path in a safe exact rerun command");
+
+    const CliRunSnapshot missing_without_embedded = run_with({input_path}, executable_path, probe_without_chapters);
+    test_support::expect_true(
+        contains(missing_without_embedded.error_output, "JSON or YAML chapter config is required"),
+        "missing config should require a chapter file when the probe finds no embedded chapters");
+    test_support::expect_true(!contains(missing_without_embedded.error_output, "--embedded"),
+        "missing config should not recommend embedded mode when the probe finds no chapters");
 
     const std::string spaced_input_path = (root / "input clips" / "match footage.mkv").string();
     const CliRunSnapshot spaced_missing_config = run_with({spaced_input_path}, executable_path);

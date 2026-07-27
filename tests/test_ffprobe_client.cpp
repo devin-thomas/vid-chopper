@@ -1,0 +1,95 @@
+#include "cli/ffprobe_client.hpp"
+#include "test_support.hpp"
+
+#include <filesystem>
+#include <fstream>
+#include <sstream>
+#include <string>
+#include <string_view>
+#include <utility>
+
+using namespace vidchopper;
+
+namespace {
+
+[[nodiscard]] auto fixture_text() -> std::string {
+    const Path fixture = Path {__FILE__}.parent_path() / "dummy" / "mock_data" / "mock_ffprobe_embedded_chapters.json";
+    auto stream = std::ifstream {fixture};
+    auto output = std::ostringstream {};
+    output << stream.rdbuf();
+    return output.str();
+}
+
+[[nodiscard]] auto failed(ProcessExitState state, std::string error) -> ProcessResult {
+    return ProcessResult {.state = state, .standard_error = std::move(error)};
+}
+
+[[nodiscard]] auto contains(const std::string_view text, const std::string_view needle) -> bool {
+    return text.find(needle) != std::string_view::npos;
+}
+
+} // namespace
+
+auto main() -> int {
+    const auto executable = Path {R"(C:\Program Files\ffmpeg\ffprobe.exe)"};
+    const auto source = Path {R"(C:\match clips\set.mkv)"};
+    const auto success_process = ProcessResult {
+        .state = ProcessExitState::Success,
+        .standard_output = fixture_text(),
+    };
+    const FfprobeResult valid = parse_ffprobe_output(executable, source, success_process);
+    test_support::expect_true(valid.ok(), "valid ffprobe fixture should parse");
+    test_support::expect_eq(valid.metadata.duration_ms, u64 {180000}, "duration should parse in milliseconds");
+    test_support::expect_eq(valid.metadata.frame_rate,
+        FrameRate {.numerator = 30000, .denominator = 1001},
+        "average frame rate should parse as a rational");
+    test_support::expect_eq(valid.metadata.source_extension, std::string {".mkv"}, "extension should be normalized");
+    test_support::expect_eq(valid.metadata.embedded_chapters.size(), size_t {3}, "ordered chapters should parse");
+    test_support::expect_eq(
+        valid.metadata.embedded_chapters[1].name, std::string {"Main Segment"}, "chapter order should be preserved");
+
+    const auto malformed = ProcessResult {.state = ProcessExitState::Success, .standard_output = "{"};
+    test_support::expect_true(
+        !parse_ffprobe_output(executable, source, malformed).ok(), "malformed JSON should be rejected");
+
+    const auto missing_fields =
+        ProcessResult {.state = ProcessExitState::Success, .standard_output = R"({"format":{}})"};
+    test_support::expect_true(
+        !parse_ffprobe_output(executable, source, missing_fields).ok(), "missing required fields should be rejected");
+
+    const auto unsupported = ProcessResult {
+        .state = ProcessExitState::Success,
+        .standard_output = R"({"format":{"duration":"1"},"streams":[{"codec_type":"video","avg_frame_rate":"0/0"}]})",
+    };
+    test_support::expect_true(
+        !parse_ffprobe_output(executable, source, unsupported).ok(), "unsupported frame rate should be rejected");
+
+    for (const ProcessExitState state : {ProcessExitState::FailedStart,
+             ProcessExitState::TimedOut,
+             ProcessExitState::Crashed,
+             ProcessExitState::NonzeroExit}) {
+        const FfprobeResult failure = parse_ffprobe_output(executable, source, failed(state, "bounded stderr"));
+        test_support::expect_true(!failure.ok(), "process failure should reject probing");
+        test_support::expect_true(
+            contains(failure.error_message, executable.string()), "probe error should include the executable path");
+        test_support::expect_true(
+            contains(failure.error_message, source.string()), "probe error should include the source path");
+        test_support::expect_true(contains(failure.error_message, process_exit_state_name(state)),
+            "probe error should identify the exit state");
+        test_support::expect_true(
+            contains(failure.error_message, "bounded stderr"), "probe error should include bounded stderr context");
+    }
+
+    auto observed_request = ProcessRequest {};
+    const auto fake = [&observed_request, success_process](const ProcessRequest& request) -> ProcessResult {
+        observed_request = request;
+        return success_process;
+    };
+    const FfprobeResult injected = FfprobeClient {fake}.probe(executable, source);
+    test_support::expect_true(injected.ok(), "injected process executor should support deterministic probing");
+    test_support::expect_eq(observed_request.executable, executable, "probe should preserve the executable path");
+    test_support::expect_eq(
+        observed_request.arguments.back(), source.string(), "probe should preserve the source path");
+
+    return 0;
+}

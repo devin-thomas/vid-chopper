@@ -10,6 +10,6 @@ The files are intentionally lightweight and are not real media. They give parser
 - `mock_stream.json` - JSON chapter config fixture.
 - `mock_stream.yaml` - YAML chapter config fixture with the same logical chapters.
 - `duplicate_stem.json` and `duplicate_stem.yaml` - future N:N duplicate-config-stem rejection fixtures.
-- `mock_ffprobe_embedded_chapters.json` - future no-Qt ffprobe parser fixture.
+- `mock_ffprobe_embedded_chapters.json` - deterministic no-Qt ffprobe parser fixture.
 - `VidChopperCLI.ini` - CLI settings fixture.
 - `VidChopper.ini` - GUI settings fixture used to verify explicit-only GUI config import.
