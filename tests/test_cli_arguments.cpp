@@ -45,6 +45,15 @@ auto main() -> int {
     test_support::expect_true(advanced.arguments.use_gui_config, "gui config flag should parse");
     test_support::expect_true(advanced.arguments.stop_on_first_error, "stop-on-first-error flag should parse");
 
+    const CliParseResult embedded = parse({"input.mkv", "--embedded"});
+    test_support::expect_true(embedded.ok(), "explicit embedded chapter source should parse");
+    test_support::expect_true(embedded.arguments.use_embedded_chapters, "embedded source should be captured");
+    test_support::expect_true(
+        embedded.arguments.config_paths.empty(), "embedded source should not create a config path");
+
+    const CliParseResult conflicting_sources = parse({"input.mkv", "chapters.json", "--embedded"});
+    test_support::expect_true(!conflicting_sources.ok(), "config and embedded chapter sources should conflict");
+
     const CliParseResult missing_value = parse({"input.mp4", "chapters.json", "--crf"});
     test_support::expect_true(!missing_value.ok(), "missing option value should fail");
 

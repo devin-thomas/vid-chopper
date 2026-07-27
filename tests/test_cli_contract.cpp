@@ -12,7 +12,7 @@ using namespace vidchopper;
 namespace {
 
 struct CliRunSnapshot {
-    CliExitCode exit_code {CliExitCode::RuntimeError};
+    CliExitCode exit_code {CliExitCode::Error};
     std::string output;
     std::string error_output;
 };
@@ -61,15 +61,31 @@ auto main() -> int {
     test_support::expect_true(contains(chop.output, yaml_config_path), "chop invocation should print YAML config path");
     test_support::expect_true(chop.error_output.empty(), "chop invocation should not print errors");
 
+    const CliRunSnapshot embedded = run_with({input_path, "--embedded"}, executable_path);
+    test_support::expect_eq(embedded.exit_code, CliExitCode::Success, "explicit embedded invocation should run");
+    test_support::expect_true(contains(embedded.output, "Chapter source: embedded chapters (explicit)."),
+        "embedded invocation should report its explicit source policy");
+    test_support::expect_true(
+        contains(embedded.output, "Config: --embedded"), "embedded invocation should not report a chapter file");
+
     const CliRunSnapshot missing_config = run_with({input_path}, executable_path);
-    test_support::expect_eq(missing_config.exit_code, CliExitCode::MissingConfig, "missing config should fail");
+    test_support::expect_eq(missing_config.exit_code, CliExitCode::Error, "missing config should use exit code 1");
     test_support::expect_true(contains(missing_config.error_output, "JSON or YAML chapter config is required"),
         "missing config should explain explicit chapter source requirement");
     test_support::expect_true(!contains(missing_config.output, "VidChopperCLI phase 1 skeleton"),
         "missing config should not enter command execution path");
+    test_support::expect_true(
+        contains(missing_config.error_output, "VidChopperCLI.exe \"" + input_path + "\" --embedded"),
+        "missing config should preserve the source path in a safe exact rerun command");
+
+    const std::string spaced_input_path = (root / "input clips" / "match footage.mkv").string();
+    const CliRunSnapshot spaced_missing_config = run_with({spaced_input_path}, executable_path);
+    test_support::expect_true(
+        contains(spaced_missing_config.error_output, "VidChopperCLI.exe \"" + spaced_input_path + "\" --embedded"),
+        "embedded rerun guidance should quote source paths containing spaces");
 
     const CliRunSnapshot invalid = run_with({input_path, json_config_path, yaml_config_path}, executable_path);
-    test_support::expect_eq(invalid.exit_code, CliExitCode::MissingConfig, "invalid invocation should fail");
+    test_support::expect_eq(invalid.exit_code, CliExitCode::Error, "invalid invocation should use exit code 1");
     test_support::expect_true(contains(invalid.error_output, "Too many positional arguments"),
         "invalid invocation should explain the parse failure");
     test_support::expect_true(contains(invalid.error_output, "Usage:"), "invalid invocation should print usage");

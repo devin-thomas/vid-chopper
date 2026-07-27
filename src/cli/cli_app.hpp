@@ -10,8 +10,7 @@ namespace vidchopper {
 
 enum class CliExitCode : u8 {
     Success = 0,
-    RuntimeError = 1,
-    MissingConfig = 2,
+    Error = 1,
 };
 
 struct CliRunRequest {

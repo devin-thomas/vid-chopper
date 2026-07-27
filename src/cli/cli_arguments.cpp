@@ -17,6 +17,7 @@ constexpr auto command_chop = std::string_view {"chop"};
 constexpr auto flag_help = std::string_view {"--help"};
 constexpr auto short_flag_help = std::string_view {"-h"};
 constexpr auto flag_dry_run = std::string_view {"--dry-run"};
+constexpr auto flag_embedded = std::string_view {"--embedded"};
 constexpr auto flag_use_gui_config = std::string_view {"--use-gui-config"};
 constexpr auto flag_stop_on_first_error = std::string_view {"--stop-on-first-error"};
 constexpr auto flag_crf = std::string_view {"--crf"};
@@ -128,6 +129,11 @@ auto parse_cli_arguments(const std::vector<std::string>& tokens) -> CliParseResu
             continue;
         }
 
+        if (token == flag_embedded) {
+            arguments.use_embedded_chapters = true;
+            continue;
+        }
+
         if (token == flag_use_gui_config) {
             arguments.use_gui_config = true;
             continue;
@@ -177,15 +183,21 @@ auto parse_cli_arguments(const std::vector<std::string>& tokens) -> CliParseResu
         }
     }
 
+    if (arguments.use_embedded_chapters && !arguments.config_paths.empty()) {
+        return failure("Choose exactly one chapter source: a chapter config or --embedded.");
+    }
+
     return success(std::move(arguments));
 }
 
 auto cli_usage() -> std::string {
     return "Usage:\n"
            "  VidChopperCLI.exe <input-video> <chapters.json|chapters.yaml> [options]\n"
+           "  VidChopperCLI.exe <input-video> --embedded [options]\n"
            "  VidChopperCLI.exe chop <input-video> <chapters.json|chapters.yaml> [options]\n"
            "\n"
            "Phase 1 options:\n"
+           "  --embedded             Explicitly use chapters embedded in each input video.\n"
            "  --dry-run              Print the planned work without exporting.\n"
            "  --crf <0-51>           Override x264 CRF for this run.\n"
            "  --cq <0-51>            Override NVENC CQ for this run.\n"
