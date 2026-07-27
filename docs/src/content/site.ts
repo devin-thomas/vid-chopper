@@ -2,7 +2,7 @@ export const repositoryUrl = "https://github.com/devin-thomas/vid-chopper";
 export const releasesUrl = `${repositoryUrl}/releases`;
 export const releaseVersion = "v0.2.0-alpha";
 export const releaseZipUrl =
-  "https://github.com/devin-thomas/vid-chopper/releases/download/v0.2.0-alpha/VidChopper-0.2.0-alpha-windows-x64.zip";
+  "https://github.com/devin-thomas/vid-chopper/releases/download/v0.2.0-alpha/VidChopper-windows-x64.zip";
 
 export const docsLinks = [
   {
