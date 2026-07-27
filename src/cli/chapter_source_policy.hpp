@@ -8,8 +8,10 @@
 
 namespace vidchopper {
 
+using VideoMetadataList = std::vector<VideoMetadata>;
+
 struct EmbeddedChapterSelection {
-    std::vector<VideoMetadata> selected;
+    VideoMetadataList selected;
     std::vector<Path> skipped;
 
     [[nodiscard]] auto operator==(const EmbeddedChapterSelection&) const -> bool = default;
@@ -17,7 +19,6 @@ struct EmbeddedChapterSelection {
 
 [[nodiscard]] auto embedded_rerun_command(const Path& source_path) -> std::string;
 [[nodiscard]] auto chapter_source_guidance(const VideoMetadata& metadata) -> std::string;
-[[nodiscard]] auto select_embedded_chapter_sources(const std::vector<VideoMetadata>& metadata)
-    -> EmbeddedChapterSelection;
+[[nodiscard]] auto select_embedded_sources(const VideoMetadataList& metadata) -> EmbeddedChapterSelection;
 
 } // namespace vidchopper

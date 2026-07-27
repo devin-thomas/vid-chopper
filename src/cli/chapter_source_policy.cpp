@@ -43,7 +43,7 @@ auto chapter_source_guidance(const VideoMetadata& metadata) -> std::string {
     return "Embedded chapters were found. Rerun exactly:\n" + embedded_rerun_command(metadata.source_path);
 }
 
-auto select_embedded_chapter_sources(const std::vector<VideoMetadata>& metadata) -> EmbeddedChapterSelection {
+auto select_embedded_sources(const VideoMetadataList& metadata) -> EmbeddedChapterSelection {
     auto selection = EmbeddedChapterSelection {};
     selection.selected.reserve(metadata.size());
     selection.skipped.reserve(metadata.size());

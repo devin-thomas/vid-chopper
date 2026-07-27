@@ -39,11 +39,11 @@ auto main() -> int {
     test_support::expect_true(!contains(missing_guidance, "--embedded"),
         "missing embedded metadata should not recommend an unusable command");
 
-    const std::vector<VideoMetadata> mixed_batch = {
+    const VideoMetadataList mixed_batch = {
         metadata(Path {"with-chapters.mkv"}, true),
         metadata(Path {"without-chapters.mkv"}, false),
     };
-    const EmbeddedChapterSelection selection = select_embedded_chapter_sources(mixed_batch);
+    const EmbeddedChapterSelection selection = select_embedded_sources(mixed_batch);
     test_support::expect_eq(selection.selected.size(), size_t {1}, "mixed batch should select embedded sources");
     test_support::expect_eq(selection.skipped.size(), size_t {1}, "mixed batch should report missing sources");
     test_support::expect_eq(selection.skipped.front(),
