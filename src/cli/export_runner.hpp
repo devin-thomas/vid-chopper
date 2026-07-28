@@ -15,12 +15,21 @@ enum class ExportExitCode : u8 {
     ToolingError = 3,
 };
 
+struct PlannedExportSegment {
+    ChapterSegment chapter;
+    u16 chapter_index {0};
+    Path output_path;
+    std::vector<std::string> command;
+
+    [[nodiscard]] auto operator==(const PlannedExportSegment&) const -> bool = default;
+};
+
 struct ResolvedExportJob {
     VideoMetadata metadata;
-    std::vector<ChapterSegment> chapters;
     Path output_directory;
     ExportSettings settings;
     EncoderEnvironment environment;
+    std::vector<PlannedExportSegment> segments;
 };
 
 struct RenderedSegment {

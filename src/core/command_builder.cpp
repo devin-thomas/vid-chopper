@@ -108,9 +108,10 @@ auto output_path_for(const VideoMetadata& metadata,
     const u16 chapter_index,
     const Path& output_directory,
     const ExportSettings& settings) -> Path {
-    std::string chapter_name = trim_copy(chapter.name);
+    const std::string_view requested_name = chapter.output_name.empty() ? chapter.name : chapter.output_name;
+    std::string chapter_name = trim_copy(requested_name);
     if (settings.sanitize_file_names) {
-        chapter_name = sanitize_file_component(chapter.name);
+        chapter_name = sanitize_file_component(requested_name);
     }
 
     std::string file_name = replace_all_copy(settings.naming_pattern, "%name%", chapter_name);

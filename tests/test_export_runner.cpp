@@ -1,5 +1,5 @@
 #include "cli/export_runner.hpp"
-#include "core/command_builder.hpp"
+#include "cli/output_planner.hpp"
 #include "test_support.hpp"
 
 #include <chrono>
@@ -18,7 +18,7 @@ namespace {
     settings.overwrite_mode = OverwriteMode::Overwrite;
     settings.container_mode = ContainerMode::Mp4;
     settings.stop_on_first_error = false;
-    return ResolvedExportJob {
+    const auto input = OutputPlanInput {
         .metadata =
             VideoMetadata {
                 .source_path = root / "source clips" / "match.mkv",
@@ -27,10 +27,14 @@ namespace {
                 .source_extension = ".mkv",
             },
         .chapters = std::move(chapters),
-        .output_directory = root / "rendered clips",
         .settings = settings,
         .environment = EncoderEnvironment {},
     };
+    OutputPlanResult plan = plan_outputs({input});
+    if (!plan.ok()) {
+        test_support::fail("test export job should plan successfully");
+    }
+    return std::move(plan.jobs.front());
 }
 
 [[nodiscard]] auto chapters() -> std::vector<ChapterSegment> {
@@ -77,11 +81,7 @@ auto main() -> int {
     test_support::expect_eq(first.source_path, successful_job.metadata.source_path, "result should retain source path");
     test_support::expect_eq(first.chapter_index, u16 {0}, "result should retain chapter index");
     test_support::expect_eq(first.chapter_name, std::string {"Intro"}, "result should retain chapter name");
-    const std::vector<std::string> expected_command = build_ffmpeg_command(successful_job.metadata,
-        successful_job.chapters.front(),
-        first.output_path,
-        successful_job.settings,
-        successful_job.environment);
+    const std::vector<std::string>& expected_command = successful_job.segments.front().command;
     test_support::expect_eq(
         observed_requests.front().executable, Path {expected_command.front()}, "runner should preserve executable");
     test_support::expect_eq(observed_requests.front().arguments,
@@ -125,6 +125,18 @@ auto main() -> int {
         stopped.exit_code, ExportExitCode::ExportFailure, "crashed ffmpeg should map to exit code 2");
     test_support::expect_true(stopped.stopped_early, "stop policy should report an early stop");
     test_support::expect_eq(stopped.jobs.front().segments.size(), size_t {2}, "stop policy should skip later chapters");
+
+    auto invalid_plan_calls = size_t {0};
+    const auto invalid_plan_executor = [&invalid_plan_calls](const ProcessRequest&) -> ProcessResult {
+        ++invalid_plan_calls;
+        return ProcessResult {.state = ProcessExitState::Success};
+    };
+    ResolvedExportJob invalid_plan_job = make_job(root, chapters());
+    invalid_plan_job.segments.front().command.clear();
+    const ExportRunResult invalid_plan = ExportRunner {invalid_plan_executor}.run({invalid_plan_job});
+    test_support::expect_eq(
+        invalid_plan.exit_code, ExportExitCode::ExportFailure, "invalid immutable plan should fail export");
+    test_support::expect_eq(invalid_plan_calls, size_t {0}, "invalid immutable plan should not start a process");
 
     const auto missing_executor = [](const ProcessRequest&) -> ProcessResult {
         return ProcessResult {.state = ProcessExitState::FailedStart, .error_message = "not found"};
