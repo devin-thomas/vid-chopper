@@ -63,6 +63,8 @@ if(VIDCHOPPER_BUILD_CLI)
         src/cli/export_runner.hpp
         src/cli/ffprobe_client.cpp
         src/cli/ffprobe_client.hpp
+        src/cli/output_planner.cpp
+        src/cli/output_planner.hpp
         src/cli/process_runner.cpp
         src/cli/process_runner.hpp
     )
@@ -122,6 +124,7 @@ if(VIDCHOPPER_BUILD_TESTS)
         )
         add_vidchopper_test(vidchopper_test_process_runner tests/test_process_runner.cpp fast vidchopper_cli)
         add_vidchopper_test(vidchopper_test_ffprobe_client tests/test_ffprobe_client.cpp fast vidchopper_cli)
+        add_vidchopper_test(vidchopper_test_output_planner_golden tests/test_output_planner_golden.cpp fast vidchopper_cli)
         add_vidchopper_test(vidchopper_test_export_runner tests/test_export_runner.cpp fast vidchopper_cli)
     endif()
     add_vidchopper_test(vidchopper_test_ffmpeg_integration tests/test_ffmpeg_integration.cpp slow)

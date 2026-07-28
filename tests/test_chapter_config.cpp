@@ -138,6 +138,13 @@ chapters:
     require_failure(
         load_chapter_config(missing_path, 60000, ExportSettings {}), "missing file should fail", "could not read");
 
+    const Path blank_output_name_path = root / "blank-output-name.json";
+    write_text(blank_output_name_path,
+        R"json({"chapters":[{"name":"Opening","start":0,"end":60000,"outputName":"   "}]})json");
+    require_failure(load_chapter_config(blank_output_name_path, 60000, ExportSettings {}),
+        "blank outputName should fail",
+        "outputName must not be empty");
+
     const Path malformed_json_path = root / "malformed.json";
     write_text(malformed_json_path, R"json({"version": 1, "chapters": [)json");
     const ChapterConfigLoadResult malformed_json = load_chapter_config(malformed_json_path, 60000, ExportSettings {});

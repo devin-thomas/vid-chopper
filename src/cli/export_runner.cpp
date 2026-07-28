@@ -1,7 +1,5 @@
 #include "cli/export_runner.hpp"
 
-#include "core/command_builder.hpp"
-
 #include <filesystem>
 #include <system_error>
 #include <utility>
@@ -63,7 +61,34 @@ auto ExportRunner::run(
     for (const ResolvedExportJob& job : jobs) {
         const bool stop_on_first_error = job.settings.stop_on_first_error;
         auto job_result = ExportJobResult {.source_path = job.metadata.source_path};
-        job_result.segments.reserve(job.chapters.size());
+        job_result.segments.reserve(job.segments.size());
+
+        if (job.segments.empty()) {
+            job_result.error_message = "Export job has no planned segments.";
+            result.exit_code = ExportExitCode::ExportFailure;
+            result.jobs.push_back(std::move(job_result));
+            if (stop_on_first_error) {
+                result.stopped_early = result.jobs.size() < jobs.size();
+                break;
+            }
+            continue;
+        }
+
+        for (const PlannedExportSegment& segment : job.segments) {
+            if (segment.command.empty()) {
+                job_result.error_message = "Export job contains an empty planned command.";
+                result.exit_code = ExportExitCode::ExportFailure;
+                break;
+            }
+        }
+        if (!job_result.error_message.empty()) {
+            result.jobs.push_back(std::move(job_result));
+            if (stop_on_first_error) {
+                result.stopped_early = result.jobs.size() < jobs.size();
+                break;
+            }
+            continue;
+        }
 
         auto directory_error = std::error_code {};
         std::filesystem::create_directories(job.output_directory, directory_error);
@@ -80,14 +105,9 @@ auto ExportRunner::run(
             continue;
         }
 
-        for (auto index = size_t {0}; index < job.chapters.size(); ++index) {
-            const auto chapter_index = static_cast<u16>(index);
-            const ChapterSegment& chapter = job.chapters[index];
-            const Path output_path =
-                output_path_for(job.metadata, chapter, chapter_index, job.output_directory, job.settings);
-            const std::vector<std::string> command =
-                build_ffmpeg_command(job.metadata, chapter, output_path, job.settings, job.environment);
-            ProcessResult process = executor_(make_process_request(command, options));
+        for (auto index = size_t {0}; index < job.segments.size(); ++index) {
+            const PlannedExportSegment& segment = job.segments[index];
+            ProcessResult process = executor_(make_process_request(segment.command, options));
             const bool succeeded = process.ok();
             if (!succeeded) {
                 record_failure(result, process.state);
@@ -95,14 +115,14 @@ auto ExportRunner::run(
 
             job_result.segments.push_back(RenderedSegment {
                 .source_path = job.metadata.source_path,
-                .chapter_index = chapter_index,
-                .chapter_name = chapter.name,
-                .output_path = output_path,
+                .chapter_index = segment.chapter_index,
+                .chapter_name = segment.chapter.name,
+                .output_path = segment.output_path,
                 .process = std::move(process),
             });
 
             if (!succeeded && stop_on_first_error) {
-                job_result.stopped_early = index + 1 < job.chapters.size();
+                job_result.stopped_early = index + 1 < job.segments.size();
                 result.stopped_early = job_result.stopped_early || result.jobs.size() + 1 < jobs.size();
                 break;
             }

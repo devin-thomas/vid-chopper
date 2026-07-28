@@ -29,6 +29,23 @@ auto touch(const Path& path) -> void {
     output << "fixture\n";
 }
 
+auto write_chapter_config(const Path& path,
+    const std::string_view folder = "%source%_chapters",
+    const std::string_view naming_pattern = "%index% - %name%",
+    const u8 crf = 19) -> void {
+    std::filesystem::create_directories(path.parent_path());
+    auto output = std::ofstream {path};
+    if (path.extension() == ".json") {
+        output << "{\"version\":1,\"output\":{\"folder\":\"" << folder << "\",\"namingPattern\":\"" << naming_pattern
+               << "\"},\"encoder\":{\"crf\":" << static_cast<int>(crf)
+               << "},\"chapters\":[{\"name\":\"Match\",\"start\":0,\"end\":2000}]}\n";
+        return;
+    }
+    output << "version: 1\noutput:\n  folder: \"" << folder << "\"\n  namingPattern: \"" << naming_pattern
+           << "\"\nencoder:\n  crf: " << static_cast<int>(crf)
+           << "\nchapters:\n  - name: Match\n    start: 0\n    end: 2000\n";
+}
+
 [[nodiscard]] auto probe_with_chapters(const ProcessRequest&) -> ProcessResult {
     return ProcessResult {
         .state = ProcessExitState::Success,
@@ -77,14 +94,19 @@ auto main() -> int {
     const std::string json_config_path = (root / "chapters.json").string();
     const std::string yaml_config_path = (root / "chapters.yaml").string();
     touch(input_path);
-    touch(json_config_path);
-    touch(yaml_config_path);
+    write_chapter_config(json_config_path);
+    write_chapter_config(yaml_config_path);
 
     const CliRunSnapshot direct = run_with({input_path, json_config_path}, executable_path);
     test_support::expect_eq(direct.exit_code, CliExitCode::Success, "direct two-argument invocation should run");
     test_support::expect_true(contains(direct.output, "Input: "), "direct invocation should print input");
     test_support::expect_true(contains(direct.output, "Config: "), "direct invocation should print config");
     test_support::expect_true(direct.error_output.empty(), "direct invocation should not print errors");
+
+    const CliRunSnapshot cli_override = run_with({input_path, json_config_path, "--crf", "21"}, executable_path);
+    test_support::expect_eq(cli_override.exit_code, CliExitCode::Success, "explicit CLI override should run");
+    test_support::expect_true(
+        contains(cli_override.output, "Effective CRF: 21"), "explicit CLI flags should override ChapterFile settings");
 
     const CliRunSnapshot chop = run_with({"chop", input_path, yaml_config_path}, executable_path);
     test_support::expect_eq(chop.exit_code, CliExitCode::Success, "chop subcommand should run");
@@ -151,6 +173,28 @@ auto main() -> int {
     test_support::expect_eq(process_calls, size_t {0}, "invalid batch planning should not start a process");
     test_support::expect_true(
         invalid_batch.output.empty(), "invalid batch planning should not enter the command execution path");
+
+    const Path collision_source_directory = root / "collision-batch" / "videos";
+    const Path collision_config_directory = root / "collision-batch" / "configs";
+    touch(collision_source_directory / "alpha.mp4");
+    touch(collision_source_directory / "beta.mp4");
+    write_chapter_config(collision_config_directory / "alpha.json", "exports", "same");
+    write_chapter_config(collision_config_directory / "beta.json", "exports", "SAME");
+    auto collision_process_calls = size_t {0};
+    const ProcessExecutor collision_executor = [&collision_process_calls](const ProcessRequest& request) {
+        ++collision_process_calls;
+        return probe_with_chapters(request);
+    };
+    const CliRunSnapshot collision_batch =
+        run_with({collision_source_directory.string(), collision_config_directory.string()},
+            executable_path,
+            collision_executor);
+    test_support::expect_eq(
+        collision_batch.exit_code, CliExitCode::Error, "colliding output plan should use validation exit 1");
+    test_support::expect_true(contains(collision_batch.error_output, "Output collision"),
+        "colliding batch should report the planned output path conflict");
+    test_support::expect_eq(
+        collision_process_calls, size_t {2}, "the complete batch should be probed before output collision validation");
 
     const CliRunSnapshot invalid = run_with({input_path, json_config_path, yaml_config_path}, executable_path);
     test_support::expect_eq(invalid.exit_code, CliExitCode::Error, "invalid invocation should use exit code 1");

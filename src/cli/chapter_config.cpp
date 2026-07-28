@@ -349,7 +349,7 @@ constexpr auto chapter_keys = std::to_array<std::string_view>({"name", "start", 
                         return failure(path, prefix + "outputName must be a string.");
                     }
                     output_name = chapter["outputName"].get<std::string>();
-                    if (output_name.empty()) {
+                    if (trim_copy(output_name).empty()) {
                         return failure(path, prefix + "outputName must not be empty.");
                     }
                 }
@@ -528,7 +528,7 @@ constexpr auto chapter_keys = std::to_array<std::string_view>({"name", "start", 
                         return failure(path, prefix + "outputName must be a string.");
                     }
                     output_name = *output_name_value;
-                    if (output_name.empty()) {
+                    if (trim_copy(output_name).empty()) {
                         return failure(path, prefix + "outputName must not be empty.");
                     }
                 }

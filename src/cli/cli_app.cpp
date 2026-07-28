@@ -1,13 +1,16 @@
 #include "cli/cli_app.hpp"
 
 #include "cli/batch_resolver.hpp"
+#include "cli/chapter_config.hpp"
 #include "cli/chapter_source_policy.hpp"
 #include "cli/cli_arguments.hpp"
 #include "cli/cli_settings.hpp"
+#include "cli/output_planner.hpp"
 
 #include <filesystem>
 #include <ostream>
 #include <optional>
+#include <utility>
 
 namespace vidchopper {
 
@@ -72,10 +75,9 @@ auto run_cli(const CliRunRequest& request) -> CliExitCode {
         return CliExitCode::Error;
     }
 
-    auto planned_job_count = batch.jobs.size();
+    auto plan_inputs = std::vector<OutputPlanInput> {};
+    plan_inputs.reserve(batch.jobs.size());
     if (cli_arguments.use_embedded_chapters) {
-        auto metadata = VideoMetadataList {};
-        metadata.reserve(batch.jobs.size());
         for (const BatchJob& job : batch.jobs) {
             const FfprobeResult probe =
                 FfprobeClient {request.process_executor}.probe(effective_settings.ffprobe_path, job.source_path);
@@ -83,28 +85,63 @@ auto run_cli(const CliRunRequest& request) -> CliExitCode {
                 request.error_output << probe.error_message << "\n";
                 return CliExitCode::Error;
             }
-            metadata.push_back(probe.metadata);
+            if (probe.metadata.embedded_chapters.empty()) {
+                if (batch.jobs.size() == 1) {
+                    request.error_output << chapter_source_guidance(probe.metadata) << "\n";
+                    return CliExitCode::Error;
+                }
+                request.output << "Skipping source without embedded chapters: " << job.source_path.string() << "\n";
+                continue;
+            }
+            plan_inputs.push_back(OutputPlanInput {
+                .metadata = probe.metadata,
+                .chapters = probe.metadata.embedded_chapters,
+                .settings = effective_settings,
+            });
         }
 
-        const EmbeddedChapterSelection selection = select_embedded_sources(metadata);
-        if (batch.jobs.size() == 1 && !selection.skipped.empty()) {
-            request.error_output << chapter_source_guidance(metadata.front()) << "\n";
-            return CliExitCode::Error;
-        }
-        for (const Path& skipped : selection.skipped) {
-            request.output << "Skipping source without embedded chapters: " << skipped.string() << "\n";
-        }
-        if (selection.selected.empty()) {
+        if (plan_inputs.empty()) {
             request.error_output << "No sources with embedded chapters were found.\n";
             return CliExitCode::Error;
         }
-
-        planned_job_count = selection.selected.size();
         request.output << "Chapter source: embedded chapters (explicit).\n";
+    } else {
+        for (const BatchJob& job : batch.jobs) {
+            const FfprobeResult probe =
+                FfprobeClient {request.process_executor}.probe(effective_settings.ffprobe_path, job.source_path);
+            if (!probe.ok()) {
+                request.error_output << probe.error_message << "\n";
+                return CliExitCode::Error;
+            }
+            if (!job.chapter_config_path.has_value()) {
+                request.error_output << "Resolved batch job is missing a ChapterFile: " << job.source_path.string()
+                                     << "\n";
+                return CliExitCode::Error;
+            }
+            ChapterConfigLoadResult config = load_chapter_config(
+                *job.chapter_config_path, probe.metadata.duration_ms, loaded_settings.export_settings);
+            if (!config.ok()) {
+                request.error_output << config.error_message << "\n";
+                return CliExitCode::Error;
+            }
+            plan_inputs.push_back(OutputPlanInput {
+                .metadata = probe.metadata,
+                .chapters = std::move(config.config.chapters),
+                .settings = apply_cli_flag_overrides(std::move(config.config.settings), cli_arguments),
+            });
+        }
+    }
+
+    const OutputPlanResult output_plan = plan_outputs(plan_inputs);
+    if (!output_plan.ok()) {
+        for (const std::string& error : output_plan.errors) {
+            request.error_output << error << "\n";
+        }
+        return CliExitCode::Error;
     }
 
     request.output << "VidChopperCLI phase 1 skeleton\n";
-    request.output << "Batch jobs: " << planned_job_count << "\n";
+    request.output << "Batch jobs: " << output_plan.jobs.size() << "\n";
     request.output << "Input: " << cli_arguments.input_paths.front().string() << "\n";
     if (cli_arguments.use_embedded_chapters) {
         request.output << "Config: --embedded\n";
@@ -114,7 +151,7 @@ auto run_cli(const CliRunRequest& request) -> CliExitCode {
     request.output << "CLI settings: " << settings_paths.cli_settings_path.string() << "\n";
     request.output << "Settings loaded: CLI=" << (loaded_settings.loaded_cli_settings ? "yes" : "no");
     request.output << ", GUI=" << (loaded_settings.loaded_gui_settings ? "yes" : "no") << "\n";
-    request.output << "Effective CRF: " << static_cast<int>(effective_settings.x264_crf) << "\n";
+    request.output << "Effective CRF: " << static_cast<int>(output_plan.jobs.front().settings.x264_crf) << "\n";
 
     if (settings_paths.use_gui_config) {
         request.output << "GUI config import requested: " << settings_paths.gui_settings_path.string() << "\n";
