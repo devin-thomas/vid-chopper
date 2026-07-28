@@ -24,7 +24,7 @@ constexpr auto default_cli_settings_contents =
     "x264_preset=slow\n"
     "nvenc_preset=p5\n"
     "ffmpeg_threads=0\n"
-    "stop_on_first_error=true\n";
+    "stop_on_first_error=false\n";
 
 [[nodiscard]] auto current_directory() -> Path {
     auto error = std::error_code {};

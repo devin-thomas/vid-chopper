@@ -39,6 +39,9 @@ auto main() -> int {
     test_support::expect_true(cli_file_created, "CLI settings file should be created");
     test_support::expect_true(file_exists(paths.cli_settings_path), "VidChopperCLI.ini should exist");
     test_support::expect_true(!file_exists(paths.gui_settings_path), "ensure should not create GUI INI");
+    const CliResolvedSettings defaults = load_cli_settings(paths);
+    test_support::expect_true(
+        !defaults.export_settings.stop_on_first_error, "CLI should continue after chapter failures by default");
 
     write_text(paths.gui_settings_path, "x264_crf=40\nnvenc_cq=41\nffmpeg_threads=8\n");
     write_text(paths.cli_settings_path, "x264_crf=20\nstop_on_first_error=false\n");

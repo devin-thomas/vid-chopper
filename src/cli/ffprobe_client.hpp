@@ -3,12 +3,9 @@
 #include "cli/process_runner.hpp"
 #include "core/models.hpp"
 
-#include <functional>
 #include <string>
 
 namespace vidchopper {
-
-using ProcessExecutor = std::function<ProcessResult(const ProcessRequest&)>;
 
 struct FfprobeResult {
     bool success {false};

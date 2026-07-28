@@ -33,7 +33,7 @@ nvenc_cq=22
 x264_preset=slow
 nvenc_preset=p5
 ffmpeg_threads=0
-stop_on_first_error=true
+stop_on_first_error=false
 ```
 
 The compatibility key `preset=<name>` is also accepted when reading settings. It sets both `x264_preset` and `nvenc_preset`, matching the current `--preset` CLI flag behavior.
