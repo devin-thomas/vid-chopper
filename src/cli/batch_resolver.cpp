@@ -226,18 +226,23 @@ auto resolve_batch(const BatchResolveRequest& request) -> BatchResolution {
         chapter_kind = inspect_path(*request.chapter_source_path, "ChapterFile", result.errors);
     }
 
-    if (source_kind == PathKind::Invalid || !result.errors.empty()) {
+    if (source_kind == PathKind::File && !is_source_file(request.source_path)) {
+        result.errors.push_back(std::format(
+            "Unsupported Source extension: {}. Supported extensions: .mp4, .mkv, .mov.", request.source_path.string()));
+    }
+    if (!request.use_embedded_chapters && chapter_kind == PathKind::File
+        && !is_chapter_file(*request.chapter_source_path)) {
+        result.errors.push_back(
+            std::format("Unsupported ChapterFile extension: {}. Supported extensions: .json, .yaml, .yml.",
+                request.chapter_source_path->string()));
+    }
+
+    if (source_kind == PathKind::Invalid || (!request.use_embedded_chapters && chapter_kind == PathKind::Invalid)) {
         return result;
     }
 
     auto sources = std::vector<Path> {};
     if (source_kind == PathKind::File) {
-        if (!is_source_file(request.source_path)) {
-            result.errors.push_back(
-                std::format("Unsupported Source extension: {}. Supported extensions: .mp4, .mkv, .mov.",
-                    request.source_path.string()));
-            return result;
-        }
         sources.push_back(request.source_path);
     } else {
         sources = collect_sources(request.source_path, result.errors);
@@ -257,11 +262,6 @@ auto resolve_batch(const BatchResolveRequest& request) -> BatchResolution {
 
     const Path& chapter_source = *request.chapter_source_path;
     if (chapter_kind == PathKind::File) {
-        if (!is_chapter_file(chapter_source)) {
-            result.errors.push_back(
-                std::format("Unsupported ChapterFile extension: {}. Supported extensions: .json, .yaml, .yml.",
-                    chapter_source.string()));
-        }
         if (!result.errors.empty()) {
             return result;
         }

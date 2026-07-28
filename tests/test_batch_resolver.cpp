@@ -222,6 +222,21 @@ auto main() -> int {
     test_support::expect_true(contains(joined_errors(unsupported_chapter_file), "chapters.txt"),
         "unsupported config error should preserve the filename");
 
+    const BatchResolution both_unsupported = resolve_batch(BatchResolveRequest {
+        .source_path = unsupported_source_path,
+        .chapter_source_path = unsupported_config,
+    });
+    const auto expected_unsupported_errors = std::vector<std::string> {
+        "Unsupported Source extension: " + unsupported_source_path.string()
+            + ". Supported extensions: .mp4, .mkv, .mov.",
+        "Unsupported ChapterFile extension: " + unsupported_config.string()
+            + ". Supported extensions: .json, .yaml, .yml.",
+    };
+    test_support::expect_eq(both_unsupported.errors,
+        expected_unsupported_errors,
+        "independent direct-input errors should form one complete report");
+    test_support::expect_true(both_unsupported.jobs.empty(), "a complete validation report should not include jobs");
+
     const Path empty_sources = root.path() / "empty" / "videos";
     const Path empty_configs = root.path() / "empty" / "configs";
     std::filesystem::create_directories(empty_sources);
