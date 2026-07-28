@@ -11,12 +11,14 @@
       "scene": "workspace",
       "asset": "vidchopper-real-main.png",
       "windowSize": "1294x925",
+      "zoomPercent": 100,
       "capture": "window"
     },
     {
       "scene": "workspace",
       "asset": "vidchopper-real-summary.png",
       "windowSize": "1294x925",
+      "zoomPercent": 100,
       "capture": "crop",
       "crop": {
         "x": 18,
@@ -29,6 +31,7 @@
       "scene": "workspace-logs",
       "asset": "vidchopper-real-export.png",
       "windowSize": "1294x925",
+      "zoomPercent": 100,
       "capture": "crop",
       "crop": {
         "x": 18,
@@ -41,6 +44,7 @@
       "scene": "settings-precision",
       "asset": "vidchopper-real-settings.png",
       "windowSize": "1440x980",
+      "zoomPercent": 100,
       "capture": "crop",
       "crop": {
         "x": 402,

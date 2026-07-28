@@ -210,6 +210,9 @@ function Invoke-DemoCapture {
         "--window-size=$($Capture.windowSize)",
         "--demo-ready-file=$readyFile"
     )
+    if ($null -ne $Capture.zoomPercent) {
+        $arguments += "--demo-zoom-percent=$($Capture.zoomPercent)"
+    }
 
     $process = Start-Process -FilePath $ExecutablePath -ArgumentList $arguments -PassThru -WindowStyle Hidden
     try {
@@ -237,6 +240,11 @@ function Invoke-DemoCapture {
 }
 
 New-SampleVideo -Path $sampleVideo
+
+# Keep captures independent of the host display scaling. The demo zoom flag
+# controls VidChopper's own UI scale; this controls Qt's device scale.
+$env:QT_SCALE_FACTOR = "1"
+$env:QT_AUTO_SCREEN_SCALE_FACTOR = "0"
 
 foreach ($capture in $manifest.captures) {
     Invoke-DemoCapture -Capture $capture

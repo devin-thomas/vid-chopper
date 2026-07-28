@@ -24,6 +24,7 @@ struct DemoLaunchOptions {
     DemoScene scene {DemoScene::None};
     std::filesystem::path demo_source;
     std::optional<DemoWindowSize> window_size;
+    std::optional<int> zoom_percent;
     std::filesystem::path demo_ready_file;
 
     [[nodiscard]] auto enabled() const noexcept -> bool {
@@ -105,6 +106,17 @@ namespace detail {
     };
 }
 
+[[nodiscard]] inline auto parse_zoom_percent(const std::string_view value) -> std::optional<int> {
+    auto zoom_percent = int {0};
+    const auto result = std::from_chars(value.data(), value.data() + value.size(), zoom_percent);
+    if (result.ec != std::errc {} || result.ptr != value.data() + value.size() || zoom_percent < 50
+        || zoom_percent > 300) {
+        return std::nullopt;
+    }
+
+    return zoom_percent;
+}
+
 } // namespace detail
 
 [[nodiscard]] inline auto parse_demo_launch_options(const int argc, char* argv[]) -> DemoLaunchOptionsParseResult {
@@ -142,6 +154,19 @@ namespace detail {
             }
 
             result.options.window_size = *parsed_size;
+            continue;
+        }
+
+        if (argument.rfind("--demo-zoom-percent=", 0) == 0) {
+            saw_demo_argument = true;
+            const auto parsed_zoom = detail::parse_zoom_percent(argument.substr(20));
+            if (!parsed_zoom.has_value()) {
+                result.success = false;
+                result.error_message = "Invalid value for --demo-zoom-percent. Expected 50-300.";
+                return result;
+            }
+
+            result.options.zoom_percent = *parsed_zoom;
             continue;
         }
 

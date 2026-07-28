@@ -23,13 +23,15 @@ auto main() -> int {
         auto second = std::string {"--demo-scene=workspace-logs"};
         auto third = std::string {"--demo-source=C:\\capture\\sample.mp4"};
         auto fourth = std::string {"--window-size=1280x900"};
-        auto fifth = std::string {"--demo-ready-file=C:\\capture\\ready.txt"};
-        auto argv = std::array<char*, 5> {
+        auto fifth = std::string {"--demo-zoom-percent=100"};
+        auto sixth = std::string {"--demo-ready-file=C:\\capture\\ready.txt"};
+        auto argv = std::array<char*, 6> {
             first.data(),
             second.data(),
             third.data(),
             fourth.data(),
             fifth.data(),
+            sixth.data(),
         };
 
         const auto result = parse_demo_launch_options(static_cast<int>(argv.size()), argv.data());
@@ -39,6 +41,8 @@ auto main() -> int {
             result.options.window_size.has_value(), "window size should be available for valid demo arguments");
         test_support::expect_eq(result.options.window_size->width, 1280, "window width should parse");
         test_support::expect_eq(result.options.window_size->height, 900, "window height should parse");
+        test_support::expect_true(result.options.zoom_percent.has_value(), "demo zoom should be available");
+        test_support::expect_eq(*result.options.zoom_percent, 100, "demo zoom should parse");
     }
 
     {

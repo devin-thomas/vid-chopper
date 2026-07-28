@@ -146,7 +146,9 @@ MainWindow::MainWindow(DemoLaunchOptions demo_options, QWidget* parent)
 
     const auto stored_screen_size = load_last_screen_size(*settings_store_);
     const auto screen_size = current_screen_size();
-    if (stored_screen_size != screen_size) {
+    if (demo_options_.zoom_percent.has_value()) {
+        zoom_percent_ = clamp_zoom_percent(*demo_options_.zoom_percent);
+    } else if (stored_screen_size != screen_size) {
         zoom_percent_ = auto_zoom_percent_for_screen_height(screen_size.height());
         save_zoom_percent(*settings_store_, zoom_percent_);
         save_last_screen_size(*settings_store_, screen_size);
