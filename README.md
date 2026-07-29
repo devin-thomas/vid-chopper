@@ -17,9 +17,9 @@ The release zip is a portable build that includes `VidChopper.exe`, the required
 2. Launch `VidChopper.exe`.
 3. Install `ffmpeg` and `ffprobe` separately, or point VidChopper at custom tool paths in Advanced Settings.
 
-## Project Status
+## Project Status - building towards 0.3.0-alpha release
 
-The repository is structured as a production-oriented desktop application rather than a tutorial exercise. The current codebase includes:
+The current codebase includes:
 
 - A GitHub Releases workflow that packages the Windows GUI build into a portable versioned Windows ZIP asset
 - A Qt 6 desktop shell for loading a video, importing embedded chapters, editing chapter timing and names, choosing output locations, and exporting clips
