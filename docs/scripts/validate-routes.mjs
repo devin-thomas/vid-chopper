@@ -70,7 +70,7 @@ const deploymentMetadataRoutes = new Set([
 
 const mimeTypes = new Map([
   [".css", "text/css; charset=utf-8"],
-  [".html", "text/html; charset=utf-8"],
+  [".html", "text/html"],
   [".js", "text/javascript; charset=utf-8"],
   [".json", "application/json; charset=utf-8"],
   [".png", "image/png"],
@@ -95,6 +95,32 @@ function normalizedContentType(value) {
     ?.split(";")
     .map((part) => part.trim().toLowerCase())
     .join("; ");
+}
+
+function contentTypeMatches(actual, expected) {
+  const normalizedActual = normalizedContentType(actual);
+  const normalizedExpected = normalizedContentType(expected);
+  if (normalizedActual === normalizedExpected) return true;
+
+  // Static hosts may omit HTML's redundant charset parameter. The document-level
+  // declaration check below keeps this exception narrow and rejects conflicts.
+  return (
+    normalizedActual === "text/html" &&
+    normalizedExpected === "text/html; charset=utf-8"
+  );
+}
+
+function assertHtmlDeclaresUtf8(body, route) {
+  const encodingPrefix = new TextDecoder().decode(body.subarray(0, 1024));
+  assert(
+    /<meta\s+charset=["']utf-8["']\s*\/?\s*>/i.test(encodingPrefix),
+    `${route}: HTML must declare UTF-8 within its first 1024 bytes`,
+  );
+  try {
+    return new TextDecoder("utf-8", { fatal: true }).decode(body);
+  } catch {
+    fail(`${route}: HTML body is not valid UTF-8`);
+  }
 }
 
 function requestPath(route) {
@@ -199,7 +225,7 @@ async function resolveRequest(route) {
     return {
       file: path.join(distDirectory, "404.html"),
       status: 404,
-      contentType: "text/html; charset=utf-8",
+      contentType: "text/html",
     };
   }
 
@@ -218,7 +244,7 @@ async function resolveRequest(route) {
     return {
       file: htmlPath(distDirectory, route),
       status: 200,
-      contentType: "text/html; charset=utf-8",
+      contentType: "text/html",
     };
   }
 
@@ -244,7 +270,7 @@ async function resolveRequest(route) {
   return {
     file: path.join(distDirectory, "404.html"),
     status: 404,
-    contentType: "text/html; charset=utf-8",
+    contentType: "text/html",
   };
 }
 
@@ -296,14 +322,14 @@ if (!remoteMode) {
 async function fetchRoute(route, expectedStatus, expectedType) {
   const url = requestUrl(origin, route);
   const getResponse = await fetch(url, { redirect: "manual" });
+  const getContentType = getResponse.headers.get("content-type");
   assert(
     getResponse.status === expectedStatus,
     `GET ${route}: expected ${expectedStatus}, got ${getResponse.status}`,
   );
   assert(
-    normalizedContentType(getResponse.headers.get("content-type")) ===
-      normalizedContentType(expectedType),
-    `GET ${route}: unexpected content type ${getResponse.headers.get("content-type")}`,
+    contentTypeMatches(getContentType, expectedType),
+    `GET ${route}: unexpected content type ${getContentType}`,
   );
   const body = new Uint8Array(await getResponse.arrayBuffer());
 
@@ -311,14 +337,18 @@ async function fetchRoute(route, expectedStatus, expectedType) {
     method: "HEAD",
     redirect: "manual",
   });
+  const headContentType = headResponse.headers.get("content-type");
   assert(
     headResponse.status === expectedStatus,
     `HEAD ${route}: expected ${expectedStatus}, got ${headResponse.status}`,
   );
   assert(
-    normalizedContentType(headResponse.headers.get("content-type")) ===
-      normalizedContentType(expectedType),
-    `HEAD ${route}: unexpected content type ${headResponse.headers.get("content-type")}`,
+    contentTypeMatches(headContentType, expectedType),
+    `HEAD ${route}: unexpected content type ${headContentType}`,
+  );
+  assert(
+    normalizedContentType(headContentType) === normalizedContentType(getContentType),
+    `HEAD ${route}: content type differs from GET`,
   );
   assert(
     (await headResponse.arrayBuffer()).byteLength === 0,
@@ -530,7 +560,7 @@ function validateCliCommand(line, flagArity) {
 try {
   for (const route of routes.htmlRoutes) {
     const { body } = await fetchRoute(route, 200, "text/html; charset=utf-8");
-    const html = new TextDecoder().decode(body);
+    const html = assertHtmlDeclaresUtf8(body, route);
     observedHtml.set(route, html);
     if (remoteMode && !pagesMode) {
       const expectedBody = new Uint8Array(
@@ -1023,10 +1053,16 @@ try {
   );
 
   for (const deferred of routes.deferredAssets) {
-    await fetchRoute(deferred.route, 404, "text/html; charset=utf-8");
+    const { body } = await fetchRoute(
+      deferred.route,
+      404,
+      "text/html; charset=utf-8",
+    );
+    assertHtmlDeclaresUtf8(body, deferred.route);
   }
   for (const route of routes.notFoundProbes) {
-    await fetchRoute(route, 404, "text/html; charset=utf-8");
+    const { body } = await fetchRoute(route, 404, "text/html; charset=utf-8");
+    assertHtmlDeclaresUtf8(body, route);
   }
 
   const rootHtml = await readFile(
