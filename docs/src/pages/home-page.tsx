@@ -1,9 +1,9 @@
 import { useEffect, useRef } from "react";
-import { Link, useSearchParams } from "react-router-dom";
 import heroMain from "../assets/vidchopper-real-main.png";
 import heroSummary from "../assets/vidchopper-real-summary.png";
 import heroExport from "../assets/vidchopper-real-export.png";
 import { SectionHeading } from "../components/section-heading";
+import { HashLink, useHashSearchParams } from "../router";
 import {
   keyFeatures,
   releaseFacts,
@@ -15,7 +15,7 @@ import {
 } from "../content/site";
 
 export function HomePage() {
-  const [searchParams] = useSearchParams();
+  const searchParams = useHashSearchParams();
   const featuresRef = useRef<HTMLElement | null>(null);
   const screenshotsRef = useRef<HTMLElement | null>(null);
 
@@ -44,9 +44,9 @@ export function HomePage() {
             <a className="cta-primary" href={releaseZipUrl}>
               Download {releaseVersion} ZIP
             </a>
-            <Link className="cta-secondary" to="/releases">
+            <HashLink className="cta-secondary" to="/releases">
               Browse release portal
-            </Link>
+            </HashLink>
           </div>
           <div className="trust-line">No installer. No telemetry. Local files stay on your machine.</div>
           <dl className="fact-ribbon">
@@ -95,7 +95,7 @@ export function HomePage() {
         <SectionHeading
           title="Built for real workflow"
           body="The site leans on the actual product surface: import the file, inspect the session summary, retime the chapter list, then export with the path and logs still visible."
-          aside={<Link to="/releases">Open the release portal</Link>}
+          aside={<HashLink to="/releases">Open the release portal</HashLink>}
         />
         <div className="showcase-grid">
           <article className="screenshot-card">
@@ -166,7 +166,7 @@ export function HomePage() {
         <SectionHeading
           title="Powerful features. Zero fluff."
           body="Every point below maps to current shipped behavior: chapter import, timing edits, export controls, release packaging, or repo-level workflow discipline."
-          aside={<Link to="/releases?section=changelog">Read the changelog</Link>}
+          aside={<HashLink to="/releases?section=changelog">Read the changelog</HashLink>}
         />
         <div className="feature-river-grid">
           {keyFeatures.map((feature, index) => (

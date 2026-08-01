@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
-import { Link, useSearchParams } from "react-router-dom";
 import appIcon from "../assets/app-icon.png";
 import releaseShot from "../assets/vidchopper-real-export.png";
+import { HashLink, useHashSearchParams } from "../router";
 import {
   changelogEntries,
   previousReleases,
@@ -14,7 +14,7 @@ import {
 } from "../content/site";
 
 export function ReleasePage() {
-  const [searchParams] = useSearchParams();
+  const searchParams = useHashSearchParams();
   const changelogRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
@@ -37,9 +37,9 @@ export function ReleasePage() {
             <a className="cta-primary" href={releaseZipUrl}>
               Download {releaseVersion} ZIP
             </a>
-            <Link className="cta-secondary" to="/docs">
+            <HashLink className="cta-secondary" to="/docs">
               Read docs first
-            </Link>
+            </HashLink>
           </div>
         </div>
         <div className="release-hero-stack">

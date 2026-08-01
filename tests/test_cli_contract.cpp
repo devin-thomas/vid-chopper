@@ -295,6 +295,12 @@ auto main() -> int {
     test_support::expect_true(contains(help.output, "VidChopperCLI.exe chop"), "help should show chop syntax");
     test_support::expect_true(help.error_output.empty(), "help should not print errors");
 
+    const CliRunSnapshot version = run_with({"--version"}, executable_path);
+    test_support::expect_eq(version.exit_code, CliExitCode::Success, "version should succeed");
+    test_support::expect_eq(
+        version.output, std::string {"VidChopperCLI " VIDCHOPPER_DISPLAY_VERSION "\n"}, "version output");
+    test_support::expect_true(version.error_output.empty(), "version should not print errors");
+
     std::filesystem::remove_all(root);
     return 0;
 }

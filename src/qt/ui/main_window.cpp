@@ -224,10 +224,10 @@ auto MainWindow::eventFilter(QObject* watched, QEvent* event) -> bool {
 
 auto MainWindow::create_menus() -> void {
     auto* file_menu = menuBar()->addMenu("&File");
-    file_menu->addAction("&Open Video...", this, &MainWindow::open_video, QKeySequence::Open);
+    file_menu->addAction("&Open Video...", QKeySequence::Open, this, &MainWindow::open_video);
     file_menu->addAction("Choose &Output Directory...", this, &MainWindow::choose_output_directory);
     file_menu->addSeparator();
-    file_menu->addAction("E&xit", this, &QWidget::close, QKeySequence::Quit);
+    file_menu->addAction("E&xit", QKeySequence::Quit, this, &QWidget::close);
 
     auto* view_menu = menuBar()->addMenu("&View");
     auto* zoom_in_action = new QAction {"Zoom &In", this};
