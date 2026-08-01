@@ -157,9 +157,12 @@ canceled by the workflow concurrency group. Never treat a canceled older run as 
 | `gui-build` | `pwsh -NoProfile -File tools/verify.ps1 -CiLane Gui` | Clean Windows 2022, cached Qt 6.9/vcpkg, ffmpeg 7.1.1 |
 | `docs-check` | `pwsh -NoProfile -File tools/verify.ps1 -CiLane Docs` | Clean Node 22 install and npm cache |
 | agent skill matrix | `pwsh -NoProfile -File tools/agent-skill-artifacts.ps1 -Mode Check` | Both Windows and Ubuntu path/ZIP behavior |
-| Pages | `npm ci; npm run build:pages` from `docs/` | GitHub Pages upload/deploy identity |
-| Cloudflare production | `npm ci; npm test; npm run build; npm run cloudflare:dry-run` from `docs/` | Protected environment, deploy identity, HTTPS live validation |
-| release candidate | `pwsh -NoProfile -File tools/verify.ps1 -Tier Release` | Two clean Windows jobs and immutable artifact handoff |
+| Pages `deploy` | `pwsh -NoProfile -File tools/verify.ps1 -CiLane Docs` reproduces its build/audit | Pages upload, environment, and deployment identity are remote-only |
+| Cloudflare `authorize` | No local substitute; inspect the workflow input, ref, and environment configuration | GitHub environment authorization is intentionally remote-only |
+| Cloudflare `deploy` | `pwsh -NoProfile -File tools/verify.ps1 -CiLane Docs` reproduces pre-deploy checks | Credential preflight, mutation, identity correlation, and HTTPS acceptance are remote-only |
+| Release `package-candidate` | `pwsh -NoProfile -File tools/verify.ps1 -Tier Release` | Clean Windows packaging and immutable artifact upload |
+| Release `smoke-clean-archive` | `pwsh -NoProfile -File tools/verify-release-archive.ps1 -Version <version> -ArchivePath <zip>` | A second clean Windows runner and retained JSON evidence |
+| Release publish job | No local substitute; verify metadata/digest inputs before approving the protected job | GitHub tag/release mutation and remote asset re-download |
 
 Each CI lane writes a log under `artifacts/ci` and uploads the last bounded diagnostic section only on
 failure. Download that failure artifact, reproduce the same `-CiLane` locally, and fix the first coherent
@@ -168,11 +171,16 @@ and the candidate itself.
 
 ## Synthetic Fixture Policy
 
-- Use `ffmpeg` `lavfi` sources for deterministic, short, low-resolution media.
+- Use `ffmpeg` `lavfi` sources for deterministic, bounded, low-resolution media.
 - Keep public structured fixtures game-neutral and free of user/customer media or private paths.
 - Check in small JSON/YAML/text contracts; generate binary media at test time.
 - Pin duration, dimensions, frame rate, pixel format, and command arguments so probes are comparable.
-- Give every external process a timeout and retain stdout/stderr only within bounded diagnostics.
+  The clean-archive ChapterBuilder smoke is an explicit long-timeline exception: it generates 11,392
+  seconds at 160x90 and 1 fps to cover the public chapter ranges while keeping processing cost bounded.
+- Give new external-process wrappers a process-level timeout and retain stdout/stderr only within
+  bounded diagnostics. The current release smoke still uses direct PowerShell invocations, so the
+  Release workflow explicitly bounds every job with `timeout-minutes` until those wrappers are
+  migrated. A timeout is a failed gate, never a reason to publish.
 - Delete ordinary generated workspaces through existing scoped cleanup; retain a failing/release candidate only
   as an explicit artifact.
 
@@ -197,7 +205,8 @@ Do not relabel history to fit obsolete shorthand. The current release workflow a
 
 ### Version-bump checklist
 
-1. Set `VIDCHOPPER_DISPLAY_VERSION` in `CMakeLists.txt`.
+1. Set both `project(VERSION ...)` and `VIDCHOPPER_DISPLAY_VERSION` in `CMakeLists.txt`;
+   the numeric project version and user-facing channel label are separate contracts.
 2. Set the numeric base in `vcpkg.json` (`version-semver`) and the display version in
    `docs/package.json` plus its lockfile root package entries.
 3. Update site release constants/links, package README text, release metadata/notes, and versioned agent-skill
@@ -213,15 +222,21 @@ Do not relabel history to fit obsolete shorthand. The current release workflow a
 1. Confirm every non-canceled roadmap blocker is Done on `main` and record any explicit deferral.
 2. Confirm the checkout is clean and `HEAD` is the reviewed release commit.
 3. Run `tools/bootstrap.ps1 -CheckOnly`, then `tools/verify.ps1 -Tier Release`.
-4. Dispatch `.github/workflows/release.yml` with the exact version and `publish=false` first.
-5. Record the package-candidate run, artifact name, candidate SHA-256, and clean-runner evidence.
-6. Compare the clean-runner archive identity with the package job artifact before approving publication.
+4. An optional `publish=false` dispatch is a rehearsal of the commit and workflow only. Record its
+   evidence, but do not approve its ZIP for a later run because a new ZIP can have different bytes.
+5. Before the real stable dispatch, VID-44 must put the publish job behind a protected
+   `release-environment` approval (or add a separate promotion workflow that accepts an immutable
+   source run/artifact identity). The current automatic publish path is not an acceptable stable gate.
+6. Dispatch the real run once. Let that run package and smoke the candidate, then pause before
+   publication. Record its artifact name, SHA-256, clean-runner evidence, and release commit.
+7. Compare the clean-runner archive identity with the package artifact from that same run.
 
 ### Publication checklist
 
-1. Obtain explicit human approval for the exact commit, version, channel, and candidate digest.
-2. Confirm the target tag and GitHub release do not already exist; never overwrite release history.
-3. Dispatch the release workflow with `publish=true` only after the bounded candidate run is green.
+1. Confirm the target tag and GitHub release do not already exist; never overwrite release history.
+2. Obtain explicit human approval inside the paused job for that same run's commit, version, channel,
+   candidate digest, and clean-runner evidence. Do not redispatch and rebuild after approval.
+3. Approve the protected publish job (or promote the immutable artifact by run/artifact ID).
 4. For `1.0.0`, verify the stable workflow path omits `--prerelease` and checks non-draft,
    non-prerelease metadata.
 5. Record the tag, commit, release URL, asset URL, checksum URL, and workflow run in Linear and the knowledge
@@ -239,11 +254,13 @@ Do not relabel history to fit obsolete shorthand. The current release workflow a
 ### Rollback and correction
 
 Stop publication before mutation whenever a gate fails. If a GitHub release is already public, do not replace
-assets under the same tag or silently move the tag. Remove or clearly mark unsafe public links, preserve the
-failed release evidence, publish a corrected patch version from a new reviewed commit/tag, and record the
-incident/decision. For the canonical site, use the version-identity rollback procedure in
-`knowledge/operations/cloudflare-production.md`; secret/private-file exposure is an immediate rollback and
-credential-rotation trigger.
+assets under the same tag or silently move the tag. For an ordinary defect, preserve evidence and publish a
+corrected patch version from a new reviewed commit/tag. For secret or private-file exposure, first preserve
+only hashes and necessary evidence in a restricted location, then immediately make the public release/asset
+unavailable (convert it to draft or remove the affected asset/release under the incident rollback authority),
+rotate every exposed credential, and verify the public URLs no longer serve the bytes. Record any tag
+disposition explicitly; never move it silently. For the canonical site, also use the version-identity rollback
+procedure in `knowledge/operations/cloudflare-production.md`.
 
 ## Evidence Before Completion
 
