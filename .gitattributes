@@ -5,4 +5,6 @@ examples/chapter-config/** text eol=lf
 packaging/releases/*.json text eol=lf
 .agents/skills/vidchopper-cli/**/*.md text eol=lf
 .agents/skills/vidchopper-cli/**/*.json text eol=lf
+.agents/skills/vidchopper-cli/**/*.yaml text eol=lf
+.agents/skills/vidchopper-cli/**/*.yml text eol=lf
 .agents/skills/vidchopper-cli/**/*.zip -text
