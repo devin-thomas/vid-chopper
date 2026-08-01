@@ -107,6 +107,39 @@ auto ExportRunner::run(
 
         for (auto index = size_t {0}; index < job.segments.size(); ++index) {
             const PlannedExportSegment& segment = job.segments[index];
+            if (options.segment_started) {
+                options.segment_started(
+                    result.jobs.size() + 1, jobs.size(), index + 1, job.segments.size(), job, segment);
+            }
+            auto path_error = std::error_code {};
+            const bool output_exists = std::filesystem::exists(segment.output_path, path_error);
+            if (path_error) {
+                job_result.error_message =
+                    "Could not inspect planned output '" + segment.output_path.string() + "': " + path_error.message();
+                result.exit_code = ExportExitCode::ExportFailure;
+                break;
+            }
+            if (output_exists && job.settings.overwrite_mode == OverwriteMode::Skip) {
+                const auto skipped = RenderedSegment {
+                    .source_path = job.metadata.source_path,
+                    .chapter_index = segment.chapter_index,
+                    .chapter_name = segment.chapter.name,
+                    .output_path = segment.output_path,
+                    .process = ProcessResult {.state = ProcessExitState::Success},
+                    .skipped = true,
+                };
+                if (options.message) {
+                    options.message("Skipping existing output: " + segment.output_path.string());
+                }
+                job_result.segments.push_back(skipped);
+                if (options.segment_finished) {
+                    options.segment_finished(job_result.segments.back());
+                }
+                continue;
+            }
+            if (output_exists && options.message) {
+                options.message("Overwriting existing output: " + segment.output_path.string());
+            }
             ProcessResult process = executor_(make_process_request(segment.command, options));
             const bool succeeded = process.ok();
             if (!succeeded) {
@@ -119,7 +152,11 @@ auto ExportRunner::run(
                 .chapter_name = segment.chapter.name,
                 .output_path = segment.output_path,
                 .process = std::move(process),
+                .overwrote_existing = output_exists,
             });
+            if (options.segment_finished) {
+                options.segment_finished(job_result.segments.back());
+            }
 
             if (!succeeded && stop_on_first_error) {
                 job_result.stopped_early = index + 1 < job.segments.size();

@@ -97,10 +97,30 @@ auto main() -> int {
     write_chapter_config(json_config_path);
     write_chapter_config(yaml_config_path);
 
+    auto dry_run_process_calls = size_t {0};
+    const ProcessExecutor dry_run_executor = [&dry_run_process_calls](const ProcessRequest&) -> ProcessResult {
+        ++dry_run_process_calls;
+        return probe_with_chapters(ProcessRequest {});
+    };
+    const CliRunSnapshot dry_run =
+        run_with({input_path, json_config_path, "--dry-run"}, executable_path, dry_run_executor);
+    const Path cli_settings_path = root / "bin" / "VidChopperCLI.ini";
+    const Path output_directory = root / "input_chapters";
+    test_support::expect_eq(dry_run.exit_code, CliExitCode::Success, "dry-run should validate successfully");
+    test_support::expect_eq(dry_run_process_calls, size_t {1}, "dry-run should probe but never invoke ffmpeg");
+    test_support::expect_true(contains(dry_run.output, "ChapterSource: "), "dry-run should report chapter provenance");
+    test_support::expect_true(contains(dry_run.output, "Command: "), "dry-run should report planned commands");
+    test_support::expect_true(contains(dry_run.output, "Planned chapters: 1"), "dry-run should report chapter counts");
+    test_support::expect_true(!std::filesystem::exists(cli_settings_path), "dry-run must not create CLI settings");
+    test_support::expect_true(!std::filesystem::exists(output_directory), "dry-run must not create output directories");
+
     const CliRunSnapshot direct = run_with({input_path, json_config_path}, executable_path);
     test_support::expect_eq(direct.exit_code, CliExitCode::Success, "direct two-argument invocation should run");
-    test_support::expect_true(contains(direct.output, "Input: "), "direct invocation should print input");
-    test_support::expect_true(contains(direct.output, "Config: "), "direct invocation should print config");
+    test_support::expect_true(contains(direct.output, "Exporting Job 1/1"), "direct invocation should export the plan");
+    test_support::expect_true(
+        contains(direct.output, "Summary: exported=1"), "direct invocation should summarize export");
+    test_support::expect_true(std::filesystem::exists(output_directory / "vidchopper-manifest.json"),
+        "successful export should write JSON manifest");
     test_support::expect_true(direct.error_output.empty(), "direct invocation should not print errors");
 
     const CliRunSnapshot cli_override = run_with({input_path, json_config_path, "--crf", "21"}, executable_path);
@@ -110,7 +130,7 @@ auto main() -> int {
 
     const CliRunSnapshot chop = run_with({"chop", input_path, yaml_config_path}, executable_path);
     test_support::expect_eq(chop.exit_code, CliExitCode::Success, "chop subcommand should run");
-    test_support::expect_true(contains(chop.output, yaml_config_path), "chop invocation should print YAML config path");
+    test_support::expect_true(contains(chop.output, "Summary: exported=1"), "chop invocation should summarize export");
     test_support::expect_true(chop.error_output.empty(), "chop invocation should not print errors");
 
     const CliRunSnapshot embedded = run_with({input_path, "--embedded"}, executable_path);

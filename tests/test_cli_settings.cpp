@@ -43,7 +43,7 @@ auto main() -> int {
     test_support::expect_true(
         !defaults.export_settings.stop_on_first_error, "CLI should continue after chapter failures by default");
 
-    write_text(paths.gui_settings_path, "x264_crf=40\nnvenc_cq=41\nffmpeg_threads=8\n");
+    write_text(paths.gui_settings_path, "[encoding]\nx264Crf=40\nnvencCq=41\nffmpegThreads=8\n");
     write_text(paths.cli_settings_path, "x264_crf=20\nstop_on_first_error=false\n");
 
     const CliResolvedSettings cli_only = load_cli_settings(paths);
