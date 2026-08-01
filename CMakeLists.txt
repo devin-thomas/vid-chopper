@@ -32,6 +32,8 @@ add_library(vidchopper_core
     src/core/command_builder.hpp
     src/core/enum_utils.hpp
     src/core/models.hpp
+    src/core/ready_marker.cpp
+    src/core/ready_marker.hpp
     src/core/string_utils.cpp
     src/core/string_utils.hpp
     src/core/timecode.cpp
@@ -120,6 +122,7 @@ if(VIDCHOPPER_BUILD_TESTS)
     add_vidchopper_test(vidchopper_test_string_utils tests/test_string_utils.cpp fast)
     add_vidchopper_test(vidchopper_test_string_utils_extended tests/test_string_utils_extended.cpp fast)
     add_vidchopper_test(vidchopper_test_models tests/test_models.cpp fast)
+    add_vidchopper_test(vidchopper_test_ready_marker tests/test_ready_marker.cpp fast)
     add_vidchopper_test(vidchopper_test_enum_clamp tests/test_enum_clamp.cpp fast)
     add_vidchopper_test(vidchopper_test_demo_launch_options tests/test_demo_launch_options.cpp fast)
     if(TARGET vidchopper_cli)
@@ -135,6 +138,7 @@ if(VIDCHOPPER_BUILD_TESTS)
         add_vidchopper_test(vidchopper_test_ffprobe_client tests/test_ffprobe_client.cpp fast vidchopper_cli)
         add_vidchopper_test(vidchopper_test_output_planner_golden tests/test_output_planner_golden.cpp fast vidchopper_cli)
         add_vidchopper_test(vidchopper_test_export_runner tests/test_export_runner.cpp fast vidchopper_cli)
+        add_vidchopper_test(vidchopper_test_manifest_writer tests/test_manifest_writer.cpp fast vidchopper_cli)
     endif()
     add_vidchopper_test(vidchopper_test_ffmpeg_integration tests/test_ffmpeg_integration.cpp slow)
 endif()

@@ -15,11 +15,20 @@ struct VideoProbeResult {
     VideoMetadata metadata;
 };
 
+struct DurationProbeResult {
+    std::optional<u64> duration_ms;
+    QString error_message;
+
+    [[nodiscard]] auto ok() const noexcept -> bool {
+        return duration_ms.has_value() && error_message.isEmpty();
+    }
+};
+
 class FfprobeService final {
 public:
     [[nodiscard]] static auto probe_video(const QString& ffprobe_path, const QString& source_path) -> VideoProbeResult;
     [[nodiscard]] static auto probe_duration_ms(
-        const QString& ffprobe_path, const QString& source_path) -> std::optional<u64>;
+        const QString& ffprobe_path, const QString& source_path) -> DurationProbeResult;
 };
 
 } // namespace vidchopper

@@ -71,7 +71,7 @@ private:
     auto seed_workspace_demo(bool show_logs) -> bool;
     auto seed_settings_precision_demo() -> bool;
     auto select_demo_chapter_row(int row) -> void;
-    auto write_demo_ready_file(const QString& status) const -> void;
+    [[nodiscard]] auto write_demo_ready_file(const QString& status) -> bool;
     [[nodiscard]] auto confirm_exit() -> bool;
     [[nodiscard]] auto current_screen_size() const -> QSize;
     [[nodiscard]] auto current_output_directory() const -> std::filesystem::path;

@@ -11,7 +11,10 @@ namespace vidchopper {
 
 enum class CliExitCode : u8 {
     Success = 0,
-    Error = 1,
+    ValidationError = 1,
+    Error = ValidationError,
+    ExportFailure = 2,
+    ToolingError = 3,
 };
 
 struct CliRunRequest {

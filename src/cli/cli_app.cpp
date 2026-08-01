@@ -16,6 +16,18 @@
 
 namespace vidchopper {
 
+namespace {
+
+[[nodiscard]] auto probe_failure_exit_code() -> CliExitCode {
+    return CliExitCode::ToolingError;
+}
+
+[[nodiscard]] auto export_exit_code(const ExportRunResult& result) -> CliExitCode {
+    return result.exit_code == ExportExitCode::ToolingError ? CliExitCode::ToolingError : CliExitCode::ExportFailure;
+}
+
+} // namespace
+
 auto run_cli(const CliRunRequest& request) -> CliExitCode {
     const CliParseResult parsed = parse_cli_arguments(request.arguments);
     if (!parsed.ok()) {
@@ -53,7 +65,7 @@ auto run_cli(const CliRunRequest& request) -> CliExitCode {
                 FfprobeClient {request.process_executor}.probe(effective_settings.ffprobe_path, source_path);
             if (!probe.ok()) {
                 request.error_output << probe.error_message << "\n";
-                return CliExitCode::Error;
+                return probe_failure_exit_code();
             }
             request.error_output << chapter_source_guidance(probe.metadata) << "\n";
             return CliExitCode::Error;
@@ -85,7 +97,7 @@ auto run_cli(const CliRunRequest& request) -> CliExitCode {
                 FfprobeClient {request.process_executor}.probe(effective_settings.ffprobe_path, job.source_path);
             if (!probe.ok()) {
                 request.error_output << probe.error_message << "\n";
-                return CliExitCode::Error;
+                return probe_failure_exit_code();
             }
             if (probe.metadata.embedded_chapters.empty()) {
                 if (batch.jobs.size() == 1) {
@@ -114,7 +126,7 @@ auto run_cli(const CliRunRequest& request) -> CliExitCode {
                 FfprobeClient {request.process_executor}.probe(effective_settings.ffprobe_path, job.source_path);
             if (!probe.ok()) {
                 request.error_output << probe.error_message << "\n";
-                return CliExitCode::Error;
+                return probe_failure_exit_code();
             }
             if (!job.chapter_config_path.has_value()) {
                 request.error_output << "Resolved batch job is missing a ChapterFile: " << job.source_path.string()
@@ -161,7 +173,7 @@ auto run_cli(const CliRunRequest& request) -> CliExitCode {
             request.error_output,
             cli_arguments.aggregate_json_path,
             cli_arguments.aggregate_csv_path);
-        return rendered.ok() ? CliExitCode::Success : CliExitCode::Error;
+        return rendered.ok() ? CliExitCode::Success : CliExitCode::ExportFailure;
     }
 
     const ExportRunResult export_result = ExportRunner {request.process_executor}.run(output_plan.jobs,
@@ -199,6 +211,11 @@ auto run_cli(const CliRunRequest& request) -> CliExitCode {
     for (const std::string& error : manifests.errors) {
         request.error_output << error << "\n";
     }
+    if (!manifests.ok()) {
+        for (const Path& path : manifests.preserved_media_paths) {
+            request.error_output << "Preserved rendered media: " << path.string() << "\n";
+        }
+    }
 
     auto exported = size_t {0};
     auto failed = size_t {0};
@@ -220,8 +237,11 @@ auto run_cli(const CliRunRequest& request) -> CliExitCode {
     }
     request.output << "Summary: exported=" << exported << ", failed=" << failed << ", skipped=" << skipped
                    << ", overwritten=" << overwritten << "\n";
-    if (!export_result.ok() || !manifests.ok()) {
-        return CliExitCode::Error;
+    if (!export_result.ok()) {
+        return export_exit_code(export_result);
+    }
+    if (!manifests.ok()) {
+        return CliExitCode::ExportFailure;
     }
     return CliExitCode::Success;
 }

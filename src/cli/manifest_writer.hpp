@@ -8,10 +8,23 @@
 
 namespace vidchopper {
 
+struct ManifestJobWriteResult {
+    size_t job_index {0};
+    Path source_path;
+    bool success {false};
+    std::vector<Path> written_paths;
+    std::vector<Path> preserved_media_paths;
+    std::vector<std::string> errors;
+
+    [[nodiscard]] auto ok() const noexcept -> bool;
+};
+
 struct ManifestWriteResult {
     bool success {false};
     std::vector<Path> written_paths;
+    std::vector<Path> preserved_media_paths;
     std::vector<std::string> errors;
+    std::vector<ManifestJobWriteResult> jobs;
 
     [[nodiscard]] auto ok() const noexcept -> bool;
 };
