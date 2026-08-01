@@ -4,6 +4,8 @@
 #include "core/models.hpp"
 
 #include <chrono>
+#include <functional>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -26,6 +28,8 @@ struct PlannedExportSegment {
 
 struct ResolvedExportJob {
     VideoMetadata metadata;
+    std::optional<Path> chapter_source_path;
+    bool uses_embedded_chapters {false};
     Path output_directory;
     ExportSettings settings;
     EncoderEnvironment environment;
@@ -38,6 +42,8 @@ struct RenderedSegment {
     std::string chapter_name;
     Path output_path;
     ProcessResult process;
+    bool skipped {false};
+    bool overwrote_existing {false};
 
     [[nodiscard]] auto ok() const noexcept -> bool;
 };
@@ -55,6 +61,10 @@ struct ExportRunOptions {
     std::chrono::milliseconds process_timeout {std::chrono::hours {24}};
     size_t stdout_limit_bytes {1024 * 1024};
     size_t stderr_limit_bytes {4096};
+    std::function<void(size_t, size_t, size_t, size_t, const ResolvedExportJob&, const PlannedExportSegment&)>
+        segment_started;
+    std::function<void(const RenderedSegment&)> segment_finished;
+    std::function<void(const std::string&)> message;
 };
 
 struct ExportRunResult {

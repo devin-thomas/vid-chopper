@@ -59,10 +59,16 @@ if(VIDCHOPPER_BUILD_CLI)
         src/cli/cli_arguments.hpp
         src/cli/cli_settings.cpp
         src/cli/cli_settings.hpp
+        src/cli/command_display.cpp
+        src/cli/command_display.hpp
+        src/cli/dry_run_renderer.cpp
+        src/cli/dry_run_renderer.hpp
         src/cli/export_runner.cpp
         src/cli/export_runner.hpp
         src/cli/ffprobe_client.cpp
         src/cli/ffprobe_client.hpp
+        src/cli/manifest_writer.cpp
+        src/cli/manifest_writer.hpp
         src/cli/output_planner.cpp
         src/cli/output_planner.hpp
         src/cli/process_runner.cpp
