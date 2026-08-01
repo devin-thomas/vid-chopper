@@ -1,5 +1,6 @@
 param(
     [ValidateSet("Quick", "Full", "Release")][string]$Tier = "Quick",
+    [ValidateSet("None", "Lint", "Core", "Gui", "Docs")][string]$CiLane = "None",
     [switch]$Fix
 )
 
@@ -7,7 +8,6 @@ $ErrorActionPreference = "Stop"
 . (Join-Path $PSScriptRoot "verification-common.ps1")
 
 $repoRoot = Get-RepoRoot
-Set-RepoVcpkgRoot
 
 function Get-CppFiles {
     $files = @(& git -C $repoRoot ls-files "src/*.cpp" "src/*.hpp" "tests/*.cpp" "tests/*.hpp")
@@ -18,25 +18,25 @@ function Get-CppFiles {
 }
 
 function Invoke-TextPolicyChecks {
-    $sizeMatches = @(& rg -n "std::size_t" (Join-Path $repoRoot "src") (Join-Path $repoRoot "tests"))
+    $sizeMatches = @(& git -C $repoRoot grep -n "std::size_t" -- "src" "tests")
     if ($LASTEXITCODE -gt 1) {
-        throw "rg failed while checking size_t style."
+        throw "git grep failed while checking size_t style."
     }
     $violations = @($sizeMatches | Where-Object { $_ -notmatch "src[\\/]core[\\/]types\.hpp:.*using std::size_t;" })
     if ($violations.Count -gt 0) {
         throw "Unqualified size_t policy violations:`n$($violations -join "`n")"
     }
 
-    $qtMatches = @(& rg -n '#include\s*[<"]Q[^>"]*[>"]' (Join-Path $repoRoot "src\core") (Join-Path $repoRoot "src\cli"))
+    $qtMatches = @(& git -C $repoRoot grep -n -E '#include[[:space:]]*[<"]Q[^>"]*[>"]' -- "src/core" "src/cli")
     if ($LASTEXITCODE -gt 1) {
-        throw "rg failed while checking the Qt-free boundary."
+        throw "git grep failed while checking the Qt-free boundary."
     }
     if ($qtMatches.Count -gt 0) {
         throw "Qt-free boundary violations:`n$($qtMatches -join "`n")"
     }
 }
 
-function Invoke-QuickTier {
+function Invoke-FormattingChecks {
     Invoke-VerificationStage -Name "Pinned clang-format" -Action {
         $clangFormat = Get-RepoCommand -Name "clang-format" -Remediation "Run tools/bootstrap.ps1."
         $versionOutput = (& $clangFormat --version) -join " "
@@ -49,7 +49,9 @@ function Invoke-QuickTier {
         }
         Invoke-RepoCommand -FilePath $clangFormat -ArgumentList (@("--dry-run", "--Werror") + $files)
     }
+}
 
+function Invoke-StaticChecks {
     Invoke-VerificationStage -Name "Static policy checks" -Action {
         Invoke-TextPolicyChecks
         $clangTidy = Get-RepoCommand -Name "clang-tidy" -Remediation "Run tools/bootstrap.ps1."
@@ -62,29 +64,48 @@ function Invoke-QuickTier {
             Write-Host "Windows validates the pinned clang-tidy configuration; the Linux Quick lane analyzes every core translation unit against GCC 13."
         } else {
             foreach ($source in @(& git -C $repoRoot ls-files "src/core/*.cpp")) {
-                Invoke-RepoCommand -FilePath $clangTidy -ArgumentList @($source, "--", "-std=c++20", "-Isrc")
+                $arguments = @($source, "--", "-std=c++20", "-Isrc")
+                $gcc13Root = "/usr/lib/gcc/x86_64-linux-gnu/13"
+                if (Test-Path -LiteralPath $gcc13Root) {
+                    $arguments += "--gcc-install-dir=$gcc13Root"
+                }
+                Invoke-RepoCommand -FilePath $clangTidy -ArgumentList $arguments
             }
         }
     }
+}
 
+function Invoke-CoreBuild {
     Invoke-VerificationStage -Name "Core and CLI build" -Action {
         $cmake = Get-RepoCommand -Name "cmake" -Remediation "Install CMake 3.28 or newer."
         Invoke-RepoCommand -FilePath $cmake -ArgumentList @("--fresh", "--preset", "core-release")
         Invoke-RepoCommand -FilePath $cmake -ArgumentList @("--build", "--preset", "core-release")
     }
+}
 
+function Invoke-FastTests {
     Invoke-VerificationStage -Name "Fast tests" -Action {
         $ctest = Get-RepoCommand -Name "ctest" -Remediation "Install CMake 3.28 or newer."
         Invoke-RepoCommand -FilePath $ctest -ArgumentList @(
             "--test-dir", "build/core-release", "-C", "Release", "-L", "fast", "--output-on-failure"
         )
     }
+}
 
+function Invoke-DocsChecks {
     Invoke-VerificationStage -Name "Docs type and build checks" -Action {
         $npm = Get-RepoCommand -Name "npm" -Remediation "Install Node.js 22 with npm."
         Invoke-RepoCommand -FilePath $npm -ArgumentList @("ci") -WorkingDirectory (Join-Path $repoRoot "docs")
         Invoke-RepoCommand -FilePath $npm -ArgumentList @("run", "build") -WorkingDirectory (Join-Path $repoRoot "docs")
     }
+}
+
+function Invoke-QuickTier {
+    Invoke-FormattingChecks
+    Invoke-StaticChecks
+    Invoke-CoreBuild
+    Invoke-FastTests
+    Invoke-DocsChecks
 }
 
 function Invoke-GuiStartupCheck {
@@ -132,21 +153,23 @@ function Invoke-GuiStartupCheck {
     }
 }
 
-function Invoke-FullTier {
-    Invoke-QuickTier
-
+function Set-VerificationQtEnvironment {
     Invoke-VerificationStage -Name "Qt 6.9 environment" -Action {
         $qtRoot = Set-RepoQtEnvironment
         Write-Host "Using Qt from $qtRoot"
     }
+}
 
+function Invoke-SlowTests {
     Invoke-VerificationStage -Name "Slow ffmpeg tests" -Action {
         $ctest = Get-RepoCommand -Name "ctest" -Remediation "Install CMake 3.28 or newer."
         Invoke-RepoCommand -FilePath $ctest -ArgumentList @(
             "--test-dir", "build/core-release", "-C", "Release", "-L", "slow", "--output-on-failure"
         )
     }
+}
 
+function Invoke-CliFixtures {
     Invoke-VerificationStage -Name "CLI end-to-end fixtures" -Action {
         $ctest = Get-RepoCommand -Name "ctest" -Remediation "Install CMake 3.28 or newer."
         Invoke-RepoCommand -FilePath $ctest -ArgumentList @(
@@ -154,16 +177,29 @@ function Invoke-FullTier {
             "vidchopper_test_cli_contract|vidchopper_test_ffmpeg_integration", "--output-on-failure"
         )
     }
+}
 
+function Invoke-GuiBuild {
     Invoke-VerificationStage -Name "GUI build" -Action {
         $cmake = Get-RepoCommand -Name "cmake" -Remediation "Install CMake 3.28 or newer."
         Invoke-RepoCommand -FilePath $cmake -ArgumentList @("--fresh", "--preset", "windows-gui-release")
         Invoke-RepoCommand -FilePath $cmake -ArgumentList @("--build", "--preset", "windows-gui-release")
     }
+}
 
+function Invoke-GuiStartup {
     Invoke-VerificationStage -Name "Seeded noninteractive GUI startup" -Action {
         Invoke-GuiStartupCheck
     }
+}
+
+function Invoke-FullTier {
+    Invoke-QuickTier
+    Set-VerificationQtEnvironment
+    Invoke-SlowTests
+    Invoke-CliFixtures
+    Invoke-GuiBuild
+    Invoke-GuiStartup
 }
 
 function Invoke-VersionChecks {
@@ -243,10 +279,46 @@ function Invoke-ReleaseTier {
     }
 }
 
-switch ($Tier) {
-    "Quick" { Invoke-QuickTier }
-    "Full" { Invoke-FullTier }
-    "Release" { Invoke-ReleaseTier }
+if ($Fix -and $Tier -ne "Quick") {
+    throw "-Fix is supported only with -Tier Quick."
+}
+if ($Fix -and $CiLane -notin @("None", "Lint")) {
+    throw "-Fix is supported only for the local Quick tier or the Lint CI lane."
 }
 
-Write-Host "`nVerification tier '$Tier' passed."
+switch ($CiLane) {
+    "Lint" {
+        Invoke-FormattingChecks
+        Invoke-StaticChecks
+    }
+    "Core" {
+        Set-RepoVcpkgRoot
+        Invoke-CoreBuild
+        Invoke-FastTests
+        Invoke-SlowTests
+        Invoke-CliFixtures
+    }
+    "Gui" {
+        Set-RepoVcpkgRoot
+        Set-VerificationQtEnvironment
+        Invoke-GuiBuild
+        Invoke-GuiStartup
+    }
+    "Docs" {
+        Invoke-DocsChecks
+    }
+    "None" {
+        Set-RepoVcpkgRoot
+        switch ($Tier) {
+            "Quick" { Invoke-QuickTier }
+            "Full" { Invoke-FullTier }
+            "Release" { Invoke-ReleaseTier }
+        }
+    }
+}
+
+if ($CiLane -eq "None") {
+    Write-Host "`nVerification tier '$Tier' passed."
+} else {
+    Write-Host "`nCI verification lane '$CiLane' passed."
+}

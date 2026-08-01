@@ -138,8 +138,8 @@ if (-not (Test-Path -LiteralPath (Join-Path $venvRoot "Scripts\python.exe"))) {
 
 $venvPython = Join-Path $venvRoot "Scripts\python.exe"
 Invoke-RepoCommand -FilePath $venvPython -ArgumentList @(
-    "-m", "pip", "install", "--disable-pip-version-check",
-    "clang-format==$($script:ToolVersions.Clang)", "clang-tidy==$($script:ToolVersions.Clang)"
+    "-m", "pip", "install", "--disable-pip-version-check", "-r",
+    (Join-Path $repoRoot "tools\verification-requirements.txt")
 )
 
 if (-not (Test-Path -LiteralPath (Join-Path $vcpkgRoot ".git"))) {
