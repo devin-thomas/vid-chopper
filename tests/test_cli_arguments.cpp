@@ -35,6 +35,10 @@ auto main() -> int {
         test_support::DummyCliData::input_video_path(),
         "subcommand should capture the input path");
 
+    const CliParseResult version = parse({"--version"});
+    test_support::expect_true(version.ok(), "version flag should parse");
+    test_support::expect_eq(version.arguments.command, CliCommand::Version, "version flag should select version");
+
     const CliParseResult advanced = parse(test_support::DummyCliData::advanced_tokens());
     test_support::expect_true(advanced.ok(), "advanced flags should parse");
     test_support::expect_true(advanced.arguments.crf.has_value(), "crf should be present");

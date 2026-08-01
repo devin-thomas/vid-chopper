@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.28)
 
 project(
     VidChopper
-    VERSION 0.2.0
+    VERSION 0.3.0
     DESCRIPTION "Qt desktop app for splitting videos into chapter clips with ffmpeg"
     LANGUAGES CXX
 )
@@ -11,7 +11,7 @@ option(VIDCHOPPER_BUILD_CLI "Build the no-Qt CLI target" ON)
 option(VIDCHOPPER_BUILD_GUI "Build the Qt GUI target" ON)
 option(VIDCHOPPER_BUILD_TESTS "Build the test targets" ON)
 option(VIDCHOPPER_BUILD_QT_TESTS "Build Qt-dependent test targets" OFF)
-set(VIDCHOPPER_DISPLAY_VERSION "0.2.0-alpha" CACHE STRING "User-facing version string for prerelease labeling")
+set(VIDCHOPPER_DISPLAY_VERSION "0.3.0-beta" CACHE STRING "User-facing version string for prerelease labeling")
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -84,6 +84,7 @@ if(VIDCHOPPER_BUILD_CLI)
         nlohmann_json::nlohmann_json
         yaml-cpp::yaml-cpp
     )
+    target_compile_definitions(vidchopper_cli PUBLIC VIDCHOPPER_DISPLAY_VERSION="${VIDCHOPPER_DISPLAY_VERSION}")
     target_compile_features(vidchopper_cli PUBLIC cxx_std_20)
     apply_vidchopper_warnings(vidchopper_cli)
 

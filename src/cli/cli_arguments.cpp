@@ -16,6 +16,7 @@ using TokenList = std::vector<std::string>;
 constexpr auto command_chop = std::string_view {"chop"};
 constexpr auto flag_help = std::string_view {"--help"};
 constexpr auto short_flag_help = std::string_view {"-h"};
+constexpr auto flag_version = std::string_view {"--version"};
 constexpr auto flag_dry_run = std::string_view {"--dry-run"};
 constexpr auto flag_embedded = std::string_view {"--embedded"};
 constexpr auto flag_use_gui_config = std::string_view {"--use-gui-config"};
@@ -108,6 +109,10 @@ auto parse_cli_arguments(const std::vector<std::string>& tokens) -> CliParseResu
     auto index = size_t {0};
     const auto first_token = std::string_view {tokens[index]};
     if (first_token == flag_help || first_token == short_flag_help) {
+        return success(arguments);
+    }
+    if (first_token == flag_version) {
+        arguments.command = CliCommand::Version;
         return success(arguments);
     }
 
@@ -222,6 +227,7 @@ auto cli_usage() -> std::string {
            "  --aggregate-csv <path>  Write one aggregate CSV manifest after the batch.\n"
            "  --stop-on-first-error  Stop batch execution after the first failed item.\n"
            "  --use-gui-config       Explicitly read VidChopper.ini in addition to VidChopperCLI.ini.\n"
+           "  --version              Show the VidChopper CLI version.\n"
            "  -h, --help             Show this help text.\n"
            "\n"
            "Configuration note:\n"

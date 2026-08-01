@@ -40,6 +40,10 @@ auto run_cli(const CliRunRequest& request) -> CliExitCode {
         request.output << cli_usage();
         return CliExitCode::Success;
     }
+    if (cli_arguments.command == CliCommand::Version) {
+        request.output << "VidChopperCLI " << VIDCHOPPER_DISPLAY_VERSION << "\n";
+        return CliExitCode::Success;
+    }
 
     const CliSettingsPaths settings_paths =
         resolve_cli_settings_paths(request.executable_path, cli_arguments.use_gui_config);

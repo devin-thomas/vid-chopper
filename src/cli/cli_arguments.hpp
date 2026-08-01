@@ -11,6 +11,7 @@ namespace vidchopper {
 enum class CliCommand : u8 {
     Chop = 0,
     Help = 1,
+    Version = 2,
 };
 
 struct CliArguments {
