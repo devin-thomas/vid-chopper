@@ -1,6 +1,8 @@
 #include "core/timecode.hpp"
 #include "test_support.hpp"
 
+#include <limits>
+
 using namespace vidchopper;
 
 auto main() -> int {
@@ -85,6 +87,19 @@ auto main() -> int {
             "just under 24h should format correctly");
     }
 
+    // parse_millisecond_timecode: reject aggregate overflow instead of wrapping
+    {
+        const auto largest = format_millisecond_timecode(std::numeric_limits<u64>::max());
+        const auto parsed_largest = parse_millisecond_timecode(largest);
+        test_support::expect_true(parsed_largest.has_value(), "largest millisecond timecode should parse");
+        test_support::expect_eq(
+            *parsed_largest, std::numeric_limits<u64>::max(), "largest timecode should preserve uint64 max");
+        test_support::expect_true(!parse_millisecond_timecode("5124095576030:25:51.616").has_value(),
+            "first millisecond past uint64 max should fail");
+        test_support::expect_true(!parse_millisecond_timecode("18446744073709551615:00:00.000").has_value(),
+            "overflowing hour multiplication should fail");
+    }
+
     // parse_frame_timecode: zero frame rate
     {
         const auto zero_fps = FrameRate {.numerator = 0, .denominator = 1};
@@ -119,6 +134,18 @@ auto main() -> int {
         test_support::expect_true(!parse_frame_timecode("00:10", fps_24).has_value(), "too few segments should fail");
         test_support::expect_true(
             !parse_frame_timecode("1:2:3:4:5", fps_24).has_value(), "too many segments should fail");
+    }
+
+    // parse_frame_timecode: reject aggregate overflow instead of wrapping
+    {
+        const auto fps_1 = FrameRate {.numerator = 1, .denominator = 1};
+        const auto largest_whole_second = parse_frame_timecode("5124095576030:25:51:0", fps_1);
+        test_support::expect_true(largest_whole_second.has_value(), "largest whole-second frame timecode should parse");
+        test_support::expect_eq(*largest_whole_second,
+            18446744073709551000ULL,
+            "largest whole-second frame timecode should preserve its value");
+        test_support::expect_true(!parse_frame_timecode("5124095576030:25:52:0", fps_1).has_value(),
+            "first overflowing whole-second frame timecode should fail");
     }
 
     // format_frame_timecode: zero fps

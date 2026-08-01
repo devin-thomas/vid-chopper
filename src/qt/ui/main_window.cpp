@@ -142,17 +142,15 @@ MainWindow::MainWindow(DemoLaunchOptions demo_options, QWidget* parent)
     const auto settings_store = create_settings_store(this);
     settings_store_ = settings_store.settings;
     config_path_ = settings_store.config_path;
-    settings_ = load_export_settings(*settings_store_);
+    const auto loaded_settings = load_app_settings(*settings_store_);
+    settings_ = loaded_settings.values.export_settings;
+    zoom_percent_ = loaded_settings.values.zoom_percent;
 
-    const auto stored_screen_size = load_last_screen_size(*settings_store_);
+    const auto stored_screen_size = loaded_settings.values.last_screen_size;
     const auto screen_size = current_screen_size();
+    const bool screen_settings_changed = stored_screen_size != screen_size;
     if (stored_screen_size != screen_size) {
         zoom_percent_ = auto_zoom_percent_for_screen_height(screen_size.height());
-        save_zoom_percent(*settings_store_, zoom_percent_);
-        save_last_screen_size(*settings_store_, screen_size);
-        settings_store_->sync();
-    } else {
-        zoom_percent_ = load_zoom_percent(*settings_store_);
     }
 
     base_font_point_size_ =
@@ -190,6 +188,12 @@ MainWindow::MainWindow(DemoLaunchOptions demo_options, QWidget* parent)
     connect(export_coordinator_, &ExportCoordinator::finished, this, &MainWindow::handle_export_finished);
 
     append_log_message(LogCategory::Config, QStringLiteral("Config file: %1").arg(config_path_));
+    for (const auto& diagnostic : loaded_settings.diagnostics) {
+        append_log_message(LogCategory::Error, diagnostic);
+    }
+    if (screen_settings_changed) {
+        static_cast<void>(persist_app_settings());
+    }
 
     if (demo_options_.enabled()) {
         QTimer::singleShot(0, this, &MainWindow::activate_demo_scene);
@@ -492,8 +496,11 @@ auto MainWindow::open_advanced_settings() -> void {
     }
 
     settings_ = dialog.settings();
-    save_export_settings(*settings_store_, settings_);
-    settings_store_->sync();
+    if (!persist_app_settings()) {
+        QMessageBox::warning(this,
+            "Settings not saved",
+            "The changes are active for this session, but VidChopper could not write them to disk. See the log for details.");
+    }
     apply_settings_to_ui();
     if (!output_directory_overridden_ && metadata_.has_value()) {
         reset_output_directory();
@@ -615,9 +622,7 @@ auto MainWindow::apply_zoom_percent(const int zoom_percent, const bool persist) 
     update_export_button_style();
 
     if (persist) {
-        save_zoom_percent(*settings_store_, zoom_percent_);
-        save_last_screen_size(*settings_store_, current_screen_size());
-        settings_store_->sync();
+        static_cast<void>(persist_app_settings());
     }
 }
 
@@ -697,6 +702,23 @@ auto MainWindow::append_log_message(const LogCategory category, const QString& m
         .message = message,
     });
     refresh_log_view();
+}
+
+auto MainWindow::persist_app_settings() -> bool {
+    const auto result = save_app_settings(*settings_store_,
+        AppSettingsSnapshot {
+            .export_settings = settings_,
+            .zoom_percent = zoom_percent_,
+            .last_screen_size = current_screen_size(),
+        });
+    if (result.success) {
+        return true;
+    }
+
+    const auto message = QStringLiteral("Settings were not saved: %1").arg(result.error_message);
+    append_log_message(LogCategory::Error, message);
+    statusBar()->showMessage("Settings could not be saved");
+    return false;
 }
 
 auto MainWindow::set_output_directory_path(const std::filesystem::path& path, const bool overridden) -> void {

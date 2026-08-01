@@ -65,6 +65,7 @@ private:
     auto update_log_disclosure(bool expanded) -> void;
     auto refresh_log_view() -> void;
     auto append_log_message(LogCategory category, const QString& message) -> void;
+    [[nodiscard]] auto persist_app_settings() -> bool;
     auto set_output_directory_path(const std::filesystem::path& path, bool overridden) -> void;
     auto activate_demo_scene() -> void;
     auto seed_workspace_demo(bool show_logs) -> bool;

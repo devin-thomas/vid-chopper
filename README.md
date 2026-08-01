@@ -44,6 +44,7 @@ authoritative roadmap; repository progress documents are dated snapshots.
 - Default export folder generation beside the source file, with manual override support
 - Sequential `ffmpeg` export orchestration with progress reporting and optional output verification
 - Detailed advanced settings for encoding, naming, container choice, seek mode, manifest output, metadata handling, and tool paths
+- Checked settings persistence: malformed or out-of-range values fall back to documented UI defaults with a log diagnostic, and write failures remain visible instead of appearing successful
 - Always-dark interface without exposing theme switching
 
 ## Contributing
@@ -109,6 +110,7 @@ The GUI target is enabled when Qt 6 is available to CMake.
 ```powershell
 cmake --preset windows-gui-release
 cmake --build --preset windows-gui-release
+ctest --test-dir build/windows-gui-release -C Release -L qt --output-on-failure
 ```
 
 ### GitHub Release Packaging
@@ -128,6 +130,7 @@ The test suite is intentionally staged so the majority of checks run quickly and
 
 - `fast`: pure C++ unit-level tests for timestamp parsing, chapter planning, file-name sanitization, and command generation
 - `slow`: an `ffmpeg`-backed integration test that synthesizes a sample video, exports chapter clips, and verifies output durations
+- `qt`: persisted-settings boundary tests for conversion failures, supported ranges, malformed files, and write access errors
 
 This split exists because the export path depends on external media tooling, while most correctness issues can be caught in pure logic tests with near-zero runtime.
 

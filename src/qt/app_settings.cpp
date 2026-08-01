@@ -9,6 +9,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <limits>
 
 namespace vidchopper {
 
@@ -18,12 +19,62 @@ constexpr auto min_zoom_percent = 50;
 constexpr auto max_zoom_percent = 300;
 constexpr auto zoom_step_percent = 25;
 
-template <typename Enum>
-auto clamp_enum(int raw, Enum max_valid, Enum fallback) -> Enum {
-    if (raw < 0 || raw > static_cast<int>(max_valid)) {
+template <typename Integer>
+auto load_integer(QSettings& settings,
+    const char* key,
+    const Integer fallback,
+    const qlonglong minimum,
+    const qlonglong maximum,
+    QStringList& diagnostics) -> Integer {
+    bool converted = false;
+    const qlonglong raw = settings.value(key, static_cast<qlonglong>(fallback)).toLongLong(&converted);
+    if (!converted || raw < minimum || raw > maximum) {
+        diagnostics.push_back(QStringLiteral("Invalid setting '%1'; using default %2 (expected %3-%4).")
+                                  .arg(QString::fromLatin1(key))
+                                  .arg(static_cast<qlonglong>(fallback))
+                                  .arg(minimum)
+                                  .arg(maximum));
         return fallback;
     }
+    return static_cast<Integer>(raw);
+}
+
+template <typename Enum>
+auto load_enum(
+    QSettings& settings, const char* key, const Enum fallback, const Enum max_valid, QStringList& diagnostics) -> Enum {
+    const auto raw =
+        load_integer<int>(settings, key, static_cast<int>(fallback), 0, static_cast<int>(max_valid), diagnostics);
     return static_cast<Enum>(raw);
+}
+
+auto load_boolean(QSettings& settings, const char* key, const bool fallback, QStringList& diagnostics) -> bool {
+    const auto value = settings.value(key, fallback).toString().trimmed().toLower();
+    if (value == "true" || value == "1") {
+        return true;
+    }
+    if (value == "false" || value == "0") {
+        return false;
+    }
+
+    diagnostics.push_back(
+        QStringLiteral("Invalid setting '%1'; using default %2 (expected true or false).")
+            .arg(QString::fromLatin1(key), fallback ? QStringLiteral("true") : QStringLiteral("false")));
+    return fallback;
+}
+
+auto settings_status_message(const QSettings& settings) -> QString {
+    switch (settings.status()) {
+    case QSettings::NoError:
+        return {};
+    case QSettings::AccessError:
+        return QStringLiteral("Could not access settings file '%1'. Check the folder permissions.")
+            .arg(QDir::toNativeSeparators(settings.fileName()));
+    case QSettings::FormatError:
+        return QStringLiteral("Settings file '%1' has an invalid format.")
+            .arg(QDir::toNativeSeparators(settings.fileName()));
+    }
+    return QStringLiteral("Settings file '%1' reported an unknown error.")
+        .arg(QDir::toNativeSeparators(settings.fileName()));
 }
 
 auto snap_zoom_percent(const int zoom_percent) -> int {
@@ -85,8 +136,9 @@ auto create_settings_store(QObject* parent) -> SettingsStore {
     };
 }
 
-auto load_export_settings(QSettings& settings) -> ExportSettings {
-    auto values = ExportSettings {};
+auto load_app_settings(QSettings& settings) -> SettingsLoadResult {
+    auto result = SettingsLoadResult {};
+    auto& values = result.values.export_settings;
 
     values.ffmpeg_path =
         settings.value("tools/ffmpegPath", QString::fromStdString(values.ffmpeg_path)).toString().toStdString();
@@ -107,60 +159,70 @@ auto load_export_settings(QSettings& settings) -> ExportSettings {
                                    .toStdString();
 
     values.encoder_kind =
-        clamp_enum(settings.value("encoding/encoderKind", static_cast<int>(values.encoder_kind)).toInt(),
-            EncoderKind::HevcNvenc,
-            EncoderKind::Auto);
-    values.audio_mode = clamp_enum(settings.value("encoding/audioMode", static_cast<int>(values.audio_mode)).toInt(),
-        AudioMode::Aac,
-        AudioMode::Copy);
+        load_enum(settings, "encoding/encoderKind", values.encoder_kind, EncoderKind::HevcNvenc, result.diagnostics);
+    values.audio_mode =
+        load_enum(settings, "encoding/audioMode", values.audio_mode, AudioMode::Aac, result.diagnostics);
     values.container_mode =
-        clamp_enum(settings.value("output/containerMode", static_cast<int>(values.container_mode)).toInt(),
-            ContainerMode::Mkv,
-            ContainerMode::Source);
+        load_enum(settings, "output/containerMode", values.container_mode, ContainerMode::Mkv, result.diagnostics);
     values.overwrite_mode =
-        clamp_enum(settings.value("output/overwriteMode", static_cast<int>(values.overwrite_mode)).toInt(),
-            OverwriteMode::Skip,
-            OverwriteMode::Ask);
-    values.seek_mode = clamp_enum(settings.value("precision/seekMode", static_cast<int>(values.seek_mode)).toInt(),
-        SeekMode::Fast,
-        SeekMode::Accurate);
-    values.display_mode =
-        clamp_enum(settings.value("precision/displayMode", static_cast<int>(values.display_mode)).toInt(),
-            TimestampDisplayMode::Frames,
-            TimestampDisplayMode::Milliseconds);
+        load_enum(settings, "output/overwriteMode", values.overwrite_mode, OverwriteMode::Skip, result.diagnostics);
+    values.seek_mode = load_enum(settings, "precision/seekMode", values.seek_mode, SeekMode::Fast, result.diagnostics);
+    values.display_mode = load_enum(
+        settings, "precision/displayMode", values.display_mode, TimestampDisplayMode::Frames, result.diagnostics);
 
-    values.default_chapter_count =
-        static_cast<u8>(settings.value("precision/defaultChapterCount", values.default_chapter_count).toUInt());
-    values.max_chapters = static_cast<u8>(settings.value("precision/maxChapters", values.max_chapters).toUInt());
-    values.index_padding = static_cast<u8>(settings.value("output/indexPadding", values.index_padding).toUInt());
-    values.x264_crf = static_cast<u8>(settings.value("encoding/x264Crf", values.x264_crf).toUInt());
-    values.nvenc_cq = static_cast<u8>(settings.value("encoding/nvencCq", values.nvenc_cq).toUInt());
-    values.min_chapter_seconds =
-        static_cast<u8>(settings.value("precision/minChapterSeconds", values.min_chapter_seconds).toUInt());
-    values.ffmpeg_threads = static_cast<u8>(settings.value("encoding/ffmpegThreads", values.ffmpeg_threads).toUInt());
+    values.default_chapter_count = load_integer<u8>(
+        settings, "precision/defaultChapterCount", values.default_chapter_count, 1, 255, result.diagnostics);
+    values.max_chapters =
+        load_integer<u8>(settings, "precision/maxChapters", values.max_chapters, 1, 255, result.diagnostics);
+    values.index_padding =
+        load_integer<u8>(settings, "output/indexPadding", values.index_padding, 1, 6, result.diagnostics);
+    values.x264_crf = load_integer<u8>(settings, "encoding/x264Crf", values.x264_crf, 0, 51, result.diagnostics);
+    values.nvenc_cq = load_integer<u8>(settings, "encoding/nvencCq", values.nvenc_cq, 0, 51, result.diagnostics);
+    values.min_chapter_seconds = load_integer<u8>(
+        settings, "precision/minChapterSeconds", values.min_chapter_seconds, 1, 60, result.diagnostics);
+    values.ffmpeg_threads =
+        load_integer<u8>(settings, "encoding/ffmpegThreads", values.ffmpeg_threads, 0, 64, result.diagnostics);
     values.aac_bitrate_kbps =
-        static_cast<u16>(settings.value("encoding/aacBitrateKbps", values.aac_bitrate_kbps).toUInt());
+        load_integer<u16>(settings, "encoding/aacBitrateKbps", values.aac_bitrate_kbps, 64, 512, result.diagnostics);
 
-    values.auto_detect_gpu = settings.value("encoding/autoDetectGpu", values.auto_detect_gpu).toBool();
-    values.open_output_directory_after_export =
-        settings.value("output/openDirectoryAfterExport", values.open_output_directory_after_export).toBool();
-    values.sanitize_file_names = settings.value("output/sanitizeFileNames", values.sanitize_file_names).toBool();
-    values.stop_on_first_error = settings.value("execution/stopOnFirstError", values.stop_on_first_error).toBool();
-    values.write_json_manifest = settings.value("execution/writeJsonManifest", values.write_json_manifest).toBool();
-    values.write_csv_manifest = settings.value("execution/writeCsvManifest", values.write_csv_manifest).toBool();
+    values.auto_detect_gpu =
+        load_boolean(settings, "encoding/autoDetectGpu", values.auto_detect_gpu, result.diagnostics);
+    values.open_output_directory_after_export = load_boolean(
+        settings, "output/openDirectoryAfterExport", values.open_output_directory_after_export, result.diagnostics);
+    values.sanitize_file_names =
+        load_boolean(settings, "output/sanitizeFileNames", values.sanitize_file_names, result.diagnostics);
+    values.stop_on_first_error =
+        load_boolean(settings, "execution/stopOnFirstError", values.stop_on_first_error, result.diagnostics);
+    values.write_json_manifest =
+        load_boolean(settings, "execution/writeJsonManifest", values.write_json_manifest, result.diagnostics);
+    values.write_csv_manifest =
+        load_boolean(settings, "execution/writeCsvManifest", values.write_csv_manifest, result.diagnostics);
     values.verify_output_durations =
-        settings.value("execution/verifyOutputDurations", values.verify_output_durations).toBool();
-    values.copy_source_metadata = settings.value("output/copySourceMetadata", values.copy_source_metadata).toBool();
+        load_boolean(settings, "execution/verifyOutputDurations", values.verify_output_durations, result.diagnostics);
+    values.copy_source_metadata =
+        load_boolean(settings, "output/copySourceMetadata", values.copy_source_metadata, result.diagnostics);
     values.prefer_embedded_chapters =
-        settings.value("precision/preferEmbeddedChapters", values.prefer_embedded_chapters).toBool();
-    values.confirm_remove_chapters =
-        settings.value("confirmations/confirmRemoveChapters", values.confirm_remove_chapters).toBool();
-    values.confirm_exit = settings.value("confirmations/confirmExit", values.confirm_exit).toBool();
+        load_boolean(settings, "precision/preferEmbeddedChapters", values.prefer_embedded_chapters, result.diagnostics);
+    values.confirm_remove_chapters = load_boolean(
+        settings, "confirmations/confirmRemoveChapters", values.confirm_remove_chapters, result.diagnostics);
+    values.confirm_exit = load_boolean(settings, "confirmations/confirmExit", values.confirm_exit, result.diagnostics);
 
-    return values;
+    result.values.zoom_percent = clamp_zoom_percent(
+        load_integer<int>(settings, "ui/zoomPercent", 100, min_zoom_percent, max_zoom_percent, result.diagnostics));
+    result.values.last_screen_size = QSize {
+        load_integer<int>(settings, "ui/lastScreenWidth", 0, 0, std::numeric_limits<int>::max(), result.diagnostics),
+        load_integer<int>(settings, "ui/lastScreenHeight", 0, 0, std::numeric_limits<int>::max(), result.diagnostics),
+    };
+
+    const auto status_message = settings_status_message(settings);
+    if (!status_message.isEmpty()) {
+        result.diagnostics.push_back(status_message + " Built-in defaults were used where necessary.");
+    }
+    return result;
 }
 
-auto save_export_settings(QSettings& settings, const ExportSettings& values) -> void {
+auto save_app_settings(QSettings& settings, const AppSettingsSnapshot& snapshot) -> SettingsSaveResult {
+    const auto& values = snapshot.export_settings;
     settings.setValue("tools/ffmpegPath", QString::fromStdString(values.ffmpeg_path));
     settings.setValue("tools/ffprobePath", QString::fromStdString(values.ffprobe_path));
     settings.setValue("output/folderPattern", QString::fromStdString(values.output_folder_pattern));
@@ -196,26 +258,17 @@ auto save_export_settings(QSettings& settings, const ExportSettings& values) -> 
     settings.setValue("precision/preferEmbeddedChapters", values.prefer_embedded_chapters);
     settings.setValue("confirmations/confirmRemoveChapters", values.confirm_remove_chapters);
     settings.setValue("confirmations/confirmExit", values.confirm_exit);
-}
 
-auto load_zoom_percent(QSettings& settings) -> int {
-    return clamp_zoom_percent(settings.value("ui/zoomPercent", 100).toInt());
-}
+    settings.setValue("ui/zoomPercent", clamp_zoom_percent(snapshot.zoom_percent));
+    settings.setValue("ui/lastScreenWidth", snapshot.last_screen_size.width());
+    settings.setValue("ui/lastScreenHeight", snapshot.last_screen_size.height());
+    settings.sync();
 
-auto save_zoom_percent(QSettings& settings, const int zoom_percent) -> void {
-    settings.setValue("ui/zoomPercent", clamp_zoom_percent(zoom_percent));
-}
-
-auto load_last_screen_size(QSettings& settings) -> QSize {
-    return QSize {
-        settings.value("ui/lastScreenWidth", 0).toInt(),
-        settings.value("ui/lastScreenHeight", 0).toInt(),
+    const auto error_message = settings_status_message(settings);
+    return SettingsSaveResult {
+        .success = error_message.isEmpty(),
+        .error_message = error_message,
     };
-}
-
-auto save_last_screen_size(QSettings& settings, const QSize& screen_size) -> void {
-    settings.setValue("ui/lastScreenWidth", screen_size.width());
-    settings.setValue("ui/lastScreenHeight", screen_size.height());
 }
 
 auto clamp_zoom_percent(const int zoom_percent) -> int {
