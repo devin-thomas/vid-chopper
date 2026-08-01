@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import heroMain from "../assets/vidchopper-real-main.png";
 import heroExport from "../assets/vidchopper-real-export.png";
+import { AgentOnboarding } from "../components/agent-onboarding";
 import { Icon } from "../components/icon";
 import { SectionHeading } from "../components/section-heading";
 import { SiteLink, useSiteSearchParams } from "../router";
@@ -43,17 +44,10 @@ export function HomePage() {
             Import a source video, edit exact chapter ranges, and export clean
             clips with ffmpeg from a focused native desktop workflow.
           </p>
-          <div className="hero-actions">
-            <a className="cta-primary" href={releaseZipUrl}>
-              <Icon name="download" /> Download {releaseVersion}
-            </a>
-            <SiteLink className="cta-secondary" to="/?section=screenshots">
-              <Icon name="arrow" /> Explore the workflow
-            </SiteLink>
-          </div>
           <div className="trust-line">
             No installer. No telemetry. Local files stay on your machine.
           </div>
+          <AgentOnboarding />
         </div>
         <div className="hero-visual">
           <div className="shot-stack">

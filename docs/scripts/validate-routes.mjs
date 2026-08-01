@@ -653,6 +653,10 @@ try {
     ),
   );
   const sourceText = [siteSource, ...routerSources].join("\n");
+  const onboardingSource = await readFile(
+    path.join(repositoryRoot, "docs", "src", "components", "agent-onboarding.tsx"),
+    "utf8",
+  );
   const routerSource = routerSources.at(-1);
   assert(
     !sourceText.includes("HashLink") && !sourceText.includes("useHash"),
@@ -700,6 +704,20 @@ try {
     assert(
       sourceText.includes(focusSafeguard),
       `Route focus/search safeguard drifted: ${focusSafeguard}`,
+    );
+  }
+  for (const forbiddenDataSink of [
+    "fetch(",
+    "localStorage",
+    "sessionStorage",
+    "sendBeacon",
+    "XMLHttpRequest",
+    "URLSearchParams",
+    "window.history",
+  ]) {
+    assert(
+      !onboardingSource.includes(forbiddenDataSink),
+      `Agent onboarding must not put prompt or media data in ${forbiddenDataSink}.`,
     );
   }
 
@@ -972,6 +990,28 @@ try {
     path.join(distDirectory, "index.html"),
     "utf8",
   );
+  assert(
+    rootHtml.includes("<noscript>"),
+    "Built root HTML is missing the no-JavaScript fallback.",
+  );
+  assert(
+    rootHtml.indexOf("<noscript>") < rootHtml.indexOf('<div id="root"></div>'),
+    "The no-JavaScript fallback must render before the empty React root.",
+  );
+  for (const fallbackContract of [
+    "https://vidchopper.app/agents/vidchopper-cli/SKILL.md",
+    "dry-run",
+    "exporting",
+    "overwriting",
+    "uploading",
+    "publishing",
+    "deleting",
+  ]) {
+    assert(
+      rootHtml.includes(fallbackContract),
+      `No-JavaScript agent prompt drifted: ${fallbackContract}`,
+    );
+  }
   const assetReferences = [
     ...rootHtml.matchAll(/(?:href|src)="([^"]*\/assets\/[^"]+)"/g),
   ].map((match) => match[1]);

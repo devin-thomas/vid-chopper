@@ -135,6 +135,7 @@ function Invoke-DocsChecks {
     Invoke-VerificationStage -Name "Docs type and build checks" -Action {
         $npm = Get-RepoCommand -Name "npm" -Remediation "Install Node.js 22 with npm."
         Invoke-RepoCommand -FilePath $npm -ArgumentList @("ci") -WorkingDirectory (Join-Path $repoRoot "docs")
+        Invoke-RepoCommand -FilePath $npm -ArgumentList @("test") -WorkingDirectory (Join-Path $repoRoot "docs")
         Invoke-RepoCommand -FilePath $npm -ArgumentList @("run", "build") -WorkingDirectory (Join-Path $repoRoot "docs")
         Invoke-RepoCommand -FilePath $npm -ArgumentList @("run", "build:pages") -WorkingDirectory (Join-Path $repoRoot "docs")
     }
