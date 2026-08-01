@@ -195,12 +195,17 @@ const workflowSnippets = [
   "name: cloudflare-environment",
   "url: https://vidchopper.app",
   "node-version: 22",
+  "name: Verify Cloudflare credentials before build",
+  "npx --no-install wrangler deployments list --name vidchopper --json",
+  "npx --no-install wrangler versions list --name vidchopper --json",
+  "Cloudflare production secrets are missing.",
+  "Cloudflare credential and read-contract preflight passed.",
   "npm ci",
   "tools/agent-skill-artifacts.ps1 -Mode Check",
   "npm test",
   "npm run build",
   "npm run cloudflare:dry-run",
-  "uses: cloudflare/wrangler-action@v4",
+  "uses: cloudflare/wrangler-action@ebbaa1584979971c8614a24965b4405ff95890e0 # v4",
   "apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}",
   "accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}",
   'wranglerVersion: "4.118.0"',
@@ -220,6 +225,50 @@ const workflowSnippets = [
 for (const snippet of workflowSnippets) {
   assert(workflow.includes(snippet), `workflow is missing: ${snippet}`);
 }
+const credentialPreflightIndex = workflow.indexOf(
+  "name: Verify Cloudflare credentials before build",
+);
+const installIndex = workflow.indexOf("name: Install pinned frontend dependencies");
+const deployIndex = workflow.indexOf("name: Deploy the audited artifact");
+assert(
+  installIndex !== -1 &&
+    installIndex < credentialPreflightIndex &&
+    credentialPreflightIndex < deployIndex,
+  "Cloudflare credentials must be checked after locked installation and before deployment",
+);
+const credentialPreflightEnd = workflow.indexOf(
+  "\n      - name:",
+  credentialPreflightIndex,
+);
+assert(
+  credentialPreflightEnd > credentialPreflightIndex,
+  "Cloudflare credential preflight must be a bounded workflow step",
+);
+const credentialPreflight = workflow.slice(
+  credentialPreflightIndex,
+  credentialPreflightEnd,
+);
+for (const snippet of [
+  "CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}",
+  "CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}",
+  'if [[ -z "$CLOUDFLARE_API_TOKEN" || -z "$CLOUDFLARE_ACCOUNT_ID" ]]; then',
+  "npx --no-install wrangler deployments list --name vidchopper --json",
+  "npx --no-install wrangler versions list --name vidchopper --json",
+  'type == "array" and',
+  'all(.[]; (.id | type == "string") and (.created_on | type == "string"))',
+  'all(.[]; (.id | type == "string") and (.metadata.created_on | type == "string"))',
+  "> /dev/null",
+]) {
+  assert(
+    credentialPreflight.includes(snippet),
+    `credential preflight is missing: ${snippet}`,
+  );
+}
+assert(
+  (credentialPreflight.match(/type == "array" and/g) ?? []).length === 2 &&
+    (credentialPreflight.match(/> \/dev\/null/g) ?? []).length === 2,
+  "credential preflight must validate both Wrangler responses without printing them",
+);
 assert(
   !/^\s+(?:push|pull_request):/m.test(workflow),
   "production deployment must remain manual",
