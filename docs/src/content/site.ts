@@ -1,8 +1,8 @@
 export const repositoryUrl = "https://github.com/devin-thomas/vid-chopper";
 export const releasesUrl = `${repositoryUrl}/releases`;
-export const releaseVersion = "v0.2.0-alpha";
+export const releaseVersion = "v0.3.0-beta";
 export const releaseZipUrl =
-  "https://github.com/devin-thomas/vid-chopper/releases/download/v0.2.0-alpha/VidChopper-0.2.0-alpha-windows-x64.zip";
+  "https://github.com/devin-thomas/vid-chopper/releases/download/v0.3.0-beta/VidChopper-0.3.0-beta-windows-x64.zip";
 
 export const docsLinks = [
   {
@@ -51,10 +51,10 @@ export const workflowSteps = [
 
 export const releaseHighlights = [
   "Portable Windows x64 ZIP attached to the GitHub prerelease",
-  "Qt runtime and VC++ runtime bundled beside VidChopper.exe",
-  "Dark Qt desktop workflow for chapter editing and export orchestration",
-  "Pure C++ core for validation, planning, naming, and ffmpeg command generation",
-  "GitHub Actions coverage for lint, core tests, GUI build, release packaging, and Pages deployment",
+  "Complete Qt-free VidChopperCLI.exe packaged beside the Qt desktop app",
+  "Explicit JSON/YAML ChapterFiles, dry-run planning, exports, and manifests",
+  "ChapterBuilder compatibility verified with a public tournament fixture",
+  "Clean Windows archive smoke testing before prerelease publication",
 ] as const;
 
 export const releaseChecklist = [
@@ -65,24 +65,26 @@ export const releaseChecklist = [
 ] as const;
 
 export const previousReleases = [
+  { version: "v0.2.0-alpha", date: "Desktop alpha", note: "Portable Qt workflow and Pages release portal." },
+  { version: "v0.1.1-alpha", date: "Alpha maintenance", note: "Early portable-package corrections." },
   { version: "v0.1.0-alpha", date: "Initial alpha release", note: "First portable GitHub prerelease." },
 ] as const;
 
 export const changelogEntries = [
   {
-    title: "Desktop workflow refinement",
-    detail: "The Windows utility pass shipped clearer chapter editing, export controls, confirmations, zoom, and collapsible logging.",
-    tag: "UI",
+    title: "Complete Qt-free CLI",
+    detail: "Direct and chop modes now support explicit ChapterFiles, dry runs, exports, progress summaries, and manifests.",
+    tag: "CLI",
   },
   {
-    title: "Portable release packaging",
-    detail: "GitHub Actions now produces a versioned Windows ZIP with the Qt runtime and VC++ runtime bundled beside VidChopper.exe.",
+    title: "Proven portable package",
+    detail: "A second clean Windows runner extracts and tests the exact ZIP before GitHub publishes the prerelease.",
     tag: "Release",
   },
   {
-    title: "Pages rewrite",
-    detail: "The site now covers product overview, release delivery, and developer docs as one connected surface.",
-    tag: "Pages",
+    title: "ChapterBuilder compatibility",
+    detail: "The game-neutral contract is covered by a 16-chapter public tournament fixture and packaged CLI smoke test.",
+    tag: "Contract",
   },
 ] as const;
 
@@ -115,8 +117,8 @@ export const keyFeatures = [
 
 export const roadmap = [
   { item: "Desktop feature round through v0.2.0-alpha", status: "Shipped" },
-  { item: "Complete Qt-free CLI and safety gates for v0.3.0-beta", status: "Next" },
-  { item: "Verify the ChapterBuilder companion contract end to end", status: "Release gate" },
+  { item: "Complete Qt-free CLI and safety gates for v0.3.0-beta", status: "Shipped" },
+  { item: "Verify the ChapterBuilder companion contract end to end", status: "Shipped" },
   { item: "Converge GUI and CLI on one shared engine for stable v1.0.0", status: "Later" },
 ] as const;
 

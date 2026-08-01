@@ -1,7 +1,7 @@
-import { useEffect } from "react";
-import { Link, Outlet, useLocation } from "react-router-dom";
+import { useEffect, type ReactNode } from "react";
 import appIcon from "../assets/app-icon.png";
 import { releaseZipUrl, repositoryUrl } from "../content/site";
+import { HashLink, useHashLocation } from "../router";
 
 const navItems = [
   { label: "Overview", to: "/" },
@@ -12,8 +12,8 @@ const navItems = [
   { label: "Releases", to: "/releases" },
 ] as const;
 
-export function Shell() {
-  const location = useLocation();
+export function Shell({ children }: { children: ReactNode }) {
+  const location = useHashLocation();
   const section = new URLSearchParams(location.search).get("section");
 
   useEffect(() => {
@@ -44,22 +44,22 @@ export function Shell() {
       <div className="page-orb page-orb-left" />
       <div className="page-orb page-orb-right" />
       <header className="topbar">
-        <Link to="/" className="brandmark">
+        <HashLink to="/" className="brandmark">
           <img src={appIcon} alt="" className="brandmark-icon" />
           <span>
             <strong>VidChopper</strong>
             <small>Offline chapter export utility</small>
           </span>
-        </Link>
+        </HashLink>
         <nav className="topnav" aria-label="Primary">
           {navItems.map((item) => (
-            <Link
+            <HashLink
               key={item.to}
               to={item.to}
               className={`topnav-link ${isActive(item.to) ? "topnav-link-active" : ""}`}
             >
               {item.label}
-            </Link>
+            </HashLink>
           ))}
         </nav>
         <div className="topbar-actions">
@@ -71,7 +71,7 @@ export function Shell() {
           </a>
         </div>
       </header>
-      <Outlet />
+      {children}
       <footer className="site-footer">
         <div>
           <h3>VidChopper</h3>
@@ -80,8 +80,8 @@ export function Shell() {
           </p>
         </div>
         <div className="footer-links">
-          <Link to="/releases?section=changelog">Changelog</Link>
-          <Link to="/docs">Docs</Link>
+          <HashLink to="/releases?section=changelog">Changelog</HashLink>
+          <HashLink to="/docs">Docs</HashLink>
           <a href={repositoryUrl}>Repository</a>
           <a href={releaseZipUrl}>Latest ZIP</a>
         </div>
