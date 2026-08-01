@@ -1,0 +1,66 @@
+{
+  "skillContractVersion": 1,
+  "cliVersion": "0.3.0-beta",
+  "chapterFileSchemaVersion": 1,
+  "exportManifestSchemaVersion": 1,
+  "skillSha256": "ce09569177643987bc2233c7097c04fc780f03de379e96b53824cb725ec66451",
+  "skillArchiveSha256": "15d82b609af3491d7f776a14b0f08b3e59356330f3955953a5b0c08962ed17e3",
+  "chapterFileSchemaSha256": "dcfd06dc667f66a41916eb83e9b6db9d7aa5225266a44e6f662d5f9fff6379f2",
+  "sourceCommit": "08459f38c2502b1134e1284d28113ec25e20fe35",
+  "repositoryPath": ".agents/skills/vidchopper-cli/SKILL.md",
+  "stableUrl": "https://vidchopper.app/agents/vidchopper-cli/SKILL.md",
+  "versionedUrl": "https://vidchopper.app/agents/vidchopper-cli/v0.3.0-beta/SKILL.md",
+  "archiveUrl": "https://vidchopper.app/agents/vidchopper-cli/v0.3.0-beta/vidchopper-cli.zip",
+  "cliFlags": [
+    "--aggregate-csv",
+    "--aggregate-json",
+    "--cq",
+    "--crf",
+    "--dry-run",
+    "--embedded",
+    "--help",
+    "--preset",
+    "--stop-on-first-error",
+    "--threads",
+    "--use-gui-config",
+    "--version"
+  ],
+  "files": [
+    {
+      "path": "agents/openai.yaml",
+      "sha256": "a351def5d7deb3410333178dc16f8ce9414be28e1adb4687d5d87797d5f1f19e"
+    },
+    {
+      "path": "assets/chapter-config.example.json",
+      "sha256": "02c6d3e58863e32ab6f6b424f28c295daa7b1e9fe707cb9c49a121a0839647c1"
+    },
+    {
+      "path": "assets/chapter-config.example.yaml",
+      "sha256": "e1bfb8e29c4288b4835cd4e7a958207eee18e0a7ddf79932cecaf8db1269fa45"
+    },
+    {
+      "path": "assets/chapter-config.schema.json",
+      "sha256": "dcfd06dc667f66a41916eb83e9b6db9d7aa5225266a44e6f662d5f9fff6379f2"
+    },
+    {
+      "path": "assets/chapterbuilder-tns-2xko-36.json",
+      "sha256": "c64f2b03f46cb5235f6c21e9a9f147af137a122ff71aa81797db705cb2c229db"
+    },
+    {
+      "path": "references/chapterfile.md",
+      "sha256": "9a7ae9087bb14194f45c6985c0036ad2c83cc76e4177bd4f06fc6769e942bbf8"
+    },
+    {
+      "path": "references/cli.md",
+      "sha256": "c8d3c44f87ddc85b2cb963bb52c29ad81ad22506bcd9c2df1e1d0dff73fdcff8"
+    },
+    {
+      "path": "references/manifests.md",
+      "sha256": "677aca56df8af195546d15f50bae79971173ed5f2069a95a63eb8a681b711594"
+    },
+    {
+      "path": "SKILL.md",
+      "sha256": "ce09569177643987bc2233c7097c04fc780f03de379e96b53824cb725ec66451"
+    }
+  ]
+}

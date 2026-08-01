@@ -237,8 +237,9 @@ export function DocsPage() {
                   resources.
                 </li>
                 <li>
-                  The first-party agent skill remains reserved for VID-52 at{" "}
-                  <code>{agentSkillUrl}</code>.
+                  The first-party agent skill is staged at{" "}
+                  <a href={agentSkillUrl}>{agentSkillUrl}</a>; VID-55 owns
+                  production publication and live verification.
                 </li>
               </ul>
             </div>

@@ -1,0 +1,12 @@
+{
+  "$schema": "https://schemas.agentskills.io/discovery/0.2.0/schema.json",
+  "skills": [
+    {
+      "name": "vidchopper-cli",
+      "type": "archive",
+      "description": "Plan and export local chapter clips safely with VidChopperCLI.",
+      "url": "/agents/vidchopper-cli/v0.3.0-beta/vidchopper-cli.zip",
+      "digest": "sha256:15d82b609af3491d7f776a14b0f08b3e59356330f3955953a5b0c08962ed17e3"
+    }
+  ]
+}

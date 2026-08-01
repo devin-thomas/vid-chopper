@@ -24,6 +24,12 @@ export const docsLinks = [
     href: chapterFileSampleUrl,
   },
   {
+    title: "VidChopper CLI agent skill",
+    description:
+      "First-party local-media workflow with dry-run, collision confirmation, and manifest verification gates.",
+    href: agentSkillUrl,
+  },
+  {
     title: "Release metadata",
     description:
       "Version, source commit, package URL, size, checksum, and schema compatibility for v0.3.0-beta.",

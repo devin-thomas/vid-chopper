@@ -6,6 +6,16 @@ This portable zip contains the compiled VidChopper desktop app, the required Qt 
 The archive includes both `VidChopper.exe` and `VidChopperCLI.exe`. The CLI supports chapter planning, dry runs, exports, progress reporting, and JSON/CSV manifests.
 Run `VidChopperCLI.exe --version` to confirm the packaged release version.
 
+Agent skill
+-----------
+New archives assembled from this source include the first-party offline skill at
+`.agents\skills\vidchopper-cli\` plus `.agents\skills\vidchopper-cli.manifest.json`.
+The skill keeps media local, requires a dry-run, and asks before writing or overwriting clips.
+
+The already-published v0.3.0-beta archive predates this addition and does not contain the skill.
+Beta users of that historical archive use the verified repository or hosted copy and may cache it
+for offline work.
+
 Quick start
 -----------
 1. Extract the zip to any writable folder.

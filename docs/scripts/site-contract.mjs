@@ -189,14 +189,12 @@ function validateContract(contract) {
   if (contract.delivery.notFoundHandling !== "404-page") {
     fail("delivery.notFoundHandling must be 404-page");
   }
-  for (const key of [
-    "htmlRoutes",
-    "assets",
-    "deferredAssets",
-    "notFoundProbes",
-  ]) {
+  for (const key of ["htmlRoutes", "assets", "notFoundProbes"]) {
     if (!Array.isArray(contract[key]) || contract[key].length === 0)
       fail(`${key} must be a non-empty array`);
+  }
+  if (!Array.isArray(contract.deferredAssets)) {
+    fail("deferredAssets must be an array");
   }
 
   const urlOwners = new Map();

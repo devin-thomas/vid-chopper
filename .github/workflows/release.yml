@@ -31,6 +31,8 @@ jobs:
     steps:
       - name: Checkout candidate source
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Validate release metadata
         shell: pwsh
@@ -129,6 +131,8 @@ jobs:
     steps:
       - name: Checkout release tests and fixture
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Download exact release candidate
         uses: actions/download-artifact@v4
@@ -175,6 +179,8 @@ jobs:
     steps:
       - name: Checkout release notes
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Download proven release candidate
         uses: actions/download-artifact@v4
@@ -206,18 +212,23 @@ jobs:
           set -euo pipefail
           tag="v${VERSION}"
           asset_name="VidChopper-${VERSION}-windows-x64.zip"
+          checksum_name="${asset_name}.sha256"
           gh release view "$tag" --repo "$GITHUB_REPOSITORY" \
             --json tagName,isDraft,isPrerelease,url,assets > artifacts/release.json
-          jq -e --arg tag "$tag" --arg asset "$asset_name" '
+          jq -e --arg tag "$tag" --arg asset "$asset_name" --arg checksum "$checksum_name" '
             .tagName == $tag and
             .isDraft == false and
             .isPrerelease == true and
-            any(.assets[]; .name == $asset)
+            any(.assets[]; .name == $asset) and
+            any(.assets[]; .name == $checksum)
           ' artifacts/release.json >/dev/null
           mkdir -p artifacts/remote
           gh release download "$tag" --repo "$GITHUB_REPOSITORY" \
             --pattern "$asset_name" --dir artifacts/remote
-          expected="$(cut -d ' ' -f 1 "artifacts/candidate/${asset_name}.sha256")"
+          gh release download "$tag" --repo "$GITHUB_REPOSITORY" \
+            --pattern "$checksum_name" --dir artifacts/remote
+          cmp "artifacts/candidate/$checksum_name" "artifacts/remote/$checksum_name"
+          expected="$(cut -d ' ' -f 1 "artifacts/remote/$checksum_name")"
           actual="$(sha256sum "artifacts/remote/$asset_name" | cut -d ' ' -f 1)"
           test "$expected" = "$actual"
           cat artifacts/release.json

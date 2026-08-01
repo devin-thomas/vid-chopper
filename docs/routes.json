@@ -97,46 +97,48 @@
       "contentType": "application/json; charset=utf-8",
       "cache": "immutable",
       "sha256": "2ba20c1a13cf96cf8e991eac00410b0dcffdc46506ffa87f4b167e40bea32f26"
-    }
-  ],
-  "deferredAssets": [
+    },
     {
+      "source": ".agents/skills/vidchopper-cli/SKILL.md",
       "route": "/agents/vidchopper-cli/SKILL.md",
-      "owner": "VID-52",
       "contentType": "text/markdown; charset=utf-8",
       "cache": "stable"
     },
     {
+      "source": "packaging/releases/agent-skills/v0.3.0-beta/manifest.json",
       "route": "/agents/vidchopper-cli/manifest.json",
-      "owner": "VID-52",
       "contentType": "application/json; charset=utf-8",
       "cache": "stable"
     },
     {
+      "source": "packaging/releases/agent-skills/v0.3.0-beta/SKILL.md",
       "route": "/agents/vidchopper-cli/v0.3.0-beta/SKILL.md",
-      "owner": "VID-52",
       "contentType": "text/markdown; charset=utf-8",
-      "cache": "immutable"
+      "cache": "immutable",
+      "sha256": "ce09569177643987bc2233c7097c04fc780f03de379e96b53824cb725ec66451"
     },
     {
+      "source": "packaging/releases/agent-skills/v0.3.0-beta/manifest.json",
       "route": "/agents/vidchopper-cli/v0.3.0-beta/manifest.json",
-      "owner": "VID-52",
       "contentType": "application/json; charset=utf-8",
-      "cache": "immutable"
+      "cache": "immutable",
+      "sha256": "3787d9d3c2467680b62b16ef2e2c415a8d119a585e238daa9ab950bd43ea9b73"
     },
     {
+      "source": "packaging/releases/agent-skills/v0.3.0-beta/vidchopper-cli.zip",
       "route": "/agents/vidchopper-cli/v0.3.0-beta/vidchopper-cli.zip",
-      "owner": "VID-52",
       "contentType": "application/zip",
-      "cache": "immutable"
+      "cache": "immutable",
+      "sha256": "15d82b609af3491d7f776a14b0f08b3e59356330f3955953a5b0c08962ed17e3"
     },
     {
+      "source": "packaging/releases/agent-skills/v0.3.0-beta/index.json",
       "route": "/.well-known/agent-skills/index.json",
-      "owner": "VID-52",
       "contentType": "application/json; charset=utf-8",
       "cache": "stable"
     }
   ],
+  "deferredAssets": [],
   "notFoundProbes": [
     "/not-a-real-page",
     "/.git/config",
@@ -144,6 +146,9 @@
     "/node_modules/vite/package.json",
     "/schemas/chapter-config/v2/schema.json",
     "/samples/not-a-real-sample.json",
-    "/agents/not-a-real-skill/SKILL.md"
+    "/agents/not-a-real-skill/SKILL.md",
+    "/agents/vidchopper-cli/v0.3.1/SKILL.md",
+    "/agents/vidchopper-cli/v0.3.0-beta/not-a-real-resource.md",
+    "/.well-known/agent-skills/not-a-real-index.json"
   ]
 }

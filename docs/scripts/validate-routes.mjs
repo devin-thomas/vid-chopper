@@ -1,7 +1,9 @@
+import { execFile } from "node:child_process";
 import { createHash } from "node:crypto";
 import { createServer } from "node:http";
 import { readFile, stat } from "node:fs/promises";
 import path from "node:path";
+import { promisify } from "node:util";
 import {
   assetPath,
   assetsIgnoreText,
@@ -14,6 +16,8 @@ import {
   repositoryRoot,
   routes,
 } from "./site-contract.mjs";
+
+const execFileAsync = promisify(execFile);
 
 const argumentsList = process.argv.slice(2);
 const pagesMode = isPagesMode(argumentsList);
@@ -706,6 +710,7 @@ try {
     "export const docsUrl = `${siteUrl}/docs`;",
     "export const chapterFileSchemaUrl = `${siteUrl}/schemas/chapter-config/v1/schema.json`;",
     "export const chapterFileSampleUrl = `${siteUrl}/samples/chapter-config/v1/chapter-config.json`;",
+    "export const agentSkillUrl = `${siteUrl}/agents/vidchopper-cli/SKILL.md`;",
     `export const releaseMetadataUrl = \`\${siteUrl}/releases/v${packageMetadata.version}/manifest.json\`;`,
   ];
   for (const expected of expectedSiteConstants) {
@@ -793,6 +798,131 @@ try {
       JSON.stringify([...flagArity.keys()].sort()),
     `Frozen ${packageMetadata.version} flag contract drifted from cli_arguments.cpp.`,
   );
+
+  const stableSkillRoute = "/agents/vidchopper-cli/SKILL.md";
+  const stableSkillManifestRoute = "/agents/vidchopper-cli/manifest.json";
+  const versionedSkillRoute =
+    `/agents/vidchopper-cli/v${packageMetadata.version}/SKILL.md`;
+  const versionedSkillManifestRoute =
+    `/agents/vidchopper-cli/v${packageMetadata.version}/manifest.json`;
+  const skillArchiveRoute =
+    `/agents/vidchopper-cli/v${packageMetadata.version}/vidchopper-cli.zip`;
+  const skillIndexRoute = "/.well-known/agent-skills/index.json";
+  for (const route of [
+    stableSkillRoute,
+    stableSkillManifestRoute,
+    versionedSkillRoute,
+    versionedSkillManifestRoute,
+    skillArchiveRoute,
+    skillIndexRoute,
+  ]) {
+    assert(observedAssets.has(route), `Agent skill route is missing: ${route}`);
+  }
+  assert(
+    Buffer.compare(
+      observedAssets.get(stableSkillRoute),
+      observedAssets.get(versionedSkillRoute),
+    ) === 0,
+    "Stable and versioned agent skill bytes must be identical.",
+  );
+  assert(
+    Buffer.compare(
+      observedAssets.get(stableSkillManifestRoute),
+      observedAssets.get(versionedSkillManifestRoute),
+    ) === 0,
+    "Stable and versioned agent skill manifests must be byte-identical aliases.",
+  );
+
+  const skillBytes = observedAssets.get(versionedSkillRoute);
+  const skillArchiveBytes = observedAssets.get(skillArchiveRoute);
+  const skillManifest = JSON.parse(
+    new TextDecoder().decode(observedAssets.get(versionedSkillManifestRoute)),
+  );
+  assert(
+    skillManifest.skillContractVersion === 1 &&
+      skillManifest.cliVersion === packageMetadata.version &&
+      skillManifest.chapterFileSchemaVersion === schemaVersion &&
+      skillManifest.exportManifestSchemaVersion === 1,
+    "Agent skill compatibility tuple drifted.",
+  );
+  assert(
+    skillManifest.skillSha256 === sha256(skillBytes),
+    "Agent skill manifest SKILL.md digest drifted.",
+  );
+  assert(
+    skillManifest.skillArchiveSha256 === sha256(skillArchiveBytes),
+    "Agent skill manifest archive digest drifted.",
+  );
+  assert(
+    skillManifest.chapterFileSchemaSha256 ===
+      sha256(observedAssets.get(versionedSchemaRoute)),
+    "Agent skill manifest ChapterFile schema digest drifted.",
+  );
+  assert(
+    skillManifest.repositoryPath ===
+      ".agents/skills/vidchopper-cli/SKILL.md" &&
+      /^[a-f0-9]{40}$/.test(skillManifest.sourceCommit),
+    "Agent skill source identity drifted.",
+  );
+  assert(
+    skillManifest.stableUrl ===
+      new URL(stableSkillRoute, routes.canonicalOrigin).href &&
+      skillManifest.versionedUrl ===
+        new URL(versionedSkillRoute, routes.canonicalOrigin).href &&
+      skillManifest.archiveUrl ===
+        new URL(skillArchiveRoute, routes.canonicalOrigin).href,
+    "Agent skill manifest URLs drifted.",
+  );
+  assert(
+    JSON.stringify([...skillManifest.cliFlags].sort()) ===
+      JSON.stringify([...releasedFlags].sort()),
+    "Agent skill manifest flags drifted from the released CLI.",
+  );
+
+  const { stdout: sourceSkillBytes } = await execFileAsync(
+    "git",
+    [
+      "-C",
+      repositoryRoot,
+      "show",
+      `${skillManifest.sourceCommit}:${skillManifest.repositoryPath}`,
+    ],
+    { encoding: "buffer", maxBuffer: 2 * 1024 * 1024, windowsHide: true },
+  );
+  assert(
+    Buffer.compare(skillBytes, sourceSkillBytes) === 0,
+    "Agent skill sourceCommit does not resolve to the published SKILL.md bytes.",
+  );
+
+  const skillIndex = JSON.parse(
+    new TextDecoder().decode(observedAssets.get(skillIndexRoute)),
+  );
+  const skillIndexEntry = skillIndex.skills?.[0];
+  assert(
+    skillIndex.$schema ===
+      "https://schemas.agentskills.io/discovery/0.2.0/schema.json" &&
+      skillIndex.skills?.length === 1 &&
+      skillIndexEntry?.name === "vidchopper-cli" &&
+      skillIndexEntry?.type === "archive" &&
+      skillIndexEntry?.url === skillArchiveRoute &&
+      skillIndexEntry?.digest ===
+        `sha256:${skillManifest.skillArchiveSha256}`,
+    "Agent skill discovery index drifted.",
+  );
+
+  const skillText = new TextDecoder().decode(skillBytes);
+  for (const required of [
+    "name: vidchopper-cli",
+    'vidchopper.skill-contract-version: "1"',
+    "Planned chapters: N",
+    "Existing output: yes",
+    "Immediately before export",
+  ]) {
+    assert(
+      skillText.includes(required),
+      `Published agent skill safety contract drifted: ${required}`,
+    );
+  }
 
   const commandBlocks = [...siteSource.matchAll(/command: `([^`]*)`/gs)].map(
     (match) => match[1],
