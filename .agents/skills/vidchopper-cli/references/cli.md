@@ -70,7 +70,7 @@ aggregate flags add run-level manifests; their writes are atomic and failures ma
 Inventory the whole directory before deciding the mode. Supported modes are:
 
 - N:1: a source directory plus one shared ChapterFile;
-- N:N: a source directory plus ChapterFile directory, paired by exact stem; or
+- N:N: a source directory plus ChapterFile directory, paired by case-insensitive exact stem; or
 - embedded: a source file/directory plus `--embedded`.
 
 Supported source extensions are `.mp4`, `.mkv`, and `.mov`. Supported ChapterFile extensions are
@@ -84,7 +84,7 @@ those skips explicitly.
 | ---: | --- | --- |
 | `0` | Successful command | Verify planned files and manifests before success. |
 | `1` | Usage, path, ChapterFile, or plan validation failure | Preserve the error, correct only approved input, and dry-run again. |
-| `2` | ffmpeg/export or manifest failure | Withhold overall success and inventory preserved successful clips. |
+| `2` | Dry-run path inspection, ffmpeg/export, or manifest failure | Withhold overall success and inventory preserved successful clips. |
 | `3` | ffprobe failure or ffmpeg failed start | Report tool, source, process state, exit detail, timeout/crash context. |
 
 Preserve bounded stderr and the numeric exit. Distinguish failed start, timeout, crash, and nonzero

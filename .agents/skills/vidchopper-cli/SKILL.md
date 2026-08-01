@@ -127,7 +127,8 @@ the final report. Do not delete partial outputs or retry writes without a new de
 
 - Exit `0`: verify files and manifests before reporting success.
 - Exit `1`: report the usage or validation error; change only user-approved paths/config, then dry-run.
-- Exit `2`: withhold overall success; verify and report individually preserved clips and manifest errors.
+- Exit `2`: withhold overall success; report dry-run path-inspection errors or verify individually
+  preserved clips and manifest errors.
 - Exit `3`: report the executable, source, process state, and bounded ffprobe/ffmpeg-start error.
 
 Never hide a nonzero exit behind partial success. A manifest-write failure may leave valid clips; keep

@@ -18,17 +18,18 @@ Use `../assets/chapter-config.schema.json` offline. The canonical immutable rout
 `https://vidchopper.app/schemas/chapter-config/v1/schema.json`, but the CLI does not fetch `$schema`.
 Never let a missing or mismatched network copy replace the bundled schema.
 
-Require at least one chapter and reject unknown fields. Validate:
+Require 1 to 255 chapters and reject unknown fields. Validate:
 
 - optional top-level `version` equals `1`;
-- `chapters[].name` is non-empty;
+- `chapters[].name` is non-empty and every chapter lasts at least one second;
 - every `start` is earlier than its `end`;
 - chapters are ordered and non-overlapping;
 - timestamps use `MM:SS`, `MM:SS.mmm`, `HH:MM:SS`, `HH:MM:SS.mmm`, or non-negative milliseconds;
 - minutes and seconds are `0..59`, with one to three fractional digits;
 - the final end does not exceed the probed source duration;
 - `crf`/`cq` are `0..51` and `threads` is `0..255`; and
-- output placeholders are supported and resolve to safe sibling paths.
+- `output.folder` uses only `%source%`, while `output.namingPattern` uses only `%index%`, `%name%`,
+  and `%source%`; the beta CLI sanitizes but does not reject unknown placeholders.
 
 Validate structure with the schema and timeline rules with the CLI dry-run. A `$schema` value is an
 editor hint and provenance; it is not proof that validation happened.
