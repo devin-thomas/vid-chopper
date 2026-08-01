@@ -1,10 +1,24 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import appIcon from "../assets/app-icon.png";
+import { Icon } from "../components/icon";
 import { docsGuideposts, docsLinks, docsQuickLinks, repositoryUrl } from "../content/site";
+import { HashLink, useHashSearchParams } from "../router";
+
+function guidepostId(title: string) {
+  return title.toLowerCase().replaceAll(" ", "-");
+}
 
 export function DocsPage() {
   const [query, setQuery] = useState("");
+  const routeSearchParams = useHashSearchParams();
+  const activeGuidepost = routeSearchParams.get("section");
   const lowered = query.trim().toLowerCase();
+
+  useEffect(() => {
+    if (activeGuidepost !== null) {
+      document.getElementById(activeGuidepost)?.scrollIntoView({ block: "start", behavior: "smooth" });
+    }
+  }, [activeGuidepost]);
 
   const filteredLinks = docsLinks.filter((link) =>
     lowered.length === 0
@@ -41,9 +55,13 @@ export function DocsPage() {
           <div className="docs-sidebar-section">
             <span>Guideposts</span>
             {docsGuideposts.map((section) => (
-              <a key={section.title} href={`#${section.title.toLowerCase().replaceAll(" ", "-")}`}>
+              <HashLink
+                key={section.title}
+                to={`/docs?section=${guidepostId(section.title)}`}
+                aria-current={activeGuidepost === guidepostId(section.title) ? "location" : undefined}
+              >
                 {section.title}
-              </a>
+              </HashLink>
             ))}
           </div>
           <div className="docs-sidebar-section">
@@ -69,7 +87,7 @@ export function DocsPage() {
                   Open knowledge base
                 </a>
                 <a className="cta-secondary" href={repositoryUrl}>
-                  View repository
+                  <Icon name="github" /> View repository
                 </a>
               </div>
             </div>
@@ -92,7 +110,7 @@ export function DocsPage() {
             {filteredGuideposts.map((section) => (
               <article
                 key={section.title}
-                id={section.title.toLowerCase().replaceAll(" ", "-")}
+                id={guidepostId(section.title)}
                 className="guide-card"
               >
                 <h2>{section.title}</h2>
@@ -122,7 +140,12 @@ export function DocsPage() {
             <ul>
               {docsGuideposts.map((section) => (
                 <li key={section.title}>
-                  <a href={`#${section.title.toLowerCase().replaceAll(" ", "-")}`}>{section.title}</a>
+                  <HashLink
+                    to={`/docs?section=${guidepostId(section.title)}`}
+                    aria-current={activeGuidepost === guidepostId(section.title) ? "location" : undefined}
+                  >
+                    {section.title}
+                  </HashLink>
                 </li>
               ))}
             </ul>

@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import appIcon from "../assets/app-icon.png";
 import releaseShot from "../assets/vidchopper-real-export.png";
+import { Icon } from "../components/icon";
 import { HashLink, useHashSearchParams } from "../router";
 import {
   changelogEntries,
@@ -35,7 +36,7 @@ export function ReleasePage() {
           </p>
           <div className="hero-actions">
             <a className="cta-primary" href={releaseZipUrl}>
-              Download {releaseVersion} ZIP
+              <Icon name="download" /> Download {releaseVersion} ZIP
             </a>
             <HashLink className="cta-secondary" to="/docs">
               Read docs first
@@ -132,7 +133,7 @@ export function ReleasePage() {
             ))}
           </div>
           <a className="ghost-link" href={releasesUrl}>
-            Open GitHub releases
+            <Icon name="github" /> Open GitHub releases
           </a>
         </div>
       </section>
