@@ -40,9 +40,24 @@ jobs:
               - 'tools/**'
               - 'vcpkg.json'
             docs:
+              - '.gitattributes'
+              - '.agents/skills/vidchopper-cli/**'
               - '.github/workflows/ci.yml'
+              - '.github/workflows/pages.yml'
+              - 'CMakeLists.txt'
               - 'README.md'
               - 'docs/**'
+              - 'examples/chapter-config.json'
+              - 'examples/chapter-config.yaml'
+              - 'examples/chapter-config/**'
+              - 'knowledge/operations/pages-rewrite-brief.md'
+              - 'knowledge/operations/publishing-and-workflows.md'
+              - 'knowledge/skills/vidchopper-cli-agent-skill-design.md'
+              - 'packaging/releases/**'
+              - 'packaging/windows/README.txt'
+              - 'src/cli/cli_arguments.cpp'
+              - 'tools/verification-common.ps1'
+              - 'tools/verify.ps1'
 
   lint:
     needs: changes

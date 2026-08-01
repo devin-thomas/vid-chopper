@@ -1,7 +1,13 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import routeContract from "../../routes.json";
 import appIcon from "../assets/app-icon.png";
-import { releaseZipUrl, repositoryUrl } from "../content/site";
-import { HashLink, useHashLocation } from "../router";
+import {
+  docsUrl,
+  releaseZipUrl,
+  repositoryUrl,
+  siteUrl,
+} from "../content/site";
+import { legacyPagesBuild, SiteLink, useSiteLocation } from "../router";
 import { Icon } from "./icon";
 
 const navItems = [
@@ -11,10 +17,13 @@ const navItems = [
   { label: "Releases", to: "/releases" },
 ] as const;
 
+const routeTitles = new Map(Object.entries(routeContract.htmlTitles));
+
 export function Shell({ children }: { children: ReactNode }) {
-  const location = useHashLocation();
+  const location = useSiteLocation();
   const [menuOpen, setMenuOpen] = useState(false);
   const section = new URLSearchParams(location.search).get("section");
+  const previousRoute = useRef(`${location.pathname}${location.search}`);
 
   useEffect(() => {
     setMenuOpen(false);
@@ -23,9 +32,52 @@ export function Shell({ children }: { children: ReactNode }) {
     }
   }, [location.pathname, section]);
 
+  useEffect(() => {
+    const featuresView = location.pathname === "/" && section === "features";
+    const titleRoute = featuresView ? "/features" : location.pathname;
+    const title =
+      routeTitles.get(titleRoute) ?? "Page not found | VidChopper";
+    const canonicalPath = featuresView
+      ? "/?section=features"
+      : location.pathname;
+    const canonicalUrl = new URL(canonicalPath, siteUrl).href;
+    document.title = title;
+    document
+      .querySelector<HTMLLinkElement>('link[rel="canonical"]')
+      ?.setAttribute("href", canonicalUrl);
+    document
+      .querySelector<HTMLMetaElement>('meta[property="og:title"]')
+      ?.setAttribute("content", title);
+    document
+      .querySelector<HTMLMetaElement>('meta[property="og:url"]')
+      ?.setAttribute("content", canonicalUrl);
+  }, [location.pathname, section]);
+
+  useEffect(() => {
+    const route = `${location.pathname}${location.search}`;
+    if (previousRoute.current === route) return;
+    previousRoute.current = route;
+
+    const frame = window.requestAnimationFrame(() => {
+      const target =
+        document.querySelector<HTMLElement>("[data-route-focus]") ??
+        document.querySelector<HTMLElement>("main");
+      if (target === null) return;
+      if (!target.hasAttribute("tabindex")) {
+        target.setAttribute("tabindex", "-1");
+      }
+      target.focus({ preventScroll: true });
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [location.pathname, location.search]);
+
   const isActive = (to: string) => {
     if (to === "/") {
-      return location.pathname === "/" && (section === null || section === "overview");
+      return (
+        location.pathname === "/" &&
+        (section === null || section === "overview")
+      );
     }
     if (to === "/?section=features") {
       return location.pathname === "/" && section === "features";
@@ -33,19 +85,24 @@ export function Shell({ children }: { children: ReactNode }) {
     if (to === "/releases") {
       return location.pathname === "/releases";
     }
+    if (to === "/docs") {
+      return (
+        location.pathname === "/docs" || location.pathname.startsWith("/docs/")
+      );
+    }
     return location.pathname === to;
   };
 
   return (
     <div className="site-shell">
       <header className="topbar">
-        <HashLink to="/" className="brandmark">
+        <SiteLink to="/" className="brandmark">
           <img src={appIcon} alt="" className="brandmark-icon" />
           <span>
             <strong>VidChopper</strong>
             <small>Offline chapter export utility</small>
           </span>
-        </HashLink>
+        </SiteLink>
         <button
           className="menu-toggle"
           type="button"
@@ -62,7 +119,7 @@ export function Shell({ children }: { children: ReactNode }) {
           aria-label="Primary"
         >
           {navItems.map((item) => (
-            <HashLink
+            <SiteLink
               key={item.to}
               to={item.to}
               className={`topnav-link ${isActive(item.to) ? "topnav-link-active" : ""}`}
@@ -70,7 +127,7 @@ export function Shell({ children }: { children: ReactNode }) {
               onClick={() => setMenuOpen(false)}
             >
               {item.label}
-            </HashLink>
+            </SiteLink>
           ))}
         </nav>
         <div className="topbar-actions">
@@ -79,17 +136,24 @@ export function Shell({ children }: { children: ReactNode }) {
           </a>
         </div>
       </header>
+      {legacyPagesBuild ? (
+        <aside className="legacy-site-notice" aria-label="Legacy site notice">
+          GitHub Pages is the legacy mirror. The canonical documentation home is{" "}
+          <a href={docsUrl}>{docsUrl}</a>.
+        </aside>
+      ) : null}
       {children}
       <footer className="site-footer">
         <div>
           <h3>VidChopper</h3>
           <p>
-            Windows-first desktop tooling for turning one source video into precise chapter clips with ffmpeg.
+            Windows-first desktop tooling for turning one source video into
+            precise chapter clips with ffmpeg.
           </p>
         </div>
         <div className="footer-links">
-          <HashLink to="/releases?section=changelog">Changelog</HashLink>
-          <HashLink to="/docs">Docs</HashLink>
+          <SiteLink to="/releases?section=changelog">Changelog</SiteLink>
+          <SiteLink to="/docs">Docs</SiteLink>
           <a href={repositoryUrl}>
             <Icon name="github" /> Repository
           </a>
