@@ -30,6 +30,7 @@ reconstructing the codebase from scratch.
 - [`knowledge/operations/agent-workflow.md`](operations/agent-workflow.md)
 - [`knowledge/operations/pages-rewrite-brief.md`](operations/pages-rewrite-brief.md)
 - [`knowledge/skills/installed-skills-and-plugins.md`](skills/installed-skills-and-plugins.md)
+- [`knowledge/skills/vidchopper-cli-agent-skill-design.md`](skills/vidchopper-cli-agent-skill-design.md)
 
 ## Directory Map
 
@@ -42,7 +43,8 @@ reconstructing the codebase from scratch.
 - `operations/`
   - Session workflow, publishing rules, release/Pages behavior, and the Pages brief.
 - `skills/`
-  - Installed-skill inventory, plugin notes, and skill-install recovery guidance.
+  - Installed-skill inventory, plugin notes, skill-install recovery guidance, and the VID-48
+    VidChopper CLI agent-skill design and downstream contract.
 
 ## Maintenance Rules
 
