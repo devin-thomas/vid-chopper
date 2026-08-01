@@ -1,6 +1,7 @@
 #include "cli/export_runner.hpp"
 
 #include <filesystem>
+#include <format>
 #include <system_error>
 #include <utility>
 
@@ -25,6 +26,33 @@ auto record_failure(ExportRunResult& result, const ProcessExitState state) -> vo
         .stdout_limit_bytes = options.stdout_limit_bytes,
         .stderr_limit_bytes = options.stderr_limit_bytes,
     };
+}
+
+[[nodiscard]] auto bounded_detail(const ProcessResult& process, const size_t limit) -> std::string {
+    std::string detail = process.error_message.empty() ? process.standard_error : process.error_message;
+    if (detail.size() > limit) {
+        detail.resize(limit);
+        detail += "... [truncated]";
+    }
+    return detail;
+}
+
+auto add_failure_context(ProcessResult& process,
+    const ResolvedExportJob& job,
+    const PlannedExportSegment& segment,
+    const size_t detail_limit) -> void {
+    const std::string detail = bounded_detail(process, detail_limit);
+    process.error_message = std::format("ffmpeg executable '{}' failed for source '{}', chapter {}, output '{}' ({}, "
+                                        "exit code {})",
+        segment.command.front(),
+        job.metadata.source_path.string(),
+        segment.chapter_index + 1,
+        segment.output_path.string(),
+        process_exit_state_name(process.state),
+        process.exit_code);
+    if (!detail.empty()) {
+        process.error_message += ": " + detail;
+    }
 }
 
 } // namespace
@@ -144,6 +172,7 @@ auto ExportRunner::run(
             const bool succeeded = process.ok();
             if (!succeeded) {
                 record_failure(result, process.state);
+                add_failure_context(process, job, segment, options.stderr_limit_bytes);
             }
 
             job_result.segments.push_back(RenderedSegment {

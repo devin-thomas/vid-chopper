@@ -4,10 +4,10 @@
 #include "qt/services/ffprobe_service.hpp"
 
 #include <QDir>
-#include <QFile>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QSaveFile>
 #include <QTextStream>
 
 #include <cstddef>
@@ -187,18 +187,18 @@ auto ExportCoordinator::handle_process_finished(const int exit_code, const QProc
     }
 
     if (settings_.verify_output_durations) {
-        const auto actual_duration = FfprobeService::probe_duration_ms(
+        const DurationProbeResult duration_probe = FfprobeService::probe_duration_ms(
             QString::fromStdString(settings_.ffprobe_path), exports_[current_index_].output_file);
 
-        if (!actual_duration.has_value()) {
-            handle_failure(
-                QStringLiteral("ffprobe could not verify %1 after export.").arg(exports_[current_index_].output_file));
+        if (!duration_probe.ok()) {
+            handle_failure(duration_probe.error_message);
             return;
         }
 
         const auto expected_duration = exports_[current_index_].duration_ms;
-        const auto delta = expected_duration > *actual_duration ? expected_duration - *actual_duration
-                                                                : *actual_duration - expected_duration;
+        const auto actual_duration = *duration_probe.duration_ms;
+        const auto delta = expected_duration > actual_duration ? expected_duration - actual_duration
+                                                               : actual_duration - expected_duration;
         if (delta > 1000) {
             handle_failure(
                 QStringLiteral("Duration verification failed for %1.").arg(exports_[current_index_].output_file));
@@ -247,31 +247,37 @@ auto ExportCoordinator::write_manifests() -> void {
         };
 
         const auto json_path = QString::fromStdWString((output_directory_ / "vidchopper-manifest.json").wstring());
-        auto file = QFile(json_path);
-        if (file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
-            file.write(QJsonDocument(root).toJson(QJsonDocument::Indented));
-        } else {
-            emit log_message(
-                LogCategory::Error, QStringLiteral("Could not write JSON manifest: %1").arg(file.errorString()));
+        auto file = QSaveFile {json_path};
+        const QByteArray content = QJsonDocument(root).toJson(QJsonDocument::Indented);
+        if (!file.open(QIODevice::WriteOnly) || file.write(content) != content.size() || !file.commit()) {
+            const auto message =
+                QStringLiteral("Could not completely write JSON manifest '%1': %2").arg(json_path, file.errorString());
+            emit log_message(LogCategory::Error, message);
+            errors_.push_back(message);
         }
     }
 
     if (settings_.write_csv_manifest) {
         const auto csv_path = QString::fromStdWString((output_directory_ / "vidchopper-manifest.csv").wstring());
-        auto file = QFile(csv_path);
-        if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text)) {
-            emit log_message(
-                LogCategory::Error, QStringLiteral("Could not write CSV manifest: %1").arg(file.errorString()));
-            return;
-        }
-
-        auto stream = QTextStream(&file);
+        auto content = QByteArray {};
+        auto stream = QTextStream {&content};
         stream << "index,name,start_ms,end_ms,output_file\n";
         for (const auto& item : exports_) {
             stream << (item.chapter_index + 1) << ",\""
                    << QString {QString::fromStdString(item.chapter.name)}.replace('"', '\'') << "\""
                    << "," << item.chapter.start_ms << "," << item.chapter.end_ms << ",\""
                    << QString {item.output_file}.replace('"', '\'') << "\"\n";
+        }
+        stream.flush();
+
+        auto file = QSaveFile {csv_path};
+        if (stream.status() != QTextStream::Ok || !file.open(QIODevice::WriteOnly | QIODevice::Text)
+            || file.write(content) != content.size() || !file.commit()) {
+            const auto message =
+                QStringLiteral("Could not completely write CSV manifest '%1': %2").arg(csv_path, file.errorString());
+            emit log_message(LogCategory::Error, message);
+            errors_.push_back(message);
+            return;
         }
     }
 }

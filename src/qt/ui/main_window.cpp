@@ -2,6 +2,7 @@
 
 #include "core/chapter_plan.hpp"
 #include "core/command_builder.hpp"
+#include "core/ready_marker.hpp"
 #include "core/timecode.hpp"
 #include "qt/app_settings.hpp"
 #include "qt/services/export_coordinator.hpp"
@@ -14,9 +15,9 @@
 #include <QApplication>
 #include <QCheckBox>
 #include <QCloseEvent>
+#include <QCoreApplication>
 #include <QDir>
 #include <QDesktopServices>
-#include <QFile>
 #include <QFileDialog>
 #include <QFont>
 #include <QFontMetrics>
@@ -39,7 +40,6 @@
 #include <QScrollBar>
 #include <QStatusBar>
 #include <QTableView>
-#include <QTextStream>
 #include <QTimer>
 #include <QToolButton>
 #include <QUrl>
@@ -751,7 +751,11 @@ auto MainWindow::activate_demo_scene() -> void {
     }
 
     const auto status = success ? QStringLiteral("ready") : QStringLiteral("error");
-    QTimer::singleShot(0, this, [this, status]() { write_demo_ready_file(status); });
+    QTimer::singleShot(0, this, [this, status]() {
+        if (!write_demo_ready_file(status)) {
+            QCoreApplication::exit(2);
+        }
+    });
 }
 
 auto MainWindow::seed_workspace_demo(const bool show_logs) -> bool {
@@ -765,7 +769,14 @@ auto MainWindow::seed_workspace_demo(const bool show_logs) -> bool {
     chapter_count_spin_->setValue(chapter_model_->chapter_count());
 
     const auto output_directory = demo_options_.demo_source.parent_path() / "captures";
-    std::filesystem::create_directories(output_directory);
+    auto directory_error = std::error_code {};
+    std::filesystem::create_directories(output_directory, directory_error);
+    if (directory_error) {
+        append_log_message(LogCategory::Error,
+            QStringLiteral("Could not create demo output directory '%1': %2")
+                .arg(display_path(output_directory), QString::fromStdString(directory_error.message())));
+        return false;
+    }
     set_output_directory_path(output_directory, true);
 
     select_demo_chapter_row(3);
@@ -809,21 +820,18 @@ auto MainWindow::select_demo_chapter_row(const int row) -> void {
     chapter_table_->scrollTo(chapter_model_->index(row, 0), QAbstractItemView::PositionAtCenter);
 }
 
-auto MainWindow::write_demo_ready_file(const QString& status) const -> void {
+auto MainWindow::write_demo_ready_file(const QString& status) -> bool {
     if (demo_options_.demo_ready_file.empty()) {
-        return;
+        return true;
     }
 
-    const auto ready_path = demo_options_.demo_ready_file;
-    std::filesystem::create_directories(ready_path.parent_path());
-
-    auto file = QFile {QString::fromStdWString(ready_path.wstring())};
-    if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text)) {
-        return;
+    const auto result = write_ready_marker(demo_options_.demo_ready_file, status.toStdString());
+    if (!result.ok()) {
+        append_log_message(LogCategory::Error, QString::fromStdString(result.error_message));
+        statusBar()->showMessage("Demo automation marker could not be written");
+        return false;
     }
-
-    auto stream = QTextStream {&file};
-    stream << status << '\n';
+    return true;
 }
 
 auto MainWindow::confirm_exit() -> bool {

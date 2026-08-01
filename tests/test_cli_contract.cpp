@@ -222,6 +222,35 @@ auto main() -> int {
         "invalid invocation should explain the parse failure");
     test_support::expect_true(contains(invalid.error_output, "Usage:"), "invalid invocation should print usage");
 
+    const ProcessExecutor missing_probe_executor = [](const ProcessRequest&) -> ProcessResult {
+        return ProcessResult {.state = ProcessExitState::FailedStart, .error_message = "not found"};
+    };
+    const CliRunSnapshot missing_probe =
+        run_with({input_path, json_config_path}, executable_path, missing_probe_executor);
+    test_support::expect_eq(
+        missing_probe.exit_code, CliExitCode::ToolingError, "missing ffprobe should use tooling exit code 3");
+    test_support::expect_true(
+        contains(missing_probe.error_output, "failed start"), "missing ffprobe should be distinguished from a timeout");
+
+    auto export_failure_call = size_t {0};
+    const ProcessExecutor export_failure_executor = [&export_failure_call](const ProcessRequest& request) {
+        ++export_failure_call;
+        if (export_failure_call == 1) {
+            return probe_with_chapters(request);
+        }
+        return ProcessResult {
+            .state = ProcessExitState::NonzeroExit,
+            .exit_code = 9,
+            .standard_error = "encoder rejected input",
+        };
+    };
+    const CliRunSnapshot export_failure =
+        run_with({input_path, json_config_path}, executable_path, export_failure_executor);
+    test_support::expect_eq(
+        export_failure.exit_code, CliExitCode::ExportFailure, "nonzero ffmpeg should use export exit code 2");
+    test_support::expect_true(
+        contains(export_failure.error_output, "exit code 9"), "ffmpeg failure should retain the process exit code");
+
     const CliRunSnapshot help = run_with({"--help"}, executable_path);
     test_support::expect_eq(help.exit_code, CliExitCode::Success, "help should succeed");
     test_support::expect_true(

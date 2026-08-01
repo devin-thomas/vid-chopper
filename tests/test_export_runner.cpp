@@ -140,6 +140,13 @@ auto main() -> int {
     test_support::expect_eq(continued.jobs.front().segments[1].process.standard_error,
         std::string {"bounded diagnostic"},
         "bounded ffmpeg diagnostics should be retained");
+    test_support::expect_true(
+        continued.jobs.front().segments[1].process.error_message.find("exit code 7") != std::string::npos,
+        "nonzero ffmpeg failure should include its exit code");
+    test_support::expect_true(
+        continued.jobs.front().segments[1].process.error_message.find(successful_job.metadata.source_path.string())
+            != std::string::npos,
+        "nonzero ffmpeg failure should include the source path");
 
     auto stop_call = size_t {0};
     const auto stop_executor = [&stop_call](const ProcessRequest&) -> ProcessResult {
@@ -175,6 +182,13 @@ auto main() -> int {
         missing.exit_code, ExportExitCode::ToolingError, "missing ffmpeg should map to tooling exit code 3");
     test_support::expect_eq(
         missing.jobs.front().segments.size(), size_t {3}, "missing tool failures should remain explicit per chapter");
+    test_support::expect_true(
+        missing.jobs.front().segments.front().process.error_message.find(R"(C:\Program Files\ffmpeg\ffmpeg.exe)")
+            != std::string::npos,
+        "missing-tool failure should identify the executable path");
+    test_support::expect_true(
+        missing.jobs.front().segments.front().process.error_message.find("failed start") != std::string::npos,
+        "missing-tool failure should not be reported as a timeout");
 
     std::filesystem::remove_all(root);
     return 0;

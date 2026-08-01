@@ -19,11 +19,21 @@ namespace {
 
 using Json = nlohmann::json;
 
+[[nodiscard]] auto bounded_context(std::string context) -> std::string {
+    constexpr auto maximum_bytes = size_t {4096};
+    if (context.size() > maximum_bytes) {
+        context.resize(maximum_bytes);
+        context += "... [truncated]";
+    }
+    return context;
+}
+
 [[nodiscard]] auto failure(const Path& executable,
     const Path& source_path,
     ProcessResult process,
     const std::string_view detail) -> FfprobeResult {
-    const std::string context = process.standard_error.empty() ? process.error_message : process.standard_error;
+    const std::string context =
+        bounded_context(process.standard_error.empty() ? process.error_message : process.standard_error);
     auto message = std::format("ffprobe executable '{}' failed for source '{}' ({})",
         executable.string(),
         source_path.string(),

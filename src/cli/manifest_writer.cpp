@@ -92,24 +92,53 @@ using Json = nlohmann::json;
 }
 
 auto atomic_write(const Path& target, const std::string& text, std::vector<std::string>& errors) -> bool {
+    auto error = std::error_code {};
+    const Path parent = target.parent_path();
+    if (!parent.empty()) {
+        std::filesystem::create_directories(parent, error);
+        if (error) {
+            errors.push_back("Could not create manifest directory '" + parent.string() + "': " + error.message());
+            return false;
+        }
+    }
+
     const Path temporary = target.string() + ".tmp";
     auto stream = std::ofstream {temporary, std::ios::binary | std::ios::trunc};
+    if (!stream.is_open()) {
+        errors.push_back("Could not open manifest temporary file '" + temporary.string() + "'.");
+        return false;
+    }
+    stream.write(text.data(), static_cast<std::streamsize>(text.size()));
+    stream.flush();
     if (!stream.good()) {
-        errors.push_back("Could not open manifest temporary file: " + temporary.string());
+        stream.close();
+        std::filesystem::remove(temporary, error);
+        errors.push_back("Could not completely write manifest temporary file '" + temporary.string() + "'.");
         return false;
     }
-    stream << text;
     stream.close();
-    if (!stream) {
-        errors.push_back("Could not write manifest temporary file: " + temporary.string());
+    if (stream.fail()) {
+        std::filesystem::remove(temporary, error);
+        errors.push_back("Could not close manifest temporary file '" + temporary.string() + "'.");
         return false;
     }
-    auto error = std::error_code {};
+
+    error.clear();
+    const auto written_size = std::filesystem::file_size(temporary, error);
+    if (error || written_size != text.size()) {
+        const std::string detail = error ? error.message() : "written size did not match the requested content";
+        std::filesystem::remove(temporary, error);
+        errors.push_back("Could not verify complete manifest temporary file '" + temporary.string() + "': " + detail);
+        return false;
+    }
+
+    error.clear();
     std::filesystem::remove(target, error);
     error.clear();
     std::filesystem::rename(temporary, target, error);
     if (error) {
-        std::filesystem::remove(temporary);
+        auto cleanup_error = std::error_code {};
+        std::filesystem::remove(temporary, cleanup_error);
         errors.push_back("Could not replace manifest '" + target.string() + "': " + error.message());
         return false;
     }
@@ -174,6 +203,10 @@ auto write_aggregate_csv(const Path& target,
 
 } // namespace
 
+auto ManifestJobWriteResult::ok() const noexcept -> bool {
+    return success && errors.empty();
+}
+
 auto ManifestWriteResult::ok() const noexcept -> bool {
     return success && errors.empty();
 }
@@ -183,21 +216,43 @@ auto write_manifests(const std::vector<ResolvedExportJob>& planned_jobs,
     const std::optional<Path>& aggregate_json_path,
     const std::optional<Path>& aggregate_csv_path) -> ManifestWriteResult {
     auto result = ManifestWriteResult {.success = true};
+    result.jobs.reserve(planned_jobs.size());
     for (size_t index = 0; index < planned_jobs.size(); ++index) {
         const ResolvedExportJob& job = planned_jobs[index];
-        const ExportJobResult* job_result = index < run_result.jobs.size() ? &run_result.jobs[index] : nullptr;
+        const ExportJobResult* export_job = index < run_result.jobs.size() ? &run_result.jobs[index] : nullptr;
+        auto manifest_job = ManifestJobWriteResult {
+            .job_index = index,
+            .source_path = job.metadata.source_path,
+            .success = true,
+        };
+        if (export_job != nullptr) {
+            for (const RenderedSegment& segment : export_job->segments) {
+                if (segment.ok() && !segment.skipped) {
+                    manifest_job.preserved_media_paths.push_back(segment.output_path);
+                    result.preserved_media_paths.push_back(segment.output_path);
+                }
+            }
+        }
         if (job.settings.write_json_manifest) {
             const Path target = job.output_directory / "vidchopper-manifest.json";
-            if (atomic_write(target, job_json(job, job_result).dump(2), result.errors)) {
+            if (atomic_write(target, job_json(job, export_job).dump(2), manifest_job.errors)) {
+                manifest_job.written_paths.push_back(target);
                 result.written_paths.push_back(target);
             }
         }
         if (job.settings.write_csv_manifest) {
             const Path target = job.output_directory / "vidchopper-manifest.csv";
-            if (write_csv(target, job, job_result, result.errors)) {
+            if (write_csv(target, job, export_job, manifest_job.errors)) {
+                manifest_job.written_paths.push_back(target);
                 result.written_paths.push_back(target);
             }
         }
+        manifest_job.success = manifest_job.errors.empty();
+        for (const std::string& error : manifest_job.errors) {
+            result.errors.push_back("Manifest failure for job " + std::to_string(index + 1) + " ('"
+                + job.metadata.source_path.string() + "'): " + error);
+        }
+        result.jobs.push_back(std::move(manifest_job));
     }
     if (aggregate_json_path.has_value()) {
         auto aggregate = Json {
