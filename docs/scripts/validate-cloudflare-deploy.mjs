@@ -202,7 +202,7 @@ const workflowSnippets = [
   "npm run cloudflare:dry-run",
   "uses: cloudflare/wrangler-action@v4",
   "apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}",
-  "accountId: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}",
+  "accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}",
   'wranglerVersion: "4.118.0"',
   "workingDirectory: docs",
   "deploy --strict --message",
@@ -223,6 +223,10 @@ for (const snippet of workflowSnippets) {
 assert(
   !/^\s+(?:push|pull_request):/m.test(workflow),
   "production deployment must remain manual",
+);
+assert(
+  !workflow.includes("vars.CLOUDFLARE_ACCOUNT_ID"),
+  "Cloudflare account identifiers must use a masked environment secret",
 );
 assert(
   !/\b[a-f0-9]{32}\b/i.test(workflow),
