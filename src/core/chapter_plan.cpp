@@ -17,7 +17,7 @@ auto build_default_chapters(const u64 duration_ms, const u8 requested_count) -> 
     }
 
     const auto max_count = static_cast<u64>(requested_count);
-    const auto safe_count = std::min<u64>(max_count, duration_ms / 1000);
+    const auto safe_count = (std::min<u64>)(max_count, duration_ms / 1000);
     if (safe_count == 0) {
         return {};
     }

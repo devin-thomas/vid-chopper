@@ -36,7 +36,7 @@ auto ExportCoordinator::busy() const -> bool {
 }
 
 auto ExportCoordinator::start_export(const VideoMetadata& metadata,
-    std::vector<ChapterSegment> chapters,
+    const std::vector<ChapterSegment>& chapters,
     const std::filesystem::path& output_directory,
     const ExportSettings& settings,
     const EncoderEnvironment& environment) -> void {
@@ -145,7 +145,7 @@ auto ExportCoordinator::handle_ready_read_stdout() -> void {
                 continue;
             }
 
-            const auto chapter_ms = std::min<u64>(out_time_us / 1000, exports_[current_index_].duration_ms);
+            const auto chapter_ms = (std::min<u64>)(out_time_us / 1000, exports_[current_index_].duration_ms);
             const auto overall_ms = completed_duration_ms_ + chapter_ms;
             const auto progress =
                 total_duration_ms_ == 0 ? 0 : static_cast<int>((overall_ms * 100) / total_duration_ms_);

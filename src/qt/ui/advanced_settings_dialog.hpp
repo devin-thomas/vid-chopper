@@ -14,6 +14,7 @@ namespace vidchopper {
 
 class AdvancedSettingsDialog final : public QDialog {
     Q_OBJECT
+    Q_DISABLE_COPY_MOVE(AdvancedSettingsDialog)
 
 public:
     enum class Page : int {

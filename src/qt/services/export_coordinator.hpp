@@ -16,13 +16,14 @@ namespace vidchopper {
 
 class ExportCoordinator final : public QObject {
     Q_OBJECT
+    Q_DISABLE_COPY_MOVE(ExportCoordinator)
 
 public:
     explicit ExportCoordinator(QObject* parent = nullptr);
 
     [[nodiscard]] auto busy() const -> bool;
     auto start_export(const VideoMetadata& metadata,
-        std::vector<ChapterSegment> chapters,
+        const std::vector<ChapterSegment>& chapters,
         const std::filesystem::path& output_directory,
         const ExportSettings& settings,
         const EncoderEnvironment& environment) -> void;

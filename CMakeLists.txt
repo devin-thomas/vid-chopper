@@ -187,6 +187,8 @@ if(VIDCHOPPER_BUILD_GUI)
     set_target_properties(VidChopper PROPERTIES WIN32_EXECUTABLE TRUE OUTPUT_NAME "VidChopper")
 
     if(VIDCHOPPER_BUILD_QT_TESTS)
+        find_package(Qt6 6.7 REQUIRED COMPONENTS Test)
+
         add_executable(vidchopper_test_app_settings
             tests/test_app_settings.cpp
             src/qt/app_settings.cpp
@@ -197,5 +199,24 @@ if(VIDCHOPPER_BUILD_GUI)
         apply_vidchopper_warnings(vidchopper_test_app_settings)
         add_test(NAME qt.vidchopper_test_app_settings COMMAND vidchopper_test_app_settings)
         set_tests_properties(qt.vidchopper_test_app_settings PROPERTIES LABELS "qt")
+
+        add_executable(vidchopper_test_chapter_table_model
+            tests/test_chapter_table_model.cpp
+            src/qt/ui/chapter_table_model.cpp
+            src/qt/ui/chapter_table_model.hpp
+        )
+        target_include_directories(vidchopper_test_chapter_table_model PRIVATE
+            "${PROJECT_SOURCE_DIR}/src"
+            "${PROJECT_SOURCE_DIR}/tests"
+        )
+        target_link_libraries(vidchopper_test_chapter_table_model PRIVATE
+            Qt6::Core
+            Qt6::Gui
+            Qt6::Test
+            vidchopper_core
+        )
+        apply_vidchopper_warnings(vidchopper_test_chapter_table_model)
+        add_test(NAME qt.vidchopper_test_chapter_table_model COMMAND vidchopper_test_chapter_table_model)
+        set_tests_properties(qt.vidchopper_test_chapter_table_model PROPERTIES LABELS "qt")
     endif()
 endif()

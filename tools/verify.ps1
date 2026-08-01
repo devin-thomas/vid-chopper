@@ -36,6 +36,38 @@ function Invoke-TextPolicyChecks {
     }
 }
 
+function Invoke-ReviewFindingChecks {
+    $patterns = @(
+        @{ Name = "duplicate enum clamping"; Pattern = "safe_enum_cast|clamp_enum" },
+        @{ Name = "switch defaults that hide new enumerators"; Pattern = "^[[:space:]]*default:" },
+        @{ Name = "Windows-unsafe min/max calls"; Pattern = "std::(min|max)(<[^>]+>)?\(" },
+        @{ Name = "chapter-plan copies"; Pattern = "const auto chapters = chapter_model_->chapters\(\)" }
+    )
+    foreach ($check in $patterns) {
+        $matches = @(& git -C $repoRoot grep -n -E $check.Pattern -- "src")
+        if ($LASTEXITCODE -gt 1) {
+            throw "git grep failed while checking $($check.Name)."
+        }
+        if ($matches.Count -gt 0) {
+            throw "Deterministic review finding ($($check.Name)):`n$($matches -join "`n")"
+        }
+    }
+
+    $qobjectHeaders = @(& git -C $repoRoot grep -l "Q_OBJECT" -- "src/qt/*.hpp")
+    if ($LASTEXITCODE -gt 1) {
+        throw "git grep failed while checking QObject ownership declarations."
+    }
+    foreach ($header in $qobjectHeaders) {
+        $copyMoveDeclaration = @(& git -C $repoRoot grep -n "Q_DISABLE_COPY_MOVE" -- $header)
+        if ($LASTEXITCODE -gt 1) {
+            throw "git grep failed while checking $header."
+        }
+        if ($copyMoveDeclaration.Count -eq 0) {
+            throw "Deterministic review finding (QObject copy/move not disabled): $header"
+        }
+    }
+}
+
 function Invoke-FormattingChecks {
     Invoke-VerificationStage -Name "Pinned clang-format" -Action {
         $clangFormat = Get-RepoCommand -Name "clang-format" -Remediation "Run tools/bootstrap.ps1."
@@ -54,6 +86,7 @@ function Invoke-FormattingChecks {
 function Invoke-StaticChecks {
     Invoke-VerificationStage -Name "Static policy checks" -Action {
         Invoke-TextPolicyChecks
+        Invoke-ReviewFindingChecks
         $clangTidy = Get-RepoCommand -Name "clang-tidy" -Remediation "Run tools/bootstrap.ps1."
         $versionOutput = (& $clangTidy --version) -join " "
         if ($versionOutput -notmatch [regex]::Escape($script:ToolVersions.Clang)) {

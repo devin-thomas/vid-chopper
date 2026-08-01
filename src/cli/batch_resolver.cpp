@@ -13,6 +13,13 @@
 #include <system_error>
 #include <utility>
 
+#ifdef _WIN32
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <Windows.h>
+#endif
+
 namespace vidchopper {
 
 namespace {
@@ -23,22 +30,65 @@ enum class PathKind : u8 {
     Directory = 2,
 };
 
-using PathGroups = std::map<std::string, std::vector<Path>>;
+using NativeString = Path::string_type;
+
+[[nodiscard]] auto ordinal_case_insensitive_compare(const NativeString& left, const NativeString& right) -> int {
+#ifdef _WIN32
+    const int result = CompareStringOrdinal(
+        left.data(), static_cast<int>(left.size()), right.data(), static_cast<int>(right.size()), TRUE);
+    if (result == CSTR_LESS_THAN) {
+        return -1;
+    }
+    if (result == CSTR_GREATER_THAN) {
+        return 1;
+    }
+    if (result == 0) {
+        if (left < right) {
+            return -1;
+        }
+        if (right < left) {
+            return 1;
+        }
+    }
+    return 0;
+#else
+    const std::string left_key = to_lower_copy(left);
+    const std::string right_key = to_lower_copy(right);
+    if (left_key < right_key) {
+        return -1;
+    }
+    if (right_key < left_key) {
+        return 1;
+    }
+    return 0;
+#endif
+}
+
+struct OrdinalCaseInsensitiveLess {
+    [[nodiscard]] auto operator()(const NativeString& left, const NativeString& right) const -> bool {
+        return ordinal_case_insensitive_compare(left, right) < 0;
+    }
+};
+
+using PathGroups = std::map<NativeString, std::vector<Path>, OrdinalCaseInsensitiveLess>;
+
+struct DirectoryInventory {
+    std::vector<Path> files;
+    std::vector<std::string> errors;
+    bool complete {true};
+};
 
 constexpr auto source_extensions = std::to_array<std::string_view>({".mp4", ".mkv", ".mov"});
 constexpr auto chapter_extensions = std::to_array<std::string_view>({".json", ".yaml", ".yml"});
 
-[[nodiscard]] auto path_sort_key(const Path& path) -> std::string {
-    return to_lower_copy(path.filename().string());
-}
-
 [[nodiscard]] auto path_less(const Path& left, const Path& right) -> bool {
-    const std::string left_key = path_sort_key(left);
-    const std::string right_key = path_sort_key(right);
-    if (left_key != right_key) {
-        return left_key < right_key;
+    const NativeString left_name = left.filename().native();
+    const NativeString right_name = right.filename().native();
+    const int insensitive_order = ordinal_case_insensitive_compare(left_name, right_name);
+    if (insensitive_order != 0) {
+        return insensitive_order < 0;
     }
-    return left.string() < right.string();
+    return left.native() < right.native();
 }
 
 [[nodiscard]] auto has_extension(const Path& path, const std::span<const std::string_view> extensions) -> bool {
@@ -89,60 +139,87 @@ constexpr auto chapter_extensions = std::to_array<std::string_view>({".json", ".
     return PathKind::Invalid;
 }
 
-template <typename Predicate>
-[[nodiscard]] auto collect_directory_files(const Path& directory,
-    const std::string_view label,
-    Predicate supported,
-    std::vector<std::string>& errors) -> std::vector<Path> {
-    auto files = std::vector<Path> {};
+[[nodiscard]] auto scan_directory(const Path& directory) -> DirectoryScanResult {
+    auto result = DirectoryScanResult {};
     auto iterator_error = std::error_code {};
     auto iterator = std::filesystem::directory_iterator {directory, iterator_error};
     const auto end = std::filesystem::directory_iterator {};
     if (iterator_error) {
-        errors.push_back(
-            std::format("Could not read {} directory {}: {}.", label, directory.string(), iterator_error.message()));
-        return files;
+        result.complete = false;
+        result.failures.push_back(DirectoryScanFailure {.message = iterator_error.message()});
+        return result;
     }
 
     while (iterator != end) {
         const std::filesystem::directory_entry& entry = *iterator;
         auto entry_error = std::error_code {};
         if (entry.is_regular_file(entry_error)) {
-            if (supported(entry.path())) {
-                files.push_back(entry.path());
-            }
+            result.regular_files.push_back(entry.path());
         } else if (entry_error) {
-            errors.push_back(std::format(
-                "Could not inspect {} directory entry {}: {}.", label, entry.path().string(), entry_error.message()));
+            result.complete = false;
+            result.failures.push_back(
+                DirectoryScanFailure {.entry_path = entry.path(), .message = entry_error.message()});
         }
 
         iterator.increment(iterator_error);
         if (iterator_error) {
-            errors.push_back(std::format(
-                "Could not read {} directory {}: {}.", label, directory.string(), iterator_error.message()));
+            result.complete = false;
+            result.failures.push_back(DirectoryScanFailure {.message = iterator_error.message()});
             break;
         }
     }
 
-    std::ranges::sort(files, path_less);
-    if (files.empty()) {
-        errors.push_back(std::format("No supported {} files found in directory: {}.", label, directory.string()));
+    return result;
+}
+
+template <typename Predicate>
+[[nodiscard]] auto collect_directory_files(const Path& directory,
+    const std::string_view label,
+    Predicate supported,
+    const DirectoryScanner& scanner) -> DirectoryInventory {
+    const DirectoryScanResult scan = scanner ? scanner(directory) : scan_directory(directory);
+    auto inventory = DirectoryInventory {.complete = scan.complete};
+    for (const DirectoryScanFailure& failure : scan.failures) {
+        if (failure.entry_path.has_value()) {
+            inventory.errors.push_back(std::format(
+                "Could not inspect {} directory entry {}: {}.", label, failure.entry_path->string(), failure.message));
+        } else {
+            inventory.errors.push_back(
+                std::format("Could not read {} directory {}: {}.", label, directory.string(), failure.message));
+        }
     }
-    return files;
+    if (!inventory.complete && inventory.errors.empty()) {
+        inventory.errors.push_back(
+            std::format("Could not completely read {} directory {}.", label, directory.string()));
+    }
+    std::ranges::sort(inventory.errors);
+
+    for (const Path& path : scan.regular_files) {
+        if (supported(path)) {
+            inventory.files.push_back(path);
+        }
+    }
+
+    std::ranges::sort(inventory.files, path_less);
+    if (inventory.complete && inventory.files.empty()) {
+        inventory.errors.push_back(
+            std::format("No supported {} files found in directory: {}.", label, directory.string()));
+    }
+    return inventory;
 }
 
-[[nodiscard]] auto collect_sources(const Path& directory, std::vector<std::string>& errors) -> std::vector<Path> {
-    return collect_directory_files(directory, "Source", is_source_file, errors);
+[[nodiscard]] auto collect_sources(const Path& directory, const DirectoryScanner& scanner) -> DirectoryInventory {
+    return collect_directory_files(directory, "Source", is_source_file, scanner);
 }
 
-[[nodiscard]] auto collect_chapter_files(const Path& directory, std::vector<std::string>& errors) -> std::vector<Path> {
-    return collect_directory_files(directory, "ChapterFile", is_chapter_file, errors);
+[[nodiscard]] auto collect_chapter_files(const Path& directory, const DirectoryScanner& scanner) -> DirectoryInventory {
+    return collect_directory_files(directory, "ChapterFile", is_chapter_file, scanner);
 }
 
 [[nodiscard]] auto group_by_stem(const std::vector<Path>& paths) -> PathGroups {
     auto groups = PathGroups {};
     for (const Path& path : paths) {
-        groups[to_lower_copy(path.stem().string())].push_back(path);
+        groups[path.stem().native()].push_back(path);
     }
     return groups;
 }
@@ -197,7 +274,7 @@ auto resolve_directory_pairing(const std::vector<Path>& sources,
 
     jobs.reserve(sources.size());
     for (const Path& source : sources) {
-        const std::string stem = to_lower_copy(source.stem().string());
+        const NativeString stem = source.stem().native();
         jobs.push_back(BatchJob {
             .source_path = source,
             .chapter_config_path = chapter_groups.at(stem).front(),
@@ -241,15 +318,20 @@ auto resolve_batch(const BatchResolveRequest& request) -> BatchResolution {
         return result;
     }
 
-    auto sources = std::vector<Path> {};
+    auto source_inventory = DirectoryInventory {};
     if (source_kind == PathKind::File) {
-        sources.push_back(request.source_path);
+        source_inventory.files.push_back(request.source_path);
     } else {
-        sources = collect_sources(request.source_path, result.errors);
-        append_duplicate_errors(group_by_stem(sources), "Source", result.errors);
+        source_inventory = collect_sources(request.source_path, request.directory_scanner);
+        result.errors.insert(result.errors.end(), source_inventory.errors.begin(), source_inventory.errors.end());
     }
+    const std::vector<Path>& sources = source_inventory.files;
 
     if (request.use_embedded_chapters) {
+        if (!source_inventory.complete) {
+            return result;
+        }
+        append_duplicate_errors(group_by_stem(sources), "Source", result.errors);
         if (!result.errors.empty()) {
             return result;
         }
@@ -262,6 +344,10 @@ auto resolve_batch(const BatchResolveRequest& request) -> BatchResolution {
 
     const Path& chapter_source = *request.chapter_source_path;
     if (chapter_kind == PathKind::File) {
+        if (!source_inventory.complete) {
+            return result;
+        }
+        append_duplicate_errors(group_by_stem(sources), "Source", result.errors);
         if (!result.errors.empty()) {
             return result;
         }
@@ -283,9 +369,15 @@ auto resolve_batch(const BatchResolveRequest& request) -> BatchResolution {
         return result;
     }
 
-    const std::vector<Path> chapter_files = collect_chapter_files(chapter_source, result.errors);
+    const DirectoryInventory chapter_inventory = collect_chapter_files(chapter_source, request.directory_scanner);
+    result.errors.insert(result.errors.end(), chapter_inventory.errors.begin(), chapter_inventory.errors.end());
+    if (!source_inventory.complete || !chapter_inventory.complete) {
+        return result;
+    }
+
+    append_duplicate_errors(group_by_stem(sources), "Source", result.errors);
     auto jobs = std::vector<BatchJob> {};
-    resolve_directory_pairing(sources, chapter_files, jobs, result.errors);
+    resolve_directory_pairing(sources, chapter_inventory.files, jobs, result.errors);
     if (result.errors.empty()) {
         result.jobs = std::move(jobs);
     }

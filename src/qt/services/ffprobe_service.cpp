@@ -84,7 +84,7 @@ struct FfprobeProcessResult {
 auto normalize_source_path(const QString& source_path) -> std::filesystem::path {
     auto path = std::filesystem::path {source_path.toStdWString()};
     auto error = std::error_code {};
-    const auto canonical = std::filesystem::weakly_canonical(path, error);
+    auto canonical = std::filesystem::weakly_canonical(path, error);
     if (!error) {
         return canonical;
     }
@@ -96,7 +96,7 @@ auto normalize_source_path(const QString& source_path) -> std::filesystem::path 
 auto rational_from_string(const QString& value) -> FrameRate {
     const auto parts = value.split('/');
     if (parts.size() != 2) {
-        return {};
+        return FrameRate {};
     }
 
     auto numerator_ok = false;
@@ -105,7 +105,7 @@ auto rational_from_string(const QString& value) -> FrameRate {
     const auto denominator = parts[1].toUInt(&denominator_ok);
 
     if (!numerator_ok || !denominator_ok || denominator == 0) {
-        return {};
+        return FrameRate {};
     }
 
     return FrameRate {.numerator = numerator, .denominator = denominator};
