@@ -45,18 +45,21 @@ target_include_directories(vidchopper_core PUBLIC "${PROJECT_SOURCE_DIR}/src")
 target_compile_features(vidchopper_core PUBLIC cxx_std_20)
 apply_vidchopper_warnings(vidchopper_core)
 
+find_package(nlohmann_json CONFIG REQUIRED)
+
 add_library(vidchopper_services
+    src/services/probe_service.cpp
+    src/services/probe_service.hpp
     src/services/process_runner.cpp
     src/services/process_runner.hpp
 )
 
 target_include_directories(vidchopper_services PUBLIC "${PROJECT_SOURCE_DIR}/src")
-target_link_libraries(vidchopper_services PUBLIC vidchopper_core)
+target_link_libraries(vidchopper_services PUBLIC vidchopper_core PRIVATE nlohmann_json::nlohmann_json)
 target_compile_features(vidchopper_services PUBLIC cxx_std_20)
 apply_vidchopper_warnings(vidchopper_services)
 
 if(VIDCHOPPER_BUILD_CLI)
-    find_package(nlohmann_json CONFIG REQUIRED)
     find_package(yaml-cpp CONFIG REQUIRED)
 
     add_library(vidchopper_cli
@@ -78,8 +81,6 @@ if(VIDCHOPPER_BUILD_CLI)
         src/cli/dry_run_renderer.hpp
         src/cli/export_runner.cpp
         src/cli/export_runner.hpp
-        src/cli/ffprobe_client.cpp
-        src/cli/ffprobe_client.hpp
         src/cli/manifest_writer.cpp
         src/cli/manifest_writer.hpp
         src/cli/output_planner.cpp
@@ -90,7 +91,6 @@ if(VIDCHOPPER_BUILD_CLI)
     target_link_libraries(vidchopper_cli PUBLIC
         vidchopper_core
         vidchopper_services
-        nlohmann_json::nlohmann_json
         yaml-cpp::yaml-cpp
     )
     target_compile_definitions(vidchopper_cli PUBLIC VIDCHOPPER_DISPLAY_VERSION="${VIDCHOPPER_DISPLAY_VERSION}")
@@ -136,6 +136,7 @@ if(VIDCHOPPER_BUILD_TESTS)
     add_vidchopper_test(vidchopper_test_enum_clamp tests/test_enum_clamp.cpp fast)
     add_vidchopper_test(vidchopper_test_demo_launch_options tests/test_demo_launch_options.cpp fast)
     add_vidchopper_test(vidchopper_test_process_runner tests/test_process_runner.cpp fast vidchopper_services)
+    add_vidchopper_test(vidchopper_test_probe_service tests/test_probe_service.cpp fast vidchopper_services)
     if(TARGET vidchopper_cli)
         add_vidchopper_test(vidchopper_test_cli_arguments tests/test_cli_arguments.cpp fast vidchopper_cli)
         add_vidchopper_test(vidchopper_test_cli_settings tests/test_cli_settings.cpp fast vidchopper_cli)
@@ -145,7 +146,6 @@ if(VIDCHOPPER_BUILD_TESTS)
         add_vidchopper_test(
             vidchopper_test_chapter_source_policy tests/test_chapter_source_policy.cpp fast vidchopper_cli
         )
-        add_vidchopper_test(vidchopper_test_ffprobe_client tests/test_ffprobe_client.cpp fast vidchopper_cli)
         add_vidchopper_test(vidchopper_test_output_planner_golden tests/test_output_planner_golden.cpp fast vidchopper_cli)
         add_vidchopper_test(vidchopper_test_export_runner tests/test_export_runner.cpp fast vidchopper_cli)
         add_vidchopper_test(vidchopper_test_manifest_writer tests/test_manifest_writer.cpp fast vidchopper_cli)

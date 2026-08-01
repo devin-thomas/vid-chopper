@@ -1,8 +1,8 @@
 #pragma once
 
 #include "cli/batch_resolver.hpp"
-#include "cli/ffprobe_client.hpp"
 #include "core/types.hpp"
+#include "services/probe_service.hpp"
 
 #include <iosfwd>
 #include <string>

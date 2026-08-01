@@ -65,8 +65,8 @@ auto run_cli(const CliRunRequest& request) -> CliExitCode {
         const Path& source_path = cli_arguments.input_paths.front();
         auto path_error = std::error_code {};
         if (std::filesystem::is_regular_file(source_path, path_error) && !path_error) {
-            const FfprobeResult probe =
-                FfprobeClient {request.process_executor}.probe(effective_settings.ffprobe_path, source_path);
+            const ProbeResult probe =
+                ProbeService {request.process_executor}.probe(effective_settings.ffprobe_path, source_path);
             if (!probe.ok()) {
                 request.error_output << probe.error_message << "\n";
                 return probe_failure_exit_code();
@@ -98,8 +98,8 @@ auto run_cli(const CliRunRequest& request) -> CliExitCode {
     plan_inputs.reserve(batch.jobs.size());
     if (cli_arguments.use_embedded_chapters) {
         for (const BatchJob& job : batch.jobs) {
-            const FfprobeResult probe =
-                FfprobeClient {request.process_executor}.probe(effective_settings.ffprobe_path, job.source_path);
+            const ProbeResult probe =
+                ProbeService {request.process_executor}.probe(effective_settings.ffprobe_path, job.source_path);
             if (!probe.ok()) {
                 request.error_output << probe.error_message << "\n";
                 return probe_failure_exit_code();
@@ -127,8 +127,8 @@ auto run_cli(const CliRunRequest& request) -> CliExitCode {
         request.output << "Chapter source: embedded chapters (explicit).\n";
     } else {
         for (const BatchJob& job : batch.jobs) {
-            const FfprobeResult probe =
-                FfprobeClient {request.process_executor}.probe(effective_settings.ffprobe_path, job.source_path);
+            const ProbeResult probe =
+                ProbeService {request.process_executor}.probe(effective_settings.ffprobe_path, job.source_path);
             if (!probe.ok()) {
                 request.error_output << probe.error_message << "\n";
                 return probe_failure_exit_code();
