@@ -41,7 +41,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     environment:
-      name: cloudflare-production
+      name: cloudflare-environment
       url: https://vidchopper.app
 
     steps:

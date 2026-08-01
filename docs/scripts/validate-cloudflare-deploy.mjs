@@ -192,7 +192,7 @@ const workflowSnippets = [
   "contents: read",
   "group: cloudflare-production",
   "cancel-in-progress: false",
-  "name: cloudflare-production",
+  "name: cloudflare-environment",
   "url: https://vidchopper.app",
   "node-version: 22",
   "npm ci",

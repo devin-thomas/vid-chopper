@@ -24,7 +24,7 @@ previous VID-55-accepted deployment before this cutover.
 
 ## GitHub Environment
 
-Create a `cloudflare-production` GitHub environment before the first workflow run:
+Use the `cloudflare-environment` GitHub environment for production workflow runs:
 
 - Environment variable `CLOUDFLARE_ACCOUNT_ID`: the existing Uppercut Labs account ID.
 - Environment secret `CLOUDFLARE_API_TOKEN`: a dedicated least-privilege token.

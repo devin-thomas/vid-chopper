@@ -74,7 +74,7 @@ canonical-site notice.
 File: `.github/workflows/cloudflare.yml`
 
 The production workflow is manual, accepts only `main`, and requires the exact
-`deploy vidchopper.app` confirmation plus the `cloudflare-production` GitHub environment. It
+`deploy vidchopper.app` confirmation plus the `cloudflare-environment` GitHub environment. It
 installs the pinned repository dependencies, validates deterministic skill artifacts, runs frontend
 tests, builds and audits the canonical static artifact, performs a Wrangler dry run, publishes that
 same artifact, captures the deployment identity, and runs the cache-busted remote validator.
