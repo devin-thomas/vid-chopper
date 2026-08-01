@@ -38,3 +38,18 @@ The hook runs the Quick tier. Remove only the managed VidChopper hook with:
 ```
 
 The installer refuses to overwrite or remove an unmanaged `pre-push` hook.
+
+## GitHub Actions lanes
+
+GitHub Actions calls the same verification script with focused lanes:
+
+```powershell
+.\tools\verify.ps1 -CiLane Lint
+.\tools\verify.ps1 -CiLane Core
+.\tools\verify.ps1 -CiLane Gui
+.\tools\verify.ps1 -CiLane Docs
+```
+
+The Lint lane uses the pinned formatter and static-analysis versions and discovers tracked `.cpp` and `.hpp` files. The Core lane builds the CLI and core, runs fast tests, slow ffmpeg-backed tests, and CLI fixtures. The GUI lane performs a fresh Qt build and seeded startup. The Docs lane runs `npm ci`, type checks, and the production build.
+
+Pull requests use path filtering so docs-only changes skip the C++ lanes. Workflow, tool, source, test, build, and packaging changes run the full code lanes. Superseded runs for the same pull request are canceled, and a failing lane uploads a short diagnostic tail for seven days.
