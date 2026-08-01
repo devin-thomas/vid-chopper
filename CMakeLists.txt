@@ -45,6 +45,16 @@ target_include_directories(vidchopper_core PUBLIC "${PROJECT_SOURCE_DIR}/src")
 target_compile_features(vidchopper_core PUBLIC cxx_std_20)
 apply_vidchopper_warnings(vidchopper_core)
 
+add_library(vidchopper_services
+    src/services/process_runner.cpp
+    src/services/process_runner.hpp
+)
+
+target_include_directories(vidchopper_services PUBLIC "${PROJECT_SOURCE_DIR}/src")
+target_link_libraries(vidchopper_services PUBLIC vidchopper_core)
+target_compile_features(vidchopper_services PUBLIC cxx_std_20)
+apply_vidchopper_warnings(vidchopper_services)
+
 if(VIDCHOPPER_BUILD_CLI)
     find_package(nlohmann_json CONFIG REQUIRED)
     find_package(yaml-cpp CONFIG REQUIRED)
@@ -74,13 +84,12 @@ if(VIDCHOPPER_BUILD_CLI)
         src/cli/manifest_writer.hpp
         src/cli/output_planner.cpp
         src/cli/output_planner.hpp
-        src/cli/process_runner.cpp
-        src/cli/process_runner.hpp
     )
 
     target_include_directories(vidchopper_cli PUBLIC "${PROJECT_SOURCE_DIR}/src")
     target_link_libraries(vidchopper_cli PUBLIC
         vidchopper_core
+        vidchopper_services
         nlohmann_json::nlohmann_json
         yaml-cpp::yaml-cpp
     )
@@ -126,6 +135,7 @@ if(VIDCHOPPER_BUILD_TESTS)
     add_vidchopper_test(vidchopper_test_ready_marker tests/test_ready_marker.cpp fast)
     add_vidchopper_test(vidchopper_test_enum_clamp tests/test_enum_clamp.cpp fast)
     add_vidchopper_test(vidchopper_test_demo_launch_options tests/test_demo_launch_options.cpp fast)
+    add_vidchopper_test(vidchopper_test_process_runner tests/test_process_runner.cpp fast vidchopper_services)
     if(TARGET vidchopper_cli)
         add_vidchopper_test(vidchopper_test_cli_arguments tests/test_cli_arguments.cpp fast vidchopper_cli)
         add_vidchopper_test(vidchopper_test_cli_settings tests/test_cli_settings.cpp fast vidchopper_cli)
@@ -135,7 +145,6 @@ if(VIDCHOPPER_BUILD_TESTS)
         add_vidchopper_test(
             vidchopper_test_chapter_source_policy tests/test_chapter_source_policy.cpp fast vidchopper_cli
         )
-        add_vidchopper_test(vidchopper_test_process_runner tests/test_process_runner.cpp fast vidchopper_cli)
         add_vidchopper_test(vidchopper_test_ffprobe_client tests/test_ffprobe_client.cpp fast vidchopper_cli)
         add_vidchopper_test(vidchopper_test_output_planner_golden tests/test_output_planner_golden.cpp fast vidchopper_cli)
         add_vidchopper_test(vidchopper_test_export_runner tests/test_export_runner.cpp fast vidchopper_cli)

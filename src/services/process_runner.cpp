@@ -1,4 +1,4 @@
-#include "cli/process_runner.hpp"
+#include "services/process_runner.hpp"
 
 #ifdef _WIN32
 #define NOMINMAX
@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <array>
+#include <chrono>
 #include <format>
 #include <functional>
 #include <limits>
@@ -184,11 +185,20 @@ auto process_exit_state_name(const ProcessExitState state) -> std::string {
         return "crash";
     case ProcessExitState::NonzeroExit:
         return "nonzero exit";
+    case ProcessExitState::Cancelled:
+        return "cancelled";
     }
     return "unknown";
 }
 
 auto run_process(const ProcessRequest& request) -> ProcessResult {
+    if (request.stop_token.stop_requested()) {
+        return ProcessResult {
+            .state = ProcessExitState::Cancelled,
+            .error_message = "Process cancellation was requested before start.",
+        };
+    }
+
 #ifdef _WIN32
     auto stdout_read = Handle {};
     auto stdout_write = Handle {};
@@ -235,8 +245,32 @@ auto run_process(const ProcessRequest& request) -> ProcessResult {
         std::thread {read_pipe, stderr_read.get(), std::ref(result.standard_error), request.stderr_limit_bytes};
 
     const auto timeout_count = std::clamp<i64>(request.timeout.count(), 0, std::numeric_limits<DWORD>::max());
-    const DWORD wait_result = WaitForSingleObject(process_handle.get(), static_cast<DWORD>(timeout_count));
-    if (wait_result == WAIT_TIMEOUT) {
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds {timeout_count};
+    auto wait_result = DWORD {WAIT_TIMEOUT};
+    auto cancelled = false;
+    while (true) {
+        if (request.stop_token.stop_requested()) {
+            cancelled = true;
+            break;
+        }
+
+        const auto now = std::chrono::steady_clock::now();
+        const auto remaining =
+            now >= deadline ? i64 {0} : std::chrono::duration_cast<std::chrono::milliseconds>(deadline - now).count();
+        constexpr auto cancellation_poll_ms = i64 {50};
+        const auto wait_ms = static_cast<DWORD>((std::min)(remaining, cancellation_poll_ms));
+        wait_result = WaitForSingleObject(process_handle.get(), wait_ms);
+        if (wait_result != WAIT_TIMEOUT || std::chrono::steady_clock::now() >= deadline) {
+            break;
+        }
+    }
+
+    if (cancelled) {
+        TerminateProcess(process_handle.get(), 1);
+        WaitForSingleObject(process_handle.get(), INFINITE);
+        result.state = ProcessExitState::Cancelled;
+        result.error_message = "Process cancellation was requested.";
+    } else if (wait_result == WAIT_TIMEOUT) {
         TerminateProcess(process_handle.get(), 1);
         WaitForSingleObject(process_handle.get(), INFINITE);
         result.state = ProcessExitState::TimedOut;

@@ -1,4 +1,4 @@
-#include "cli/process_runner.hpp"
+#include "services/process_runner.hpp"
 #include "test_support.hpp"
 
 #define NOMINMAX
@@ -7,6 +7,7 @@
 #include <chrono>
 #include <cstdlib>
 #include <iostream>
+#include <stop_token>
 #include <string>
 #include <thread>
 
@@ -78,6 +79,22 @@ auto main(const int argument_count, char** arguments) -> int {
     });
     test_support::expect_eq(bounded.state, ProcessExitState::NonzeroExit, "bounded stderr child should fail normally");
     test_support::expect_eq(bounded.standard_error.size(), size_t {32}, "captured stderr should honor its bound");
+
+    auto stop_source = std::stop_source {};
+    auto cancelled = ProcessResult {};
+    auto cancellation_thread = std::thread {[&cancelled, &stop_source, &self]() {
+        cancelled = run_process(ProcessRequest {
+            .executable = self,
+            .arguments = {"--sleep"},
+            .timeout = std::chrono::seconds {5},
+            .stop_token = stop_source.get_token(),
+        });
+    }};
+    std::this_thread::sleep_for(std::chrono::milliseconds {50});
+    stop_source.request_stop();
+    cancellation_thread.join();
+    test_support::expect_eq(
+        cancelled.state, ProcessExitState::Cancelled, "a requested stop should terminate the child as cancelled");
 
     return 0;
 }
