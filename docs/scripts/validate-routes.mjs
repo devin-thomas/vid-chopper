@@ -60,7 +60,13 @@ const remoteMode = remoteOrigin !== null;
 const basePath = pagesMode ? routes.pagesBasePath : "/";
 const routeAssets = new Map(routes.assets.map((asset) => [asset.route, asset]));
 const observedAssets = new Map();
+const observedHtml = new Map();
 const requestNonce = Date.now().toString(36);
+const deploymentMetadataRoutes = new Set([
+  "/.assetsignore",
+  "/_headers",
+  "/_redirects",
+]);
 
 const mimeTypes = new Map([
   [".css", "text/css; charset=utf-8"],
@@ -143,18 +149,37 @@ function parseHeaders(text) {
   return parsed;
 }
 
-const [builtHeadersText, builtAssetsIgnoreText] = await Promise.all([
-  readFile(path.join(distDirectory, "_headers"), "utf8"),
-  readFile(path.join(distDirectory, ".assetsignore"), "utf8"),
-]);
-assert(
-  builtHeadersText === expectedHeadersText(),
-  "Built _headers bytes do not match the route contract.",
-);
-assert(
-  builtAssetsIgnoreText === assetsIgnoreText,
-  "Built .assetsignore bytes do not match the staging contract.",
-);
+const builtHeadersText = pagesMode
+  ? expectedHeadersText()
+  : await readFile(path.join(distDirectory, "_headers"), "utf8");
+const builtAssetsIgnoreText = pagesMode
+  ? assetsIgnoreText
+  : await readFile(path.join(distDirectory, ".assetsignore"), "utf8");
+if (pagesMode) {
+  for (const file of [".assetsignore", "_headers"]) {
+    try {
+      await stat(path.join(distDirectory, file));
+      fail(`Pages artifact must not publish ${file}.`);
+    } catch (error) {
+      if (
+        !(error instanceof Error) ||
+        !("code" in error) ||
+        error.code !== "ENOENT"
+      ) {
+        throw error;
+      }
+    }
+  }
+} else {
+  assert(
+    builtHeadersText === expectedHeadersText(),
+    "Built _headers bytes do not match the route contract.",
+  );
+  assert(
+    builtAssetsIgnoreText === assetsIgnoreText,
+    "Built .assetsignore bytes do not match the staging contract.",
+  );
+}
 const builtHeaders = parseHeaders(builtHeadersText);
 assert(
   builtHeaders.size === routes.assets.length,
@@ -170,6 +195,14 @@ function contentType(route, file) {
 }
 
 async function resolveRequest(route) {
+  if (!pagesMode && deploymentMetadataRoutes.has(route)) {
+    return {
+      file: path.join(distDirectory, "404.html"),
+      status: 404,
+      contentType: "text/html; charset=utf-8",
+    };
+  }
+
   const asset = routeAssets.get(route);
   if (asset) {
     const file = assetPath(distDirectory, route);
@@ -498,6 +531,16 @@ try {
   for (const route of routes.htmlRoutes) {
     const { body } = await fetchRoute(route, 200, "text/html; charset=utf-8");
     const html = new TextDecoder().decode(body);
+    observedHtml.set(route, html);
+    if (remoteMode && !pagesMode) {
+      const expectedBody = new Uint8Array(
+        await readFile(htmlPath(distDirectory, route)),
+      );
+      assert(
+        Buffer.compare(body, expectedBody) === 0,
+        `${route}: published HTML differs from the candidate artifact`,
+      );
+    }
     assert(
       html.includes('<div id="root"></div>'),
       `${route}: missing React root`,
@@ -1012,8 +1055,10 @@ try {
       `No-JavaScript agent prompt drifted: ${fallbackContract}`,
     );
   }
+  const servedRootHtml = remoteMode ? observedHtml.get("/") : rootHtml;
+  assert(servedRootHtml !== undefined, "Root HTML was not observed.");
   const assetReferences = [
-    ...rootHtml.matchAll(/(?:href|src)="([^"]*\/assets\/[^"]+)"/g),
+    ...servedRootHtml.matchAll(/(?:href|src)="([^"]*\/assets\/[^"]+)"/g),
   ].map((match) => match[1]);
   assert(
     assetReferences.length > 0,
@@ -1041,6 +1086,21 @@ try {
     assert(
       response.status === 200,
       `Built asset ${reference} returned ${response.status}`,
+    );
+    const assetRoute = stripBase(assetUrl.pathname);
+    assert(
+      assetRoute !== null && assetRoute.startsWith("/assets/"),
+      `Built asset ${reference} could not be mapped to the candidate artifact`,
+    );
+    const [publishedAsset, candidateAsset] = await Promise.all([
+      response.arrayBuffer().then((bytes) => new Uint8Array(bytes)),
+      readFile(assetPath(distDirectory, assetRoute)).then(
+        (bytes) => new Uint8Array(bytes),
+      ),
+    ]);
+    assert(
+      Buffer.compare(publishedAsset, candidateAsset) === 0,
+      `Built asset ${reference} differs from the candidate artifact`,
     );
   }
 

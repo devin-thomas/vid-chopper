@@ -69,6 +69,20 @@ byte-identical machine assets, `GET`/`HEAD`, content types, cache policy, and st
 false HTML successes. The Pages build is a separate compatibility artifact; it displays a
 canonical-site notice.
 
+## Cloudflare Production Workflow
+
+File: `.github/workflows/cloudflare.yml`
+
+The production workflow is manual, accepts only `main`, and requires the exact
+`deploy vidchopper.app` confirmation plus the `cloudflare-production` GitHub environment. It
+installs the pinned repository dependencies, validates deterministic skill artifacts, runs frontend
+tests, builds and audits the canonical static artifact, performs a Wrangler dry run, publishes that
+same artifact, captures the deployment identity, and runs the cache-busted remote validator.
+
+The credential, preflight, human-gate, live-acceptance, and version-rollback procedure is maintained
+in `knowledge/operations/cloudflare-production.md`. GitHub Pages remains the explicit legacy
+mirror and is not a production fallback claim.
+
 ## Local Validation Reality
 
 Reliable local path:

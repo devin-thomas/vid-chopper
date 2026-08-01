@@ -137,6 +137,7 @@ function Invoke-DocsChecks {
         Invoke-RepoCommand -FilePath $npm -ArgumentList @("ci") -WorkingDirectory (Join-Path $repoRoot "docs")
         Invoke-RepoCommand -FilePath $npm -ArgumentList @("test") -WorkingDirectory (Join-Path $repoRoot "docs")
         Invoke-RepoCommand -FilePath $npm -ArgumentList @("run", "build") -WorkingDirectory (Join-Path $repoRoot "docs")
+        Invoke-RepoCommand -FilePath $npm -ArgumentList @("run", "cloudflare:dry-run") -WorkingDirectory (Join-Path $repoRoot "docs")
         Invoke-RepoCommand -FilePath $npm -ArgumentList @("run", "build:pages") -WorkingDirectory (Join-Path $repoRoot "docs")
     }
 }
