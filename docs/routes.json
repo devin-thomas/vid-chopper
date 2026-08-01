@@ -1,0 +1,149 @@
+{
+  "canonicalOrigin": "https://vidchopper.app",
+  "pagesBasePath": "/vid-chopper/",
+  "delivery": {
+    "htmlHandling": "drop-trailing-slash",
+    "notFoundHandling": "404-page"
+  },
+  "htmlRoutes": [
+    "/",
+    "/docs",
+    "/docs/getting-started",
+    "/docs/cli",
+    "/docs/chapterfiles",
+    "/docs/embedded-chapters",
+    "/docs/chapterbuilder",
+    "/docs/dry-run-and-export",
+    "/docs/manifests",
+    "/docs/settings-and-failures",
+    "/docs/safety",
+    "/releases",
+    "/features",
+    "/download"
+  ],
+  "htmlTitles": {
+    "/": "VidChopper | Local chapter clip export",
+    "/docs": "Documentation | VidChopper",
+    "/docs/getting-started": "Getting started | VidChopper Docs",
+    "/docs/cli": "CLI invocation | VidChopper Docs",
+    "/docs/chapterfiles": "ChapterFiles | VidChopper Docs",
+    "/docs/embedded-chapters": "Embedded chapters | VidChopper Docs",
+    "/docs/chapterbuilder": "ChapterBuilder handoff | VidChopper Docs",
+    "/docs/dry-run-and-export": "Dry-run and confirmed export | VidChopper Docs",
+    "/docs/manifests": "Manifest verification | VidChopper Docs",
+    "/docs/settings-and-failures": "Settings and failures | VidChopper Docs",
+    "/docs/safety": "Safety boundaries | VidChopper Docs",
+    "/releases": "Releases | VidChopper",
+    "/features": "Features | VidChopper",
+    "/download": "Releases | VidChopper"
+  },
+  "legacyDocsRoutes": {
+    "build-from-source": "/docs/getting-started",
+    "architecture": "/docs",
+    "coding-style": "/docs",
+    "test-strategy": "/docs/manifests",
+    "release-workflows": "/releases",
+    "agent-knowledge-base": "/docs/safety"
+  },
+  "assets": [
+    {
+      "source": "docs/schemas/chapter-config.schema.json",
+      "route": "/schemas/chapter-config/schema.json",
+      "contentType": "application/schema+json; charset=utf-8",
+      "cache": "stable"
+    },
+    {
+      "source": "docs/schemas/chapter-config/v1/schema.json",
+      "route": "/schemas/chapter-config/v1/schema.json",
+      "contentType": "application/schema+json; charset=utf-8",
+      "cache": "immutable",
+      "sha256": "dcfd06dc667f66a41916eb83e9b6db9d7aa5225266a44e6f662d5f9fff6379f2"
+    },
+    {
+      "source": "examples/chapter-config.json",
+      "route": "/samples/chapter-config/chapter-config.json",
+      "contentType": "application/json; charset=utf-8",
+      "cache": "stable"
+    },
+    {
+      "source": "examples/chapter-config/v1/chapter-config.json",
+      "route": "/samples/chapter-config/v1/chapter-config.json",
+      "contentType": "application/json; charset=utf-8",
+      "cache": "immutable",
+      "sha256": "02c6d3e58863e32ab6f6b424f28c295daa7b1e9fe707cb9c49a121a0839647c1"
+    },
+    {
+      "source": "examples/chapter-config.yaml",
+      "route": "/samples/chapter-config/chapter-config.yaml",
+      "contentType": "application/yaml; charset=utf-8",
+      "cache": "stable"
+    },
+    {
+      "source": "examples/chapter-config/v1/chapter-config.yaml",
+      "route": "/samples/chapter-config/v1/chapter-config.yaml",
+      "contentType": "application/yaml; charset=utf-8",
+      "cache": "immutable",
+      "sha256": "e1bfb8e29c4288b4835cd4e7a958207eee18e0a7ddf79932cecaf8db1269fa45"
+    },
+    {
+      "source": "packaging/releases/0.3.0-beta.json",
+      "route": "/releases/current.json",
+      "contentType": "application/json; charset=utf-8",
+      "cache": "stable"
+    },
+    {
+      "source": "packaging/releases/0.3.0-beta.json",
+      "route": "/releases/v0.3.0-beta/manifest.json",
+      "contentType": "application/json; charset=utf-8",
+      "cache": "immutable",
+      "sha256": "2ba20c1a13cf96cf8e991eac00410b0dcffdc46506ffa87f4b167e40bea32f26"
+    }
+  ],
+  "deferredAssets": [
+    {
+      "route": "/agents/vidchopper-cli/SKILL.md",
+      "owner": "VID-52",
+      "contentType": "text/markdown; charset=utf-8",
+      "cache": "stable"
+    },
+    {
+      "route": "/agents/vidchopper-cli/manifest.json",
+      "owner": "VID-52",
+      "contentType": "application/json; charset=utf-8",
+      "cache": "stable"
+    },
+    {
+      "route": "/agents/vidchopper-cli/v0.3.0-beta/SKILL.md",
+      "owner": "VID-52",
+      "contentType": "text/markdown; charset=utf-8",
+      "cache": "immutable"
+    },
+    {
+      "route": "/agents/vidchopper-cli/v0.3.0-beta/manifest.json",
+      "owner": "VID-52",
+      "contentType": "application/json; charset=utf-8",
+      "cache": "immutable"
+    },
+    {
+      "route": "/agents/vidchopper-cli/v0.3.0-beta/vidchopper-cli.zip",
+      "owner": "VID-52",
+      "contentType": "application/zip",
+      "cache": "immutable"
+    },
+    {
+      "route": "/.well-known/agent-skills/index.json",
+      "owner": "VID-52",
+      "contentType": "application/json; charset=utf-8",
+      "cache": "stable"
+    }
+  ],
+  "notFoundProbes": [
+    "/not-a-real-page",
+    "/.git/config",
+    "/.wrangler/state.json",
+    "/node_modules/vite/package.json",
+    "/schemas/chapter-config/v2/schema.json",
+    "/samples/not-a-real-sample.json",
+    "/agents/not-a-real-skill/SKILL.md"
+  ]
+}

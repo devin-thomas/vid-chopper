@@ -5,7 +5,16 @@ on:
     branches:
       - main
     paths:
+      - .gitattributes
+      - .agents/skills/vidchopper-cli/**
+      - CMakeLists.txt
       - docs/**
+      - examples/chapter-config.json
+      - examples/chapter-config.yaml
+      - examples/chapter-config/**
+      - packaging/releases/**
+      - packaging/windows/README.txt
+      - src/cli/cli_arguments.cpp
       - .github/workflows/pages.yml
   workflow_dispatch:
 
@@ -42,7 +51,7 @@ jobs:
 
       - name: Build Pages site
         working-directory: docs
-        run: npm run build
+        run: npm run build:pages
 
       - name: Configure Pages
         uses: actions/configure-pages@v5

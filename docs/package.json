@@ -1,12 +1,26 @@
 {
-  "name": "vidchopper-pages",
+  "name": "vidchopper-site",
   "private": true,
   "version": "0.3.0-beta",
+  "description": "Canonical VidChopper product, release, and CLI documentation site.",
+  "homepage": "https://vidchopper.app",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/devin-thomas/vid-chopper.git"
+  },
+  "bugs": {
+    "url": "https://github.com/devin-thomas/vid-chopper/issues"
+  },
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc --noEmit -p tsconfig.app.json && tsc --noEmit -p tsconfig.node.json && vite build",
-    "preview": "vite preview"
+    "stage:assets": "node scripts/stage-static-assets.mjs",
+    "typecheck": "tsc --noEmit -p tsconfig.app.json && tsc --noEmit -p tsconfig.node.json",
+    "dev": "npm run stage:assets && vite",
+    "build": "npm run stage:assets && npm run typecheck && vite build && node scripts/finalize-routes.mjs && node scripts/validate-routes.mjs",
+    "build:pages": "npm run stage:assets && npm run typecheck && vite build --mode pages && node scripts/finalize-routes.mjs --mode pages && node scripts/validate-routes.mjs --mode pages",
+    "validate:routes": "node scripts/validate-routes.mjs",
+    "preview": "vite preview",
+    "preview:pages": "vite preview --mode pages"
   },
   "dependencies": {
     "react": "^19.2.0",

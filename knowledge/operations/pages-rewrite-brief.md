@@ -1,6 +1,8 @@
 # Pages Rewrite Brief
 
-This was the Task 10 brief and now serves as the reference for future iteration.
+This was the Task 10 brief and now serves as the reference for future iteration. VID-51 prepares
+`https://vidchopper.app/docs` as the canonical documentation target; the VID-55 production gate and
+live acceptance remain pending. GitHub Pages remains a legacy mirror with compatible hash routes.
 
 ## Site Role
 
@@ -27,7 +29,7 @@ Explicit copy constraint:
 
 - do not directly encourage contributions on the homepage
 
-## Shipped IA
+## Staged IA
 
 - `/`
   - product landing page
@@ -39,4 +41,5 @@ Explicit copy constraint:
 - `/features`
   - feature and workflow breakdown
 - `/docs`
-  - developer-oriented docs entry point and source-doc links
+  - product and CLI journey from installation through verified manifests and safety boundaries
+  - stable direct section URLs plus versioned schema, sample, and release metadata

@@ -8,8 +8,12 @@ If you want to run VidChopper on Windows 10/11 x64 without building from source,
 
 - [Download the `v0.3.0-beta` Windows x64 release zip](https://github.com/devin-thomas/vid-chopper/releases/download/v0.3.0-beta/VidChopper-0.3.0-beta-windows-x64.zip)
 - [Browse all GitHub releases](https://github.com/devin-thomas/vid-chopper/releases)
+- [Open the staged canonical documentation route](https://vidchopper.app/docs) (production rollout and live acceptance are tracked separately)
 
-The release zip is a portable build that includes `VidChopper.exe`, the required Qt runtime files, and the Microsoft Visual C++ runtime. It does **not** bundle `ffmpeg` or `ffprobe`, so those still need to be on `PATH` or configured in the advanced settings dialog.
+The release zip is a portable build that includes `VidChopper.exe`, `VidChopperCLI.exe`,
+`yaml-cpp.dll`, the required Qt runtime files, and the Microsoft Visual C++ runtime. It does **not**
+bundle `ffmpeg` or `ffprobe`, so those still need to be on `PATH` or configured in the advanced
+settings dialog.
 
 ### Quick Start
 
@@ -26,7 +30,7 @@ The current codebase includes:
 - A C++ core library for chapter validation, timestamp parsing and formatting, file naming, output planning, and `ffmpeg` command construction
 - Automatic preference for HEVC NVENC when an NVIDIA GPU and `hevc_nvenc` support are both detected, with x264 used otherwise
 - A staged test suite split into fast unit-level coverage and slower `ffmpeg` integration coverage
-- A Vite + React + TypeScript + Tailwind Pages site in `docs/` for the product landing page, release portal, and developer docs
+- A Vite + React + TypeScript + Tailwind site in `docs/` for the canonical product, release, and CLI documentation surface, with GitHub Pages retained as a legacy mirror
 
 The `v0.3.0-beta` release completes the Qt-free CLI, packages `VidChopperCLI.exe` beside the GUI,
 and verifies a ChapterBuilder-produced ChapterFile through dry-run, export, and clean release-archive
@@ -95,6 +99,9 @@ The CLI's Qt-free ChapterFile loader accepts `.json`, `.yaml`, and `.yml` files,
 
 The CLI probes inputs, plans and exports chapters, supports dry runs, reports bounded progress, and writes
 per-job JSON/CSV manifests. Run `VidChopperCLI.exe --version` to confirm the installed package version.
+The setup, ChapterFile, dry-run, export, manifest, error, and safety journey is staged for
+[`https://vidchopper.app/docs`](https://vidchopper.app/docs). Until the production rollout is
+live-validated, use the repository documentation as the authoritative source.
 
 ```powershell
 cmake --preset core-release
@@ -163,7 +170,7 @@ Chapter boundaries can fall between keyframes. Re-encoding with x264 or HEVC NVE
 - `src/cli/`: Qt-free command parsing, settings, ChapterFile loading, dry-run planning, and export execution
 - `src/qt/`: Qt application shell, settings persistence, chapter table model, ffprobe integration, GPU detection, and export coordination
 - `tests/`: staged native tests
-- `docs/`: Vite + React + TypeScript + Tailwind GitHub Pages app
+- `docs/`: canonical Vite + React + TypeScript + Tailwind product/docs site and legacy Pages build
 - `packaging/windows/`: bundled release notes and third-party runtime notices for the portable zip
 - `.github/workflows/`: CI and release packaging definitions
 

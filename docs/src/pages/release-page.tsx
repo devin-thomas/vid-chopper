@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import appIcon from "../assets/app-icon.png";
 import releaseShot from "../assets/vidchopper-real-export.png";
 import { Icon } from "../components/icon";
-import { HashLink, useHashSearchParams } from "../router";
+import { SiteLink, useSiteSearchParams } from "../router";
 import {
   changelogEntries,
   previousReleases,
@@ -15,12 +15,15 @@ import {
 } from "../content/site";
 
 export function ReleasePage() {
-  const searchParams = useHashSearchParams();
+  const searchParams = useSiteSearchParams();
   const changelogRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     if (searchParams.get("section") === "changelog") {
-      changelogRef.current?.scrollIntoView({ block: "start", behavior: "smooth" });
+      changelogRef.current?.scrollIntoView({
+        block: "start",
+        behavior: "smooth",
+      });
     }
   }, [searchParams]);
 
@@ -29,24 +32,31 @@ export function ReleasePage() {
       <section className="subpage-hero release-hero">
         <div className="release-hero-copy">
           <div className="hero-kicker">Release portal</div>
-          <h1>Download the current portable Windows release without building Qt locally.</h1>
+          <h1>
+            Download the current portable Windows release without building Qt
+            locally.
+          </h1>
           <p>
-            The current prerelease is the intended end-user path: unzip it, launch VidChopper.exe, then point the app
-            at ffmpeg and ffprobe if they are not already on your PATH.
+            The current prerelease is the intended end-user path: unzip it,
+            launch VidChopper.exe, then point the app at ffmpeg and ffprobe if
+            they are not already on your PATH.
           </p>
           <div className="hero-actions">
             <a className="cta-primary" href={releaseZipUrl}>
               <Icon name="download" /> Download {releaseVersion} ZIP
             </a>
-            <HashLink className="cta-secondary" to="/docs">
+            <SiteLink className="cta-secondary" to="/docs">
               Read docs first
-            </HashLink>
+            </SiteLink>
           </div>
         </div>
         <div className="release-hero-stack">
           <div className="product-shot product-shot-release">
             <div className="shot-badge shot-badge-top">Current shipped UI</div>
-            <img src={releaseShot} alt="Real VidChopper export controls and chapter table from the Windows release." />
+            <img
+              src={releaseShot}
+              alt="Real VidChopper export controls and chapter table from the Windows release."
+            />
           </div>
           <div className="release-hero-card">
             <div className="release-mark">
@@ -56,8 +66,9 @@ export function ReleasePage() {
             <div className="release-chip">Current release</div>
             <h2>{releaseVersion}</h2>
             <p>
-              Download the same packaged app surface shown here: Qt runtime bundled, VC++ runtime bundled, `ffmpeg`
-              and `ffprobe` configured separately.
+              Download the same packaged app surface shown here: Qt runtime
+              bundled, VC++ runtime bundled, `ffmpeg` and `ffprobe` configured
+              separately.
             </p>
           </div>
         </div>
@@ -79,6 +90,8 @@ export function ReleasePage() {
           <h3>Included in the ZIP</h3>
           <ul>
             <li>VidChopper.exe</li>
+            <li>VidChopperCLI.exe</li>
+            <li>yaml-cpp.dll for ChapterFile loading</li>
             <li>Required Qt runtime files</li>
             <li>Microsoft VC++ runtime</li>
             <li>Release readme, notices, and license files</li>
@@ -89,7 +102,9 @@ export function ReleasePage() {
           <ul>
             <li>ffmpeg</li>
             <li>ffprobe</li>
-            <li>Any optional codec/environment setup outside the portable bundle</li>
+            <li>
+              Any optional codec/environment setup outside the portable bundle
+            </li>
           </ul>
         </article>
       </section>
@@ -106,8 +121,9 @@ export function ReleasePage() {
         <div className="release-note-card">
           <strong>Why the portable route exists</strong>
           <p>
-            The repo can validate the core without Qt, but the GUI build still depends on a Qt SDK. The release ZIP is
-            the clean path for people who want the product rather than the build setup.
+            The repo can validate the core without Qt, but the GUI build still
+            depends on a Qt SDK. The release ZIP is the clean path for people
+            who want the product rather than the build setup.
           </p>
         </div>
       </section>
@@ -141,7 +157,10 @@ export function ReleasePage() {
       <section ref={changelogRef} className="release-history changelog-panel">
         <div className="release-history-panel">
           <h2>Changelog</h2>
-          <p>The current prerelease story is grounded in actual shipped repo behavior, not placeholder bullets.</p>
+          <p>
+            The current prerelease story is grounded in actual shipped repo
+            behavior, not placeholder bullets.
+          </p>
         </div>
         <div className="release-history-panel changelog-list">
           {changelogEntries.map((entry) => (

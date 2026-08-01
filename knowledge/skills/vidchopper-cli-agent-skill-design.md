@@ -77,11 +77,11 @@ make VID-51 through VID-53 testable without turning VID-48 into a second roadmap
 VID-52 adds the repository skill without duplicating these contracts by hand. References either reuse
 the source files during packaging or are generated and checked against them.
 
-The schema and ChapterBuilder fixture currently identify
-`https://vidchopper.dev/schemas/chapter-config.schema.json`, which is not a working canonical route.
-VID-51 publishes `https://vidchopper.app/schemas/chapter-config/v1/schema.json` plus a stable alias.
-The byte-identical ChapterBuilder fixture remains unchanged until its upstream export changes; its
-legacy `$schema` string is treated as provenance, not fetched by the CLI.
+The canonical schema and starter examples identify
+`https://vidchopper.app/schemas/chapter-config/v1/schema.json`, and VID-51 also publishes a stable
+alias. The byte-identical ChapterBuilder fixture still identifies the legacy `vidchopper.dev` route
+and remains unchanged until its upstream export changes; that `$schema` string is treated as
+provenance, not fetched by the CLI.
 
 ## Why this shape
 
@@ -443,8 +443,12 @@ or upload of the public VOD.
 - Publish stable and immutable machine-readable schema, sample, and release-metadata routes; use
   `/schemas/chapter-config/v1/schema.json` for schema version `1`.
 - Preserve intentional legacy landing behavior for GitHub Pages/hash URLs.
-- Validate `GET`, `HEAD`, content type, redirects, assets, `404`, and SPA fallback from the built
-  artifact and again after production deployment.
+- Generate physical HTML entries for every supported browser route and use strict custom-`404`
+  delivery instead of an unconditional SPA fallback. This keeps direct reloads working without
+  turning missing schema, sample, or skill URLs into `200 text/html` responses.
+- Validate built-artifact `GET`, `HEAD`, content type, canonical redirects, assets, and `404`
+  behavior locally. VID-55 repeats the same contract against its preview and production origins
+  after the deployment gate.
 - Add a generic raw-asset staging step that can carry later skill artifacts without VID-51 creating or
   owning them. The current Vite build has no `public/` or copy path for schemas, samples, skills, or
   Markdown.

@@ -113,6 +113,17 @@ The schema file catches structural issues such as missing `chapters`, unknown fi
 - `tests/test_chapter_config.cpp`
 - `vcpkg.json`
 
+Canonical deployment targets (staged by VID-51; production acceptance remains gated by VID-55):
+
+- Schema: `https://vidchopper.app/schemas/chapter-config/v1/schema.json`
+- JSON sample: `https://vidchopper.app/samples/chapter-config/v1/chapter-config.json`
+- YAML sample: `https://vidchopper.app/samples/chapter-config/v1/chapter-config.yaml`
+
+The built artifact makes the versioned routes immutable and provides stable aliases without `/v1/`.
+After live acceptance, automation should pin version `1` when reproducibility matters. The CLI does
+not fetch `$schema`; an offline ChapterFile remains usable before deployment or whenever the hosted
+schema is unavailable.
+
 ## ChapterBuilder compatibility fixture
 
 `tests/fixtures/chapterbuilder/tns-2xko-36-chapters.json` is byte-identical to the
@@ -127,9 +138,9 @@ The fast loader test proves that VidChopper accepts the export without edits. To
 exercise the complete contract against a local source video, build the CLI and run:
 
 ```powershell
-.\build\core-release\Release\VidChopperCLI.exe `
-  <source-video> `
-  .\tests\fixtures\chapterbuilder\tns-2xko-36-chapters.json `
+& "C:\Tools\VidChopper\VidChopperCLI.exe" `
+  "C:\Media\source.mp4" `
+  "C:\Media\tns-2xko-36-chapters.json" `
   --dry-run
 ```
 

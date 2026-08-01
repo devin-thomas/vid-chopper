@@ -24,3 +24,8 @@ VidChopper uses ffprobe to inspect source videos and ffmpeg to export chapter cl
 Project page
 ------------
 https://github.com/devin-thomas/vid-chopper
+
+Documentation rollout
+---------------------
+The canonical route is staged at https://vidchopper.app/docs. Until the production rollout is
+live-validated, use the documentation in the source repository.
