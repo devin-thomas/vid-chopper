@@ -1,24 +1,27 @@
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import appIcon from "../assets/app-icon.png";
 import { releaseZipUrl, repositoryUrl } from "../content/site";
 import { HashLink, useHashLocation } from "../router";
+import { Icon } from "./icon";
 
 const navItems = [
   { label: "Overview", to: "/" },
   { label: "Features", to: "/?section=features" },
-  { label: "Screenshots", to: "/?section=screenshots" },
-  { label: "Changelog", to: "/releases?section=changelog" },
   { label: "Docs", to: "/docs" },
   { label: "Releases", to: "/releases" },
 ] as const;
 
 export function Shell({ children }: { children: ReactNode }) {
   const location = useHashLocation();
+  const [menuOpen, setMenuOpen] = useState(false);
   const section = new URLSearchParams(location.search).get("section");
 
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
-  }, [location.pathname]);
+    setMenuOpen(false);
+    if (section === null) {
+      window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
+    }
+  }, [location.pathname, section]);
 
   const isActive = (to: string) => {
     if (to === "/") {
@@ -27,22 +30,14 @@ export function Shell({ children }: { children: ReactNode }) {
     if (to === "/?section=features") {
       return location.pathname === "/" && section === "features";
     }
-    if (to === "/?section=screenshots") {
-      return location.pathname === "/" && section === "screenshots";
-    }
-    if (to === "/releases?section=changelog") {
-      return location.pathname === "/releases" && section === "changelog";
-    }
     if (to === "/releases") {
-      return location.pathname === "/releases" && section !== "changelog";
+      return location.pathname === "/releases";
     }
     return location.pathname === to;
   };
 
   return (
     <div className="site-shell">
-      <div className="page-orb page-orb-left" />
-      <div className="page-orb page-orb-right" />
       <header className="topbar">
         <HashLink to="/" className="brandmark">
           <img src={appIcon} alt="" className="brandmark-icon" />
@@ -51,23 +46,36 @@ export function Shell({ children }: { children: ReactNode }) {
             <small>Offline chapter export utility</small>
           </span>
         </HashLink>
-        <nav className="topnav" aria-label="Primary">
+        <button
+          className="menu-toggle"
+          type="button"
+          aria-expanded={menuOpen}
+          aria-controls="primary-navigation"
+          onClick={() => setMenuOpen((open) => !open)}
+        >
+          <span className="sr-only">Toggle navigation</span>
+          <Icon name={menuOpen ? "close" : "menu"} />
+        </button>
+        <nav
+          id="primary-navigation"
+          className={`topnav ${menuOpen ? "topnav-open" : ""}`}
+          aria-label="Primary"
+        >
           {navItems.map((item) => (
             <HashLink
               key={item.to}
               to={item.to}
               className={`topnav-link ${isActive(item.to) ? "topnav-link-active" : ""}`}
+              aria-current={isActive(item.to) ? "page" : undefined}
+              onClick={() => setMenuOpen(false)}
             >
               {item.label}
             </HashLink>
           ))}
         </nav>
         <div className="topbar-actions">
-          <a className="ghost-link" href={repositoryUrl}>
-            GitHub
-          </a>
           <a className="primary-link" href={releaseZipUrl}>
-            Download ZIP
+            <Icon name="download" /> Download ZIP
           </a>
         </div>
       </header>
@@ -82,7 +90,9 @@ export function Shell({ children }: { children: ReactNode }) {
         <div className="footer-links">
           <HashLink to="/releases?section=changelog">Changelog</HashLink>
           <HashLink to="/docs">Docs</HashLink>
-          <a href={repositoryUrl}>Repository</a>
+          <a href={repositoryUrl}>
+            <Icon name="github" /> Repository
+          </a>
           <a href={releaseZipUrl}>Latest ZIP</a>
         </div>
       </footer>
