@@ -15,7 +15,7 @@ function Get-RepoRoot {
 
 function Get-RepoQtRoot {
     $candidates = [System.Collections.Generic.List[string]]::new()
-    foreach ($candidate in @($env:Qt6_ROOT, $env:Qt6_DIR, $env:QTDIR)) {
+    foreach ($candidate in @($env:Qt6_ROOT, $env:Qt6_DIR, $env:QTDIR, $env:QT_ROOT_DIR)) {
         if (-not [string]::IsNullOrWhiteSpace($candidate)) {
             $candidates.Add($candidate)
         }
@@ -80,7 +80,7 @@ function Set-RepoQtEnvironment {
         $QtRoot = Get-RepoQtRoot
     }
     if ([string]::IsNullOrWhiteSpace($QtRoot)) {
-        throw "Qt 6.9 for MSVC 2022 was not found. Install it under C:\Qt or set Qt6_ROOT, Qt6_DIR, or QTDIR."
+        throw "Qt 6.9 for MSVC 2022 was not found. Install it under C:\Qt or set Qt6_ROOT, Qt6_DIR, QTDIR, or QT_ROOT_DIR."
     }
 
     $qtBin = Join-Path $QtRoot "bin"

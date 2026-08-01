@@ -18,18 +18,18 @@ function Get-CppFiles {
 }
 
 function Invoke-TextPolicyChecks {
-    $sizeMatches = @(& rg -n "std::size_t" (Join-Path $repoRoot "src") (Join-Path $repoRoot "tests"))
+    $sizeMatches = @(& git -C $repoRoot grep -n "std::size_t" -- "src" "tests")
     if ($LASTEXITCODE -gt 1) {
-        throw "rg failed while checking size_t style."
+        throw "git grep failed while checking size_t style."
     }
     $violations = @($sizeMatches | Where-Object { $_ -notmatch "src[\\/]core[\\/]types\.hpp:.*using std::size_t;" })
     if ($violations.Count -gt 0) {
         throw "Unqualified size_t policy violations:`n$($violations -join "`n")"
     }
 
-    $qtMatches = @(& rg -n '#include\s*[<"]Q[^>"]*[>"]' (Join-Path $repoRoot "src\core") (Join-Path $repoRoot "src\cli"))
+    $qtMatches = @(& git -C $repoRoot grep -n -E '#include[[:space:]]*[<"]Q[^>"]*[>"]' -- "src/core" "src/cli")
     if ($LASTEXITCODE -gt 1) {
-        throw "rg failed while checking the Qt-free boundary."
+        throw "git grep failed while checking the Qt-free boundary."
     }
     if ($qtMatches.Count -gt 0) {
         throw "Qt-free boundary violations:`n$($qtMatches -join "`n")"
