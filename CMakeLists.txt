@@ -176,8 +176,8 @@ if(VIDCHOPPER_BUILD_GUI)
         src/qt/dark_palette.hpp
         src/qt/services/export_coordinator.cpp
         src/qt/services/export_coordinator.hpp
-        src/qt/services/ffprobe_service.cpp
-        src/qt/services/ffprobe_service.hpp
+        src/qt/services/probe_coordinator.cpp
+        src/qt/services/probe_coordinator.hpp
         src/qt/services/gpu_detector.cpp
         src/qt/services/gpu_detector.hpp
         src/qt/ui/advanced_settings_dialog.cpp
@@ -190,7 +190,7 @@ if(VIDCHOPPER_BUILD_GUI)
         ${VIDCHOPPER_WIN_RESOURCE}
     )
 
-    target_link_libraries(VidChopper PRIVATE Qt6::Core Qt6::Gui Qt6::Widgets vidchopper_core)
+    target_link_libraries(VidChopper PRIVATE Qt6::Core Qt6::Gui Qt6::Widgets vidchopper_core vidchopper_services)
     target_compile_definitions(VidChopper PRIVATE VIDCHOPPER_DISPLAY_VERSION="${VIDCHOPPER_DISPLAY_VERSION}")
     apply_vidchopper_warnings(VidChopper)
 
@@ -228,5 +228,23 @@ if(VIDCHOPPER_BUILD_GUI)
         apply_vidchopper_warnings(vidchopper_test_chapter_table_model)
         add_test(NAME qt.vidchopper_test_chapter_table_model COMMAND vidchopper_test_chapter_table_model)
         set_tests_properties(qt.vidchopper_test_chapter_table_model PROPERTIES LABELS "qt")
+
+        add_executable(vidchopper_test_probe_coordinator
+            tests/test_probe_coordinator.cpp
+            src/qt/services/probe_coordinator.cpp
+            src/qt/services/probe_coordinator.hpp
+        )
+        target_include_directories(vidchopper_test_probe_coordinator PRIVATE
+            "${PROJECT_SOURCE_DIR}/src"
+            "${PROJECT_SOURCE_DIR}/tests"
+        )
+        target_link_libraries(vidchopper_test_probe_coordinator PRIVATE
+            Qt6::Core
+            Qt6::Test
+            vidchopper_services
+        )
+        apply_vidchopper_warnings(vidchopper_test_probe_coordinator)
+        add_test(NAME qt.vidchopper_test_probe_coordinator COMMAND vidchopper_test_probe_coordinator)
+        set_tests_properties(qt.vidchopper_test_probe_coordinator PROPERTIES LABELS "qt")
     endif()
 endif()

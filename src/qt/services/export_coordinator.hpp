@@ -14,6 +14,9 @@
 
 namespace vidchopper {
 
+class ProbeCoordinator;
+struct ProbeResult;
+
 class ExportCoordinator final : public QObject {
     Q_OBJECT
     Q_DISABLE_COPY_MOVE(ExportCoordinator)
@@ -52,10 +55,13 @@ private:
     };
 
     auto start_next() -> void;
+    auto complete_current_export() -> void;
+    auto handle_probe_finished(const ProbeResult& result) -> void;
     auto handle_failure(const QString& message) -> void;
     auto write_manifests() -> void;
 
     QProcess process_;
+    ProbeCoordinator* probe_coordinator_ {nullptr};
     QByteArray stdout_buffer_;
     std::vector<PendingExport> exports_;
     QStringList errors_;
