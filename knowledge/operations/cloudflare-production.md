@@ -26,15 +26,15 @@ previous VID-55-accepted deployment before this cutover.
 
 Use the `cloudflare-environment` GitHub environment for production workflow runs:
 
-- Environment variable `CLOUDFLARE_ACCOUNT_ID`: the existing Uppercut Labs account ID.
+- Environment secret `CLOUDFLARE_ACCOUNT_ID`: the existing Uppercut Labs account ID.
 - Environment secret `CLOUDFLARE_API_TOKEN`: a dedicated least-privilege token.
 - Restrict deployments to `main`.
 
-Start from Cloudflare's custom `Edit Cloudflare Workers` token policy, then scope it to the intended
-account and the `vidchopper.app` zone. Keep only the Worker script and route edit capabilities
-needed for this deployment; do not grant unrelated DNS, storage, AI, queue, tail, or organization
-permissions. Do not copy the broader local Wrangler OAuth credential into GitHub. Never commit
-either value.
+Follow Cloudflare's documented `Edit Cloudflare Workers` token template and scope its account and
+zone resources to the intended account and `vidchopper.app`. Do not hand-trim the template before
+the first accepted deployment: Wrangler needs the template's Worker script/route access and its
+supporting read permissions. Do not copy the broader local Wrangler OAuth credential into GitHub.
+Never commit either value.
 
 ## Local Preflight
 
