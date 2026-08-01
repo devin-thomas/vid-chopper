@@ -110,8 +110,8 @@ recheck every destination. Abort and request fresh approval if any destination a
 ## Export after confirmation
 
 After explicit approval, run the reviewed command with only `--dry-run` removed. Do not add unsupported
-flags. Stream bounded progress and preserve stdout, stderr, and the exit code. Read
-Use [references/cli.md](references/cli.md), when available, before using optional flags, settings,
+flags. Stream bounded progress and preserve stdout, stderr, and the exit code.
+Read [references/cli.md](references/cli.md), when available, before using optional flags, settings,
 batch modes, or diagnosing tool failures.
 
 ## Verify the result
