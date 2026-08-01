@@ -120,6 +120,45 @@ auto main() -> int {
         std::optional<Path> {matched_fight_config},
         "N:N should retain actual config casing");
 
+#ifdef _WIN32
+    const Path unicode_sources = root.path() / "unicode" / "videos";
+    const Path unicode_configs = root.path() / "unicode" / "configs";
+    const Path unicode_eclair = unicode_sources / L"Éclair.MP4";
+    const Path unicode_ecole = unicode_sources / L"éCOLE.mov";
+    const Path unicode_eclair_config = unicode_configs / L"éCLAIR.json";
+    const Path unicode_ecole_config = unicode_configs / L"École.yaml";
+    touch(unicode_ecole);
+    touch(unicode_eclair);
+    touch(unicode_ecole_config);
+    touch(unicode_eclair_config);
+    const BatchResolution unicode_matched = resolve_batch(BatchResolveRequest {
+        .source_path = unicode_sources,
+        .chapter_source_path = unicode_configs,
+    });
+    test_support::expect_true(unicode_matched.ok(), "Windows ordinal matching should pair non-ASCII case variants");
+    test_support::expect_eq(
+        unicode_matched.jobs[0].source_path, unicode_eclair, "Windows ordinal ordering should be deterministic");
+    test_support::expect_eq(unicode_matched.jobs[0].chapter_config_path,
+        std::optional<Path> {unicode_eclair_config},
+        "Windows ordinal matching should preserve original path casing");
+
+    const Path unicode_duplicates = root.path() / "unicode-duplicates";
+    const Path unicode_duplicate_upper = unicode_duplicates / L"Ångström.mp4";
+    const Path unicode_duplicate_lower = unicode_duplicates / L"ångström.mkv";
+    touch(unicode_duplicate_upper);
+    touch(unicode_duplicate_lower);
+    const BatchResolution unicode_duplicate_result = resolve_batch(BatchResolveRequest {
+        .source_path = unicode_duplicates,
+        .chapter_source_path = shared_config,
+    });
+    test_support::expect_true(
+        !unicode_duplicate_result.ok(), "Windows ordinal duplicate detection should fold non-ASCII case variants");
+    test_support::expect_true(contains(joined_errors(unicode_duplicate_result), unicode_duplicate_upper.string()),
+        "non-ASCII duplicate diagnostics should preserve uppercase source spelling");
+    test_support::expect_true(contains(joined_errors(unicode_duplicate_result), unicode_duplicate_lower.string()),
+        "non-ASCII duplicate diagnostics should preserve lowercase source spelling");
+#endif
+
     const Path one_to_many_configs = root.path() / "one-to-many" / "configs";
     touch(one_to_many_configs / "first.json");
     const BatchResolution one_to_many = resolve_batch(BatchResolveRequest {
@@ -256,6 +295,51 @@ auto main() -> int {
     test_support::expect_true(!empty_config_result.ok(), "empty config directories should fail");
     test_support::expect_true(contains(joined_errors(empty_config_result), empty_configs.string()),
         "empty config error should include the directory");
+
+    const Path incomplete_sources = root.path() / "incomplete" / "videos";
+    const Path incomplete_configs = root.path() / "incomplete" / "configs";
+    std::filesystem::create_directories(incomplete_sources);
+    std::filesystem::create_directories(incomplete_configs);
+    const DirectoryScanner incomplete_scanner = [incomplete_sources, incomplete_configs](
+                                                    const Path& directory) -> DirectoryScanResult {
+        if (directory == incomplete_sources) {
+            return DirectoryScanResult {
+                .regular_files = {directory / "partial.mp4", directory / "PARTIAL.mkv"},
+                .failures = {{.entry_path = directory / "zeta.mp4", .message = "zeta failure"},
+                    {.entry_path = directory / "alpha.mp4", .message = "alpha failure"}},
+                .complete = false,
+            };
+        }
+        test_support::expect_eq(directory, incomplete_configs, "scanner should receive the config directory");
+        return DirectoryScanResult {
+            .regular_files = {directory / "orphan.yaml"},
+            .failures = {{.message = "iterator failure"}},
+            .complete = false,
+        };
+    };
+    const BatchResolution incomplete = resolve_batch(BatchResolveRequest {
+        .source_path = incomplete_sources,
+        .chapter_source_path = incomplete_configs,
+        .directory_scanner = incomplete_scanner,
+    });
+    const BatchResolution incomplete_again = resolve_batch(BatchResolveRequest {
+        .source_path = incomplete_sources,
+        .chapter_source_path = incomplete_configs,
+        .directory_scanner = incomplete_scanner,
+    });
+    test_support::expect_true(!incomplete.ok(), "incomplete directory inventory should fail validation");
+    test_support::expect_true(incomplete.jobs.empty(), "incomplete inventory must not produce partial jobs");
+    test_support::expect_eq(
+        incomplete.errors, incomplete_again.errors, "incomplete scan diagnostics should be byte-stable");
+    const std::string incomplete_errors = joined_errors(incomplete);
+    test_support::expect_true(
+        !contains(incomplete_errors, "Duplicate"), "incomplete inventory must not derive duplicate conclusions");
+    test_support::expect_true(!contains(incomplete_errors, "Missing ChapterFile"),
+        "incomplete inventory must not derive missing-file conclusions");
+    test_support::expect_true(
+        !contains(incomplete_errors, "Orphan ChapterFile"), "incomplete inventory must not derive orphan conclusions");
+    test_support::expect_true(
+        !contains(incomplete_errors, "count mismatch"), "incomplete inventory must not derive count conclusions");
 
     const BatchResolution embedded = resolve_batch(BatchResolveRequest {
         .source_path = shared_sources,

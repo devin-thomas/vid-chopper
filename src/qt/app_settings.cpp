@@ -1,5 +1,7 @@
 #include "qt/app_settings.hpp"
 
+#include "core/enum_utils.hpp"
+
 #include <QCoreApplication>
 #include <QDir>
 #include <QFile>
@@ -14,10 +16,6 @@
 namespace vidchopper {
 
 namespace {
-
-constexpr auto min_zoom_percent = 50;
-constexpr auto max_zoom_percent = 300;
-constexpr auto zoom_step_percent = 25;
 
 template <typename Integer>
 auto load_integer(QSettings& settings,
@@ -44,7 +42,7 @@ auto load_enum(
     QSettings& settings, const char* key, const Enum fallback, const Enum max_valid, QStringList& diagnostics) -> Enum {
     const auto raw =
         load_integer<int>(settings, key, static_cast<int>(fallback), 0, static_cast<int>(max_valid), diagnostics);
-    return static_cast<Enum>(raw);
+    return clamp_to_enum(raw, max_valid, fallback);
 }
 
 auto load_boolean(QSettings& settings, const char* key, const bool fallback, QStringList& diagnostics) -> bool {
@@ -78,10 +76,10 @@ auto settings_status_message(const QSettings& settings) -> QString {
 }
 
 auto snap_zoom_percent(const int zoom_percent) -> int {
-    const auto clamped = std::clamp(zoom_percent, min_zoom_percent, max_zoom_percent);
+    const auto clamped = std::clamp(zoom_percent, minimum_zoom_percent, maximum_zoom_percent);
     const auto snapped_steps =
-        static_cast<int>(std::lround(static_cast<double>(clamped - min_zoom_percent) / zoom_step_percent));
-    return min_zoom_percent + (snapped_steps * zoom_step_percent);
+        static_cast<int>(std::lround(static_cast<double>(clamped - minimum_zoom_percent) / zoom_step_percent));
+    return minimum_zoom_percent + (snapped_steps * zoom_step_percent);
 }
 
 auto ensure_parent_directory(const QString& file_path) -> void {
@@ -112,13 +110,13 @@ auto try_prepare_settings_file(const QString& file_path) -> bool {
 }
 
 auto resolve_settings_path() -> QString {
-    const auto preferred_path = QDir {QCoreApplication::applicationDirPath()}.filePath("VidChopper.ini");
+    auto preferred_path = QDir {QCoreApplication::applicationDirPath()}.filePath("VidChopper.ini");
     if (try_prepare_settings_file(preferred_path)) {
         return preferred_path;
     }
 
     const auto fallback_directory = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
-    const auto fallback_path = QDir {fallback_directory}.filePath("VidChopper.ini");
+    auto fallback_path = QDir {fallback_directory}.filePath("VidChopper.ini");
     if (try_prepare_settings_file(fallback_path)) {
         return fallback_path;
     }
@@ -207,8 +205,12 @@ auto load_app_settings(QSettings& settings) -> SettingsLoadResult {
         settings, "confirmations/confirmRemoveChapters", values.confirm_remove_chapters, result.diagnostics);
     values.confirm_exit = load_boolean(settings, "confirmations/confirmExit", values.confirm_exit, result.diagnostics);
 
-    result.values.zoom_percent = clamp_zoom_percent(
-        load_integer<int>(settings, "ui/zoomPercent", 100, min_zoom_percent, max_zoom_percent, result.diagnostics));
+    result.values.zoom_percent = clamp_zoom_percent(load_integer<int>(settings,
+        "ui/zoomPercent",
+        default_zoom_percent,
+        minimum_zoom_percent,
+        maximum_zoom_percent,
+        result.diagnostics));
     result.values.last_screen_size = QSize {
         load_integer<int>(settings, "ui/lastScreenWidth", 0, 0, std::numeric_limits<int>::max(), result.diagnostics),
         load_integer<int>(settings, "ui/lastScreenHeight", 0, 0, std::numeric_limits<int>::max(), result.diagnostics),
@@ -277,7 +279,7 @@ auto clamp_zoom_percent(const int zoom_percent) -> int {
 
 auto auto_zoom_percent_for_screen_height(const int logical_height) -> int {
     if (logical_height <= 0) {
-        return 100;
+        return default_zoom_percent;
     }
 
     const auto scale = static_cast<double>(logical_height) / 1080.0;

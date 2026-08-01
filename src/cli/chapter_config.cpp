@@ -125,7 +125,7 @@ constexpr auto chapter_keys = std::to_array<std::string_view>({"name", "start", 
         return std::nullopt;
     }
 
-    const std::string text = value.as<std::string>();
+    auto text = value.as<std::string>();
     const std::optional<u64> parsed = parse_unsigned_milliseconds(text);
     if (!parsed.has_value() || *parsed > maximum) {
         return std::nullopt;

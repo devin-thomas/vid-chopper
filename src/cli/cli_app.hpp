@@ -1,5 +1,6 @@
 #pragma once
 
+#include "cli/batch_resolver.hpp"
 #include "cli/ffprobe_client.hpp"
 #include "core/types.hpp"
 
@@ -23,6 +24,7 @@ struct CliRunRequest {
     std::ostream& output;
     std::ostream& error_output;
     ProcessExecutor process_executor {run_process};
+    DirectoryScanner directory_scanner;
 };
 
 [[nodiscard]] auto run_cli(const CliRunRequest& request) -> CliExitCode;

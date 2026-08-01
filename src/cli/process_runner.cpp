@@ -126,7 +126,7 @@ private:
     const std::wstring_view wide {buffer, length};
     const int utf8_length =
         WideCharToMultiByte(CP_UTF8, 0, wide.data(), static_cast<int>(wide.size()), nullptr, 0, nullptr, nullptr);
-    auto message = std::string(static_cast<size_t>(std::max(utf8_length, 0)), '\0');
+    auto message = std::string(static_cast<size_t>((std::max)(utf8_length, 0)), '\0');
     if (utf8_length > 0) {
         WideCharToMultiByte(
             CP_UTF8, 0, wide.data(), static_cast<int>(wide.size()), message.data(), utf8_length, nullptr, nullptr);
@@ -143,7 +143,7 @@ auto read_pipe(const HANDLE pipe, std::string& output, const size_t limit) -> vo
     auto bytes_read = DWORD {0};
     while (ReadFile(pipe, buffer.data(), static_cast<DWORD>(buffer.size()), &bytes_read, nullptr) != FALSE) {
         const size_t remaining = output.size() < limit ? limit - output.size() : 0;
-        const size_t count = std::min(remaining, static_cast<size_t>(bytes_read));
+        const size_t count = (std::min)(remaining, static_cast<size_t>(bytes_read));
         output.append(buffer.data(), count);
     }
 }

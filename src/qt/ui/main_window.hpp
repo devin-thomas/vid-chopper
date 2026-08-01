@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/models.hpp"
+#include "qt/app_settings.hpp"
 #include "qt/demo_launch_options.hpp"
 #include "qt/logging.hpp"
 
@@ -32,6 +33,7 @@ class AdvancedSettingsDialog;
 
 class MainWindow final : public QMainWindow {
     Q_OBJECT
+    Q_DISABLE_COPY_MOVE(MainWindow)
 
 public:
     explicit MainWindow(DemoLaunchOptions demo_options = {}, QWidget* parent = nullptr);
@@ -104,7 +106,7 @@ private:
     std::filesystem::path output_directory_path_;
     std::vector<LogEntry> log_entries_;
     int base_font_point_size_ {10};
-    int zoom_percent_ {100};
+    int zoom_percent_ {default_zoom_percent};
     bool output_directory_overridden_ {false};
     bool demo_scene_applied_ {false};
     DemoLaunchOptions demo_options_;

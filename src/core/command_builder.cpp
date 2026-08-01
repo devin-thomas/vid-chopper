@@ -98,9 +98,9 @@ auto output_extension_for(const VideoMetadata& metadata, const ExportSettings& s
     case ContainerMode::Mkv:
         return ".mkv";
     case ContainerMode::Source:
-    default:
         return safe_source_extension(metadata);
     }
+    return safe_source_extension(metadata);
 }
 
 auto output_path_for(const VideoMetadata& metadata,

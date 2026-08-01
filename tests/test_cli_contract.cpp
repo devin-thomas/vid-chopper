@@ -64,7 +64,8 @@ auto write_chapter_config(const Path& path,
 
 [[nodiscard]] auto run_with(const std::vector<std::string>& arguments,
     const Path& executable_path,
-    ProcessExecutor executor = probe_with_chapters) -> CliRunSnapshot {
+    ProcessExecutor executor = probe_with_chapters,
+    DirectoryScanner directory_scanner = {}) -> CliRunSnapshot {
     auto output = std::ostringstream {};
     auto error_output = std::ostringstream {};
     const auto request = CliRunRequest {
@@ -73,6 +74,7 @@ auto write_chapter_config(const Path& path,
         .output = output,
         .error_output = error_output,
         .process_executor = std::move(executor),
+        .directory_scanner = std::move(directory_scanner),
     };
 
     const CliExitCode exit_code = run_cli(request);
@@ -215,6 +217,41 @@ auto main() -> int {
         "colliding batch should report the planned output path conflict");
     test_support::expect_eq(
         collision_process_calls, size_t {2}, "the complete batch should be probed before output collision validation");
+
+    const Path incomplete_source_directory = root / "incomplete-batch" / "videos";
+    const Path incomplete_config_directory = root / "incomplete-batch" / "configs";
+    std::filesystem::create_directories(incomplete_source_directory);
+    std::filesystem::create_directories(incomplete_config_directory);
+    const DirectoryScanner incomplete_scanner = [incomplete_source_directory](
+                                                    const Path& directory) -> DirectoryScanResult {
+        if (directory == incomplete_source_directory) {
+            return DirectoryScanResult {
+                .regular_files = {directory / "partial.mp4"},
+                .failures = {{.message = "source iterator failed"}},
+                .complete = false,
+            };
+        }
+        return DirectoryScanResult {
+            .regular_files = {directory / "partial.json"},
+            .failures = {{.message = "config iterator failed"}},
+            .complete = false,
+        };
+    };
+    auto incomplete_process_calls = size_t {0};
+    const ProcessExecutor incomplete_executor = [&incomplete_process_calls](const ProcessRequest& request) {
+        ++incomplete_process_calls;
+        return probe_with_chapters(request);
+    };
+    const CliRunSnapshot incomplete_batch =
+        run_with({incomplete_source_directory.string(), incomplete_config_directory.string()},
+            executable_path,
+            incomplete_executor,
+            incomplete_scanner);
+    test_support::expect_eq(
+        incomplete_batch.exit_code, CliExitCode::ValidationError, "incomplete scan should use validation exit 1");
+    test_support::expect_eq(incomplete_process_calls, size_t {0}, "incomplete scan must not start external tools");
+    test_support::expect_true(!contains(incomplete_batch.error_output, "Missing ChapterFile"),
+        "incomplete scan must not report conclusions from partial inventory");
 
     const CliRunSnapshot invalid = run_with({input_path, json_config_path, yaml_config_path}, executable_path);
     test_support::expect_eq(invalid.exit_code, CliExitCode::Error, "invalid invocation should use exit code 1");

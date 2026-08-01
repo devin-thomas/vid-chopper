@@ -11,6 +11,7 @@ namespace vidchopper {
 
 class ChapterTableModel final : public QAbstractTableModel {
     Q_OBJECT
+    Q_DISABLE_COPY_MOVE(ChapterTableModel)
 
 public:
     explicit ChapterTableModel(QObject* parent = nullptr);

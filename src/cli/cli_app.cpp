@@ -81,6 +81,7 @@ auto run_cli(const CliRunRequest& request) -> CliExitCode {
         .source_path = cli_arguments.input_paths.front(),
         .chapter_source_path = chapter_source_path,
         .use_embedded_chapters = cli_arguments.use_embedded_chapters,
+        .directory_scanner = request.directory_scanner,
     });
     if (!batch.ok()) {
         for (const std::string& error : batch.errors) {

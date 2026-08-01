@@ -70,7 +70,7 @@ constexpr auto demo_chapter_names = std::array {
 
 auto normalize_path_for_storage(const std::filesystem::path& path) -> std::filesystem::path {
     auto error = std::error_code {};
-    const auto canonical = std::filesystem::weakly_canonical(path, error);
+    auto canonical = std::filesystem::weakly_canonical(path, error);
     if (!error) {
         return canonical;
     }
@@ -154,7 +154,7 @@ MainWindow::MainWindow(DemoLaunchOptions demo_options, QWidget* parent)
     }
 
     base_font_point_size_ =
-        std::max(10, static_cast<int>(qApp->font().pointSizeF() > 0.0 ? qApp->font().pointSizeF() : 10.0));
+        (std::max)(10, static_cast<int>(qApp->font().pointSizeF() > 0.0 ? qApp->font().pointSizeF() : 10.0));
 
     build_ui();
     create_menus();
@@ -213,7 +213,8 @@ auto MainWindow::eventFilter(QObject* watched, QEvent* event) -> bool {
     if (event->type() == QEvent::Wheel) {
         auto* wheel_event = static_cast<QWheelEvent*>(event);
         if (wheel_event->modifiers().testFlag(Qt::ControlModifier)) {
-            apply_zoom_percent(zoom_percent_ + (wheel_event->angleDelta().y() > 0 ? 25 : -25), true);
+            apply_zoom_percent(
+                zoom_percent_ + (wheel_event->angleDelta().y() > 0 ? zoom_step_percent : -zoom_step_percent), true);
             return true;
         }
     }
@@ -231,12 +232,16 @@ auto MainWindow::create_menus() -> void {
     auto* view_menu = menuBar()->addMenu("&View");
     auto* zoom_in_action = new QAction {"Zoom &In", this};
     zoom_in_action->setShortcuts({QKeySequence {"Ctrl+="}, QKeySequence {"Ctrl++"}});
-    connect(zoom_in_action, &QAction::triggered, this, [this]() { apply_zoom_percent(zoom_percent_ + 25, true); });
+    connect(zoom_in_action, &QAction::triggered, this, [this]() {
+        apply_zoom_percent(zoom_percent_ + zoom_step_percent, true);
+    });
     view_menu->addAction(zoom_in_action);
 
     auto* zoom_out_action = new QAction {"Zoom &Out", this};
     zoom_out_action->setShortcut(QKeySequence {"Ctrl+-"});
-    connect(zoom_out_action, &QAction::triggered, this, [this]() { apply_zoom_percent(zoom_percent_ - 25, true); });
+    connect(zoom_out_action, &QAction::triggered, this, [this]() {
+        apply_zoom_percent(zoom_percent_ - zoom_step_percent, true);
+    });
     view_menu->addAction(zoom_out_action);
 
     auto* reset_zoom_action = new QAction {"&Reset Zoom", this};
@@ -247,7 +252,8 @@ auto MainWindow::create_menus() -> void {
     view_menu->addSeparator();
 
     auto* preset_menu = view_menu->addMenu("Zoom &Presets");
-    for (auto zoom_percent = 50; zoom_percent <= 300; zoom_percent += 25) {
+    for (auto zoom_percent = minimum_zoom_percent; zoom_percent <= maximum_zoom_percent;
+         zoom_percent += zoom_step_percent) {
         auto* preset_action = new QAction {QStringLiteral("%1%").arg(zoom_percent), this};
         connect(preset_action, &QAction::triggered, this, [this, zoom_percent]() {
             apply_zoom_percent(zoom_percent, true);
@@ -525,7 +531,7 @@ auto MainWindow::start_or_cancel_export() -> void {
         return;
     }
 
-    const auto chapters = chapter_model_->chapters();
+    const auto& chapters = chapter_model_->chapters();
     const auto validation = validate_chapters(chapters, metadata_->duration_ms, settings_);
     if (!validation.ok()) {
         auto details = QStringList {};
@@ -604,9 +610,9 @@ auto MainWindow::apply_zoom_percent(const int zoom_percent, const bool persist) 
     font.setPointSizeF(static_cast<double>(base_font_point_size_) * static_cast<double>(zoom_percent_) / 100.0);
     qApp->setFont(font);
 
-    const auto control_padding = std::max(6, zoom_percent_ / 20);
-    const auto row_height = std::max(28, zoom_percent_ / 4);
-    const auto section_padding = std::max(4, zoom_percent_ / 30);
+    const auto control_padding = (std::max)(6, zoom_percent_ / 20);
+    const auto row_height = (std::max)(28, zoom_percent_ / 4);
+    const auto section_padding = (std::max)(4, zoom_percent_ / 30);
     qApp->setStyleSheet(
         QStringLiteral("QPushButton, QToolButton { padding:%1px %2px; }"
                        "QLineEdit, QComboBox, QSpinBox { min-height:%3px; }"
@@ -644,7 +650,7 @@ auto MainWindow::update_chapter_table_columns() -> void {
     auto widest_header = 0;
     const auto metrics = QFontMetrics {chapter_table_->horizontalHeader()->font()};
     for (auto column = 0; column < chapter_model_->columnCount(); ++column) {
-        widest_header = std::max(widest_header,
+        widest_header = (std::max)(widest_header,
             metrics.horizontalAdvance(chapter_model_->headerData(column, Qt::Horizontal).toString()) + 28);
     }
 
@@ -657,9 +663,9 @@ auto MainWindow::update_export_button_style() -> void {
     const auto background = exporting ? QStringLiteral("#c75050") : QStringLiteral("#2f7fe7");
     const auto border = exporting ? QStringLiteral("#e36c6c") : QStringLiteral("#5ca0ff");
     const auto hover = exporting ? QStringLiteral("#da5f5f") : QStringLiteral("#4c91f2");
-    const auto radius = std::max(8, zoom_percent_ / 15);
-    const auto vertical_padding = std::max(8, zoom_percent_ / 18);
-    const auto horizontal_padding = std::max(18, zoom_percent_ / 8);
+    const auto radius = (std::max)(8, zoom_percent_ / 15);
+    const auto vertical_padding = (std::max)(8, zoom_percent_ / 18);
+    const auto horizontal_padding = (std::max)(18, zoom_percent_ / 8);
     export_button_->setText(exporting ? "Cancel Export" : "Export Chapters");
     export_button_->setStyleSheet(QStringLiteral(
         "QPushButton { background:%1; color:white; border:1px solid %2; border-radius:%3px; font-weight:700; padding:%4px %5px; }"
