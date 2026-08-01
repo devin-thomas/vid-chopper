@@ -6,6 +6,11 @@
 - Current prerelease tag: `v0.3.0-beta`
 - Release URL: `https://github.com/devin-thomas/vid-chopper/releases/tag/v0.3.0-beta`
 - Release asset: `VidChopper-0.3.0-beta-windows-x64.zip`
+- Release commit: `886815578066c972de7ef400eb0b6de41a5bc33d`
+- Release workflow: `https://github.com/devin-thomas/vid-chopper/actions/runs/30684000425`
+- Archive SHA-256: `12c55d150f82db07b1f14545005b79edae4d0c1904eedf5107b0685dbabf70e6`
+- Clean-runner proof: packaged CLI planned and exported all 16 ChapterBuilder chapters, the GUI wrote
+  its ready marker, the CLI ran without Qt, and the publish job matched the downloaded remote asset.
 
 ## CI Workflow
 
