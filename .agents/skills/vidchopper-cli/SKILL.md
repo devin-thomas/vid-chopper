@@ -79,6 +79,11 @@ Run one supported form with `--dry-run`:
   "C:\Media\event.mp4" `
   "C:\Media\event.chapters.json" `
   --dry-run
+
+& "C:\Tools\VidChopper\VidChopperCLI.exe" `
+  "C:\Media\meeting.mkv" `
+  --embedded `
+  --dry-run
 ```
 
 Require a successful plan with `Planned chapters: N`. Confirm that no `VidChopperCLI.ini`, output
