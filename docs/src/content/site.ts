@@ -115,9 +115,9 @@ export const keyFeatures = [
 
 export const roadmap = [
   { item: "Desktop feature round through v0.2.0-alpha", status: "Shipped" },
-  { item: "Complete Qt-free CLI and safety gates for v0.3.0-alpha", status: "Next" },
+  { item: "Complete Qt-free CLI and safety gates for v0.3.0-beta", status: "Next" },
   { item: "Verify the ChapterBuilder companion contract end to end", status: "Release gate" },
-  { item: "Converge GUI and CLI on one shared engine for v1.0.0-beta", status: "Later" },
+  { item: "Converge GUI and CLI on one shared engine for stable v1.0.0", status: "Later" },
 ] as const;
 
 export const docsGuideposts = [

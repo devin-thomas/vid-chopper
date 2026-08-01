@@ -18,7 +18,7 @@ Linear tracking:
 - `VID-8` Task 7
 - `VID-9` Task 8
 
-All listed work shipped. Current `0.3.0-alpha` CLI and release work is tracked under Linear
+All listed work shipped. Current `0.3.0-beta` CLI and release work is tracked under Linear
 roadmap issue [`VID-27`](https://linear.app/devin-main/issue/VID-27).
 
 ---

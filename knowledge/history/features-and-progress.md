@@ -1,18 +1,18 @@
 # Features And Progress
 
-Snapshot date: 2026-07-27. Linear is authoritative for live status and acceptance criteria:
+Snapshot date: 2026-07-31. Linear is authoritative for live status and acceptance criteria:
 [vid-chopper project](https://linear.app/devin-main/project/vid-chopper-d0e76dad962c).
 
 ## Current Delivery State
 
 The `v0.2.0-alpha` feature round is complete, including the Pages rewrite.
 
-The current `main` branch includes the first no-Qt CLI phase: the `VidChopperCLI.exe` target,
-command contract, separate `VidChopperCLI.ini` settings boundary, JSON/YAML schema, ChapterFile
-loader, and fixture coverage. The loader is integrated on `main`; export execution is not.
+The current `main` branch includes the complete Qt-free CLI path through `VID-26`, followed by
+local/CI verification parity and release-critical hardening through `VID-35`. GitHub Actions pass
+the lint, core/CLI, and Qt GUI lanes on the merged stack.
 
-The active release objective is `0.3.0-alpha`: finish and package the deterministic Qt-free CLI
-alongside the existing GUI. Shared-engine GUI migration remains the later `1.0.0-beta` objective.
+The active release objective is `0.3.0-beta`: finish and package the deterministic Qt-free CLI
+alongside the existing GUI. Shared-engine GUI migration remains the later stable `1.0.0` objective.
 
 ## Task Status
 
@@ -35,12 +35,11 @@ alongside the existing GUI. Shared-engine GUI migration remains the later `1.0.0
 
 ## Current Linear Frontier
 
-- `VID-17`: explicit chapter-source policy - next implementation issue
-- `VID-18` through `VID-26`: probing, export, batching, planning, dry-run, progress, manifests,
-  flags, tests, packaging, and docs - backlog in roadmap order
-- `VID-31` through `VID-35`: verification parity and release-critical correctness gates - backlog
-- `VID-47`: ChapterBuilder-to-VidChopper end-to-end release validation - release-blocking backlog
-- `VID-36`: package, publish, and verify `0.3.0-alpha` - final release task
+- `VID-17` through `VID-26`: complete on `main`
+- `VID-31` through `VID-35`: complete on `main`
+- `VID-47`: ChapterBuilder-to-VidChopper end-to-end release validation - in progress and
+  release-blocking
+- `VID-36`: package, publish, and verify `0.3.0-beta` - final release task
 
 ## Release Milestones
 

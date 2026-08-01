@@ -1,7 +1,7 @@
 # Codex Handoff Log
 
 > Historical snapshot only. Do not use this file as current task authority. Start with Linear and
-> `knowledge/README.md`; the live `0.3.0-alpha` frontier was reconciled on 2026-07-27.
+> `knowledge/README.md`; the live frontier was renamed to `0.3.0-beta` on 2026-07-31.
 
 Date: `2026-06-28`
 Workspace: `C:\Users\lilgo\projects\ai\codex\vid-chopper`

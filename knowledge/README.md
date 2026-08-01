@@ -12,14 +12,14 @@ reconstructing the codebase from scratch.
 - Latest published prerelease: `v0.2.0-alpha`
 - Public release asset: `VidChopper-0.2.0-alpha-windows-x64.zip`
 - Current delivery roadmap: Linear [`VID-27`](https://linear.app/devin-main/issue/VID-27) for
-  `0.3.0-alpha`, containing the complete Qt-free CLI and release safety gates
-- Current implementation frontier: [`VID-17`](https://linear.app/devin-main/issue/VID-17), the
-  explicit CLI chapter-source policy
+  `0.3.0-beta`, containing the complete Qt-free CLI and release safety gates
+- Current implementation frontier: [`VID-47`](https://linear.app/devin-main/issue/VID-47), the
+  ChapterBuilder-to-VidChopper compatibility gate
 - Companion release gate: [`VID-47`](https://linear.app/devin-main/issue/VID-47), proving a
   ChapterBuilder-produced file through dry-run, export, and packaged CLI verification
 - Later roadmap: Linear [`VID-28`](https://linear.app/devin-main/issue/VID-28) for the shared-engine
-  `1.0.0-beta` convergence
-- Last reconciled with Linear and `main`: 2026-07-27
+  stable `1.0.0` convergence
+- Last reconciled with Linear and `main`: 2026-07-31
 
 ## Read First
 
