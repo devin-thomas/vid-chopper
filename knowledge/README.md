@@ -23,6 +23,7 @@ reconstructing the codebase from scratch.
 
 - [`CONTEXT.md`](../CONTEXT.md)
 - [`knowledge/architecture/decisions/README.md`](architecture/decisions/README.md)
+- [`docs/shared-engine-boundary-guide.md`](../docs/shared-engine-boundary-guide.md)
 - [`knowledge/architecture/repo-map.md`](architecture/repo-map.md)
 - [`docs/vidchopper_cli_architecture_plan.md`](../docs/vidchopper_cli_architecture_plan.md)
 - [`knowledge/coding-style/overview.md`](coding-style/overview.md)

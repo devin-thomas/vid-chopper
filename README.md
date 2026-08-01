@@ -61,7 +61,9 @@ expected to be followed rigorously.
 
 Use [`CONTEXT.md`](CONTEXT.md) for canonical domain vocabulary and the
 [architecture decision record index](knowledge/architecture/decisions/README.md) for accepted system
-boundaries and rationale. The preserved CLI architecture PDF is historical; its
+boundaries and rationale. The
+[shared engine and Qt boundary guide](docs/shared-engine-boundary-guide.md) is the implementation
+contract for the stable `1.0.0` convergence. The preserved CLI architecture PDF is historical; its
 [Markdown companion](docs/vidchopper_cli_architecture_plan.md) points to the current sources of truth.
 
 For the broader project handoff, workflow notes, feature-progress tracking, and future-agent guidance,
