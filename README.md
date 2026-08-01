@@ -72,6 +72,16 @@ start with [`knowledge/README.md`](knowledge/README.md).
 
 The repository intentionally separates the non-Qt core from the GUI shell. That allows fast local verification on machines that have MSVC and `ffmpeg`, but not the Qt SDK.
 
+The repository-owned verification scripts are the canonical local workflow. See
+[`docs/verification.md`](docs/verification.md) for tier contents, remediation, and the optional pre-push hook.
+
+```powershell
+.\tools\bootstrap.ps1
+.\tools\verify.ps1 -Tier Quick
+.\tools\verify.ps1 -Tier Full
+.\tools\verify.ps1 -Tier Release
+```
+
 Set up the pinned vcpkg toolchain once, then keep `VCPKG_ROOT` set for the preset commands:
 
 ```powershell

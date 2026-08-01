@@ -211,7 +211,7 @@ function Invoke-DemoCapture {
         "--demo-ready-file=$readyFile"
     )
 
-    $process = Start-Process -FilePath $ExecutablePath -ArgumentList $arguments -PassThru -WindowStyle Hidden
+    $process = Start-Process -FilePath $ExecutablePath -ArgumentList $arguments -PassThru
     try {
         $windowHandle = Wait-ForMainWindow -Process $process
         Wait-ForReadyMarker -Process $process -Path $readyFile
