@@ -5,7 +5,7 @@
 | Linear issue | VID-45 |
 | Audience | Engineering managers, maintainers, reviewers, and AI agents |
 | Authority | This Markdown file is the source for the matching generated PDF. `CODING_STYLE.md` remains normative for code form. |
-| Code baseline | `448d96b` (VID-37 content, merged to `main` as `0c6569a`) |
+| Code baseline | `395c52b` (VID-40 shared process, probing, and queued Qt adapter integration) |
 | Last verified | 2026-08-01 |
 | Artifact pair | `docs/cpp20-clarity-and-safety.md` and `output/pdf/vidchopper-cpp20-clarity-and-safety-guide.pdf` |
 
@@ -112,12 +112,13 @@ MainWindow::MainWindow(DemoLaunchOptions demo_options, QWidget* parent)
     : QMainWindow(parent)
     , demo_options_(std::move(demo_options))
     , chapter_model_(new ChapterTableModel {this})
+    , probe_coordinator_(new ProbeCoordinator {this})
     , export_coordinator_(new ExportCoordinator {this}) {
 ```
 
-`MainWindow` follows the lifetime policy by constructing `ChapterTableModel` and
-`ExportCoordinator` with `this`, parenting widgets to their containing widgets, and observing its
-transient settings dialog through `QPointer`.
+`MainWindow` follows the lifetime policy by constructing `ChapterTableModel`, `ProbeCoordinator`,
+and `ExportCoordinator` with `this`, parenting widgets to their containing widgets, and observing
+its transient settings dialog through `QPointer`.
 
 **Schematic ownership anti-pattern - not part of a compiled target:**
 
@@ -139,7 +140,7 @@ Use a named result struct when the caller needs state, diagnostics, or partial o
 types an `ok() const noexcept` query when success has a stable meaning. Preserve specific errors at
 the boundary instead of catching broadly or returning success-shaped defaults.
 
-**Compiled source excerpt - `src/cli/process_runner.hpp`:**
+**Compiled source excerpt - `src/services/process_runner.hpp`:**
 
 ```cpp
 struct ProcessResult {
@@ -263,11 +264,12 @@ The CLI must remain usable without a Qt runtime. Windows-specific process and pa
 behind CLI or platform adapters and must not enter shared contracts. This implements ADR 0001 and
 ADR 0003 while the shared engine migration proceeds.
 
-Production use of nlohmann-json and yaml-cpp is quarantined in CLI adapters. Their versions are
-resolved through the pinned `vcpkg.json` baseline; their types do not appear in public core headers.
-New dependencies or alternate package sources require explicit review of the manifest, baseline,
-licenses, package contents, failure translation, and all affected CI lanes. Do not add a system
-fallback or an ad hoc configure-time download.
+Production use of nlohmann-json and yaml-cpp is quarantined behind implementation adapters.
+nlohmann-json is used by the shared probe service and CLI JSON adapters; yaml-cpp remains in the CLI
+chapter-config adapter. Their versions are resolved through the pinned `vcpkg.json` baseline, and
+their types do not appear in public shared headers. New dependencies or alternate package sources
+require explicit review of the manifest, baseline, licenses, package contents, failure translation,
+and all affected CI lanes. Do not add a system fallback or an ad hoc configure-time download.
 
 ## AI-agent and reviewer protocol
 
