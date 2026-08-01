@@ -7,6 +7,7 @@ Bundled with the release zip
 ----------------------------
 - VidChopper application binaries from this repository
 - Required Qt 6 runtime files deployed by windeployqt
+- yaml-cpp runtime library used by VidChopperCLI
 - Microsoft Visual C++ runtime files deployed by windeployqt
 
 Not bundled with the release zip
@@ -18,6 +19,7 @@ Licensing notes
 ---------------
 - VidChopper source code in this repository is released under the MIT License. See LICENSE.
 - Qt runtime files remain subject to Qt's own licensing terms and redistribution obligations.
+- yaml-cpp is distributed under the MIT License: https://github.com/jbeder/yaml-cpp/blob/master/LICENSE
 - FFmpeg and ffprobe have their own licenses and are intentionally not redistributed in this zip.
 
 Before redistributing this bundle or a modified version of it, review the current Qt and FFmpeg license terms yourself:

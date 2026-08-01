@@ -6,8 +6,8 @@ The command-line app has its own settings file so CLI preferences do not mutate 
 
 | File | Owner | Read by default | Written by CLI |
 |---|---|---:|---:|
-| `VidChopperCLI.ini` | CLI | Yes | Yes |
-| `VidChopper.ini` | GUI | No | No |
+| `VidChopperCLI.ini` | CLI | When present | Yes |
+| `VidChopper.ini` | GUI | Only with `--use-gui-config` | No |
 
 `VidChopperCLI.ini` lives beside `VidChopperCLI.exe`. `VidChopper.ini` lives beside the app as the GUI settings file. The CLI resolves both paths so it can report what it is doing, but it only reads the GUI file when the user passes `--use-gui-config`.
 
@@ -22,6 +22,8 @@ Effective CLI settings are resolved in this order:
 5. Explicit CLI flags.
 
 This means GUI settings are never read implicitly, CLI-owned settings win over optional GUI import, and CLI flags always win over loaded settings.
+
+Dry runs never create or write either settings file. Normal runs may create `VidChopperCLI.ini` beside the CLI executable when it is missing.
 
 ## Persisted CLI keys
 
@@ -45,3 +47,9 @@ Unknown keys are ignored so future versions can add settings without breaking ol
 `--use-gui-config` is an explicit import, not a shared settings mode. The CLI still creates and owns `VidChopperCLI.ini`, and it never writes `VidChopper.ini`.
 
 When GUI import is enabled, GUI values fill in settings that the CLI INI does not override. This allows a one-time convenience import while keeping CLI preferences separate.
+
+The GUI import recognizes the corresponding `[encoding]`, `[tools]`, `[output]`, and `[execution]` keys, including CRF/CQ, presets, ffmpeg paths, output patterns, overwrite mode, manifest options, and stop-on-first-error.
+
+## Aggregate manifests
+
+Use `--aggregate-json <path>` or `--aggregate-csv <path>` to write an optional run-level manifest in addition to the default per-job manifests. Manifest writes are atomic and a failed manifest write makes the CLI exit nonzero.

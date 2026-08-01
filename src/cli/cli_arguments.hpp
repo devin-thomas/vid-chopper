@@ -20,6 +20,8 @@ struct CliArguments {
     std::optional<u8> crf;
     std::optional<u8> cq;
     std::optional<u8> threads;
+    std::optional<Path> aggregate_json_path;
+    std::optional<Path> aggregate_csv_path;
     std::string preset;
     bool dry_run {false};
     bool use_embedded_chapters {false};

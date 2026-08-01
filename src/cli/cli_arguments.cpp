@@ -24,6 +24,8 @@ constexpr auto flag_crf = std::string_view {"--crf"};
 constexpr auto flag_cq = std::string_view {"--cq"};
 constexpr auto flag_preset = std::string_view {"--preset"};
 constexpr auto flag_threads = std::string_view {"--threads"};
+constexpr auto flag_aggregate_json = std::string_view {"--aggregate-json"};
+constexpr auto flag_aggregate_csv = std::string_view {"--aggregate-csv"};
 
 [[nodiscard]] auto success(CliArguments arguments) -> CliParseResult {
     return CliParseResult {
@@ -144,7 +146,8 @@ auto parse_cli_arguments(const std::vector<std::string>& tokens) -> CliParseResu
             continue;
         }
 
-        if (token == flag_crf || token == flag_cq || token == flag_threads || token == flag_preset) {
+        if (token == flag_crf || token == flag_cq || token == flag_threads || token == flag_preset
+            || token == flag_aggregate_json || token == flag_aggregate_csv) {
             const std::optional<std::string_view> value = next_value(tokens, index);
             if (!value.has_value()) {
                 return failure("Missing value for " + std::string {token} + ".");
@@ -152,6 +155,18 @@ auto parse_cli_arguments(const std::vector<std::string>& tokens) -> CliParseResu
 
             if (token == flag_preset) {
                 arguments.preset = std::string {*value};
+                ++index;
+                continue;
+            }
+
+            if (token == flag_aggregate_json) {
+                arguments.aggregate_json_path = Path {*value};
+                ++index;
+                continue;
+            }
+
+            if (token == flag_aggregate_csv) {
+                arguments.aggregate_csv_path = Path {*value};
                 ++index;
                 continue;
             }
@@ -203,6 +218,8 @@ auto cli_usage() -> std::string {
            "  --cq <0-51>            Override NVENC CQ for this run.\n"
            "  --preset <name>        Override encoder preset for this run.\n"
            "  --threads <0-255>      Override ffmpeg thread count for this run.\n"
+           "  --aggregate-json <path> Write one aggregate JSON manifest after the batch.\n"
+           "  --aggregate-csv <path>  Write one aggregate CSV manifest after the batch.\n"
            "  --stop-on-first-error  Stop batch execution after the first failed item.\n"
            "  --use-gui-config       Explicitly read VidChopper.ini in addition to VidChopperCLI.ini.\n"
            "  -h, --help             Show this help text.\n"
