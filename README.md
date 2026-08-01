@@ -17,7 +17,7 @@ The release zip is a portable build that includes `VidChopper.exe`, the required
 2. Launch `VidChopper.exe`.
 3. Install `ffmpeg` and `ffprobe` separately, or point VidChopper at custom tool paths in Advanced Settings.
 
-## Project Status - building towards 0.3.0-alpha release
+## Project Status - building towards 0.3.0-beta release
 
 The current codebase includes:
 
@@ -28,7 +28,7 @@ The current codebase includes:
 - A staged test suite split into fast unit-level coverage and slower `ffmpeg` integration coverage
 - A Vite + React + TypeScript + Tailwind Pages site in `docs/` for the product landing page, release portal, and developer docs
 
-The next release objective is `v0.3.0-alpha`: complete the Qt-free CLI, package
+The next release objective is `v0.3.0-beta`: complete the Qt-free CLI, package
 `VidChopperCLI.exe` beside the GUI, and verify a ChapterBuilder-produced ChapterFile through dry-run,
 export, and release-archive smoke testing. Linear's
 [vid-chopper project](https://linear.app/devin-main/project/vid-chopper-d0e76dad962c) is the
@@ -94,7 +94,7 @@ $env:VCPKG_ROOT = (Resolve-Path .vcpkg).Path
 The CLI's Qt-free ChapterFile loader accepts `.json`, `.yaml`, and `.yml` files, applies the documented output and encoder overrides, and validates the resulting chapters before export planning.
 
 The CLI now probes inputs, plans and exports chapters, supports dry runs, reports bounded progress, and writes
-per-job JSON/CSV manifests. The remaining `v0.3.0-alpha` work is hardening and release validation.
+per-job JSON/CSV manifests. The remaining `v0.3.0-beta` work is compatibility and release validation.
 
 ```powershell
 cmake --preset core-release
@@ -159,7 +159,7 @@ Chapter boundaries can fall between keyframes. Re-encoding with x264 or HEVC NVE
 ## Repository Structure
 
 - `src/core/`: domain logic, timestamp handling, chapter planning, naming, and `ffmpeg` command construction
-- `src/cli/`: Qt-free command parsing, settings, and ChapterFile loading under active `v0.3.0-alpha` development
+- `src/cli/`: Qt-free command parsing, settings, and ChapterFile loading under active `v0.3.0-beta` development
 - `src/qt/`: Qt application shell, settings persistence, chapter table model, ffprobe integration, GPU detection, and export coordination
 - `tests/`: staged native tests
 - `docs/`: Vite + React + TypeScript + Tailwind GitHub Pages app
