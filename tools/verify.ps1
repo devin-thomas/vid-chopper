@@ -126,6 +126,12 @@ function Invoke-FastTests {
 }
 
 function Invoke-DocsChecks {
+    Invoke-VerificationStage -Name "Agent skill contract" -Action {
+        & (Join-Path $repoRoot "tools\agent-skill-artifacts.ps1") -Mode Check
+        if ($LASTEXITCODE -ne 0) {
+            throw "Agent skill contract validation failed."
+        }
+    }
     Invoke-VerificationStage -Name "Docs type and build checks" -Action {
         $npm = Get-RepoCommand -Name "npm" -Remediation "Install Node.js 22 with npm."
         Invoke-RepoCommand -FilePath $npm -ArgumentList @("ci") -WorkingDirectory (Join-Path $repoRoot "docs")
@@ -310,15 +316,11 @@ function Invoke-ReleaseTier {
         if (-not (Test-Path -LiteralPath $zipPath)) {
             throw "Windows package assembly failed."
         }
-        $auditRoot = Join-Path $repoRoot "tmp\verify-package-$PID"
-        Expand-Archive -LiteralPath $zipPath -DestinationPath $auditRoot -Force
-        foreach ($name in @(
-            "VidChopper.exe", "VidChopperCLI.exe", "README.txt", "THIRD_PARTY_NOTICES.txt", "LICENSE",
-            "Qt6Core.dll", "Qt6Gui.dll", "Qt6Widgets.dll", "vc_redist.x64.exe"
-        )) {
-            if (-not (Test-Path -LiteralPath (Join-Path $auditRoot $name))) {
-                throw "Packaged archive is missing $name."
-            }
+        & (Join-Path $repoRoot "tools\verify-release-archive.ps1") `
+            -Version $version `
+            -ArchivePath $zipPath
+        if ($LASTEXITCODE -ne 0) {
+            throw "Windows package clean-archive verification failed."
         }
     }
 }

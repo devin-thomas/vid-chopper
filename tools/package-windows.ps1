@@ -78,5 +78,22 @@ if ($LASTEXITCODE -ne 0 -or $versionOutput.Trim() -ne "VidChopperCLI $Version") 
     throw "Packaged CLI version mismatch. Expected 'VidChopperCLI $Version', got '$($versionOutput.Trim())'."
 }
 
+& (Join-Path $repoRoot "tools\agent-skill-artifacts.ps1") -Mode Check
+if ($LASTEXITCODE -ne 0) {
+    throw "Agent skill contract validation failed."
+}
+$skillArtifactRoot = Join-Path $repoRoot "packaging\releases\agent-skills\v$Version"
+$skillArchive = Join-Path $skillArtifactRoot "vidchopper-cli.zip"
+$skillManifest = Join-Path $skillArtifactRoot "manifest.json"
+if (-not (Test-Path -LiteralPath $skillArchive -PathType Leaf) -or
+    -not (Test-Path -LiteralPath $skillManifest -PathType Leaf)) {
+    throw "Agent skill artifacts do not match package version $Version."
+}
+$packagedSkillRoot = Join-Path $stageDirectory ".agents\skills\vidchopper-cli"
+New-Item -ItemType Directory -Force -Path $packagedSkillRoot | Out-Null
+Expand-Archive -LiteralPath $skillArchive -DestinationPath $packagedSkillRoot
+Copy-Item -LiteralPath $skillManifest `
+    -Destination (Join-Path $stageDirectory ".agents\skills\vidchopper-cli.manifest.json") -Force
+
 Compress-Archive -Path (Join-Path $stageDirectory "*") -DestinationPath $zipPath -Force
 Write-Output $zipPath

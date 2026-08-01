@@ -3,6 +3,11 @@ examples/chapter-config.json text eol=lf
 examples/chapter-config.yaml text eol=lf
 examples/chapter-config/** text eol=lf
 packaging/releases/*.json text eol=lf
+packaging/releases/agent-skills/**/*.md text eol=lf
+packaging/releases/agent-skills/**/*.json text eol=lf
+packaging/releases/agent-skills/**/*.zip -text
 .agents/skills/vidchopper-cli/**/*.md text eol=lf
 .agents/skills/vidchopper-cli/**/*.json text eol=lf
+.agents/skills/vidchopper-cli/**/*.yaml text eol=lf
+.agents/skills/vidchopper-cli/**/*.yml text eol=lf
 .agents/skills/vidchopper-cli/**/*.zip -text
