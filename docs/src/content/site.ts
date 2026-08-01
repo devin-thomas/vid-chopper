@@ -6,6 +6,7 @@ export const chapterFileSchemaUrl = `${siteUrl}/schemas/chapter-config/v1/schema
 export const chapterFileSampleUrl = `${siteUrl}/samples/chapter-config/v1/chapter-config.json`;
 export const releaseMetadataUrl = `${siteUrl}/releases/v0.3.0-beta/manifest.json`;
 export const agentSkillUrl = `${siteUrl}/agents/vidchopper-cli/SKILL.md`;
+export const agentOnboardingPrompt = `Follow ${agentSkillUrl}. Inspect my video and chapter inputs, show me a dry-run, and ask before exporting, overwriting, uploading, publishing, or deleting anything.`;
 export const releaseVersion = "v0.3.0-beta";
 export const releaseZipUrl =
   "https://github.com/devin-thomas/vid-chopper/releases/download/v0.3.0-beta/VidChopper-0.3.0-beta-windows-x64.zip";

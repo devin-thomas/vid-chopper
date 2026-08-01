@@ -24,6 +24,23 @@
     <script type="module" src="/src/main.tsx"></script>
   </head>
   <body>
+    <noscript>
+      <main class="noscript-onboarding">
+        <p class="noscript-kicker">VidChopper works without a website account</p>
+        <h1>Start locally without JavaScript</h1>
+        <p>
+          Download the app, read the human guide, or select this prompt and paste it into your agent.
+          The site never receives your media or local paths.
+        </p>
+        <label for="noscript-agent-prompt">Agent starter prompt</label>
+        <textarea id="noscript-agent-prompt" rows="6" readonly>Follow https://vidchopper.app/agents/vidchopper-cli/SKILL.md. Inspect my video and chapter inputs, show me a dry-run, and ask before exporting, overwriting, uploading, publishing, or deleting anything.</textarea>
+        <nav aria-label="No-JavaScript starting points">
+          <a href="https://github.com/devin-thomas/vid-chopper/releases/download/v0.3.0-beta/VidChopper-0.3.0-beta-windows-x64.zip">Download v0.3.0-beta</a>
+          <a href="https://vidchopper.app/docs">Read the docs</a>
+          <a href="https://vidchopper.app/agents/vidchopper-cli/SKILL.md">Inspect the full skill</a>
+        </nav>
+      </main>
+    </noscript>
     <div id="root"></div>
   </body>
 </html>
