@@ -195,12 +195,17 @@ const workflowSnippets = [
   "name: cloudflare-environment",
   "url: https://vidchopper.app",
   "node-version: 22",
+  "name: Verify Cloudflare credentials before build",
+  "npx --yes wrangler@4.118.0 deployments list --name vidchopper --json",
+  "npx --yes wrangler@4.118.0 versions list --name vidchopper --json",
+  "Cloudflare production secrets are missing.",
+  "Cloudflare credential and read-contract preflight passed.",
   "npm ci",
   "tools/agent-skill-artifacts.ps1 -Mode Check",
   "npm test",
   "npm run build",
   "npm run cloudflare:dry-run",
-  "uses: cloudflare/wrangler-action@v4",
+  "uses: cloudflare/wrangler-action@ebbaa1584979971c8614a24965b4405ff95890e0 # v4",
   "apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}",
   "accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}",
   'wranglerVersion: "4.118.0"',
@@ -220,6 +225,17 @@ const workflowSnippets = [
 for (const snippet of workflowSnippets) {
   assert(workflow.includes(snippet), `workflow is missing: ${snippet}`);
 }
+const credentialPreflightIndex = workflow.indexOf(
+  "name: Verify Cloudflare credentials before build",
+);
+const installIndex = workflow.indexOf("name: Install pinned frontend dependencies");
+const deployIndex = workflow.indexOf("name: Deploy the audited artifact");
+assert(
+  credentialPreflightIndex !== -1 &&
+    credentialPreflightIndex < installIndex &&
+    installIndex < deployIndex,
+  "Cloudflare credentials must be checked before dependency installation and deployment",
+);
 assert(
   !/^\s+(?:push|pull_request):/m.test(workflow),
   "production deployment must remain manual",

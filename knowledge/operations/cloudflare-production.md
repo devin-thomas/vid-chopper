@@ -17,6 +17,12 @@ Read-only inspection on 2026-08-01 confirmed:
 - Apex A records: `172.67.168.126`, `104.21.38.213`
 - Apex AAAA records: `2606:4700:3034::ac43:a87e`, `2606:4700:3036::6815:26d5`
 - TLS and the Cloudflare-managed custom-domain certificate are active.
+- Legacy root: 1,059 bytes, SHA-256
+  `e7e5552ff43cc1acbd8a93a43c7352885b7cba0f0e66b2190cde27d81c7428ba`
+- Legacy JavaScript: `/assets/index-CIphFV9M.js`, SHA-256
+  `1716cf5c8881896851fc4d278f1ac310fdc48ea65bc868ded284b0b32854b131`
+- Legacy CSS: `/assets/index-CKWnIMA1.css`, SHA-256
+  `1d18ed52bb8a13d1b547886ff4fbc96d00f4e25929fb8506dff95321ff5638aa`
 
 The active version is an emergency recovery target only. It serves the legacy `v0.2.0-alpha`
 single-page shell and fails the VID-55 machine-resource and strict-404 contract. There was no
@@ -60,10 +66,17 @@ Only after the explicit production approval:
 1. Merge the focused, green VID-55 pull request to `main`.
 2. Open the manual `Cloudflare Production` workflow on GitHub.
 3. Select `main`, enter `deploy vidchopper.app`, and dispatch it.
-4. Let the workflow rebuild, test, dry-run, deploy, capture the deployment/version IDs, and run the
-   cache-busted live route validator.
+4. Let the workflow first prove that both environment secrets can read the expected Worker
+   deployment/version contracts, then rebuild, test, dry-run, deploy, capture the new identities,
+   and run the cache-busted live route validator.
 5. Record the accepted deployment ID, version ID, source commit, Actions run, and live evidence in
    VID-55. That deployment becomes the last known good production release.
+
+The read-only credential preflight catches an invalid token, wrong account scope, or changed
+Wrangler response contract before dependency installation. Cloudflare does not expose the stored
+token's complete permission list to this workflow, so the first upload remains the decisive proof
+that the token retains the template's Worker write permissions. The deployment action is pinned to
+an audited commit rather than a mutable version tag because it receives both production secrets.
 
 The custom domain already exists, so the expected operation updates the Worker version and its
 static assets rather than creating a new hostname. Stop if Wrangler proposes a different hostname,
