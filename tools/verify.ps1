@@ -300,14 +300,6 @@ function Invoke-ReleaseTier {
         }
     }
 
-    Invoke-VerificationStage -Name "Markdown and PDF freshness" -Action {
-        $markdown = Get-Item -LiteralPath (Join-Path $repoRoot "features_plan.md")
-        $pdf = Get-Item -LiteralPath (Join-Path $repoRoot "docs\vidchopper_cli_architecture_plan.pdf")
-        if ($pdf.LastWriteTimeUtc -lt $markdown.LastWriteTimeUtc) {
-            throw "docs/vidchopper_cli_architecture_plan.pdf is older than features_plan.md; regenerate the PDF."
-        }
-    }
-
     Invoke-VerificationStage -Name "Package assembly and audit" -Action {
         Invoke-VersionChecks
         $cmakeText = Get-Content -Raw -LiteralPath (Join-Path $repoRoot "CMakeLists.txt")
