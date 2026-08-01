@@ -66,19 +66,33 @@ jobs:
           $ErrorActionPreference = "Stop"
           $appDir = Join-Path $PWD $env:RELEASE_DIR
           $exePath = Join-Path $PWD "build/windows-gui-release/Release/VidChopper.exe"
+          $cliExePath = Join-Path $PWD "build/core-release/Release/VidChopperCLI.exe"
+          $cliDependencyPath = Join-Path $PWD "build/core-release/Release/yaml-cpp.dll"
           $zipPath = Join-Path $PWD "${{ steps.release_meta.outputs.asset_path }}"
 
           if (!(Test-Path $exePath)) {
             throw "Built executable not found at $exePath"
           }
+          if (!(Test-Path $cliExePath)) {
+            throw "Built CLI executable not found at $cliExePath"
+          }
+          if (!(Test-Path $cliDependencyPath)) {
+            throw "Built CLI dependency not found at $cliDependencyPath"
+          }
 
           New-Item -ItemType Directory -Force -Path $appDir | Out-Null
           Copy-Item $exePath -Destination $appDir -Force
+          Copy-Item $cliExePath -Destination $appDir -Force
+          Copy-Item $cliDependencyPath -Destination $appDir -Force
           Copy-Item "packaging/windows/README.txt" -Destination (Join-Path $appDir "README.txt") -Force
           Copy-Item "packaging/windows/THIRD_PARTY_NOTICES.txt" -Destination $appDir -Force
           Copy-Item "LICENSE" -Destination $appDir -Force
 
           windeployqt --release --compiler-runtime --no-translations --dir $appDir (Join-Path $appDir "VidChopper.exe")
+          & (Join-Path $appDir "VidChopperCLI.exe") --help | Out-Null
+          if ($LASTEXITCODE -ne 0) {
+            throw "Packaged VidChopperCLI.exe smoke test failed with exit code $LASTEXITCODE"
+          }
           Compress-Archive -Path (Join-Path $appDir "*") -DestinationPath $zipPath -Force
 
       - name: Upload packaged zip as workflow artifact

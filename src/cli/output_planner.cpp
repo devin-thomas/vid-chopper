@@ -56,6 +56,8 @@ auto plan_outputs(const std::vector<OutputPlanInput>& inputs) -> OutputPlanResul
         const Path output_directory = default_output_directory(input.metadata.source_path, input.settings);
         auto job = ResolvedExportJob {
             .metadata = input.metadata,
+            .chapter_source_path = input.chapter_source_path,
+            .uses_embedded_chapters = input.uses_embedded_chapters,
             .output_directory = output_directory,
             .settings = input.settings,
             .environment = input.environment,

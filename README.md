@@ -17,9 +17,9 @@ The release zip is a portable build that includes `VidChopper.exe`, the required
 2. Launch `VidChopper.exe`.
 3. Install `ffmpeg` and `ffprobe` separately, or point VidChopper at custom tool paths in Advanced Settings.
 
-## Project Status
+## Project Status - building towards 0.3.0-alpha release
 
-The repository is structured as a production-oriented desktop application rather than a tutorial exercise. The current codebase includes:
+The current codebase includes:
 
 - A GitHub Releases workflow that packages the Windows GUI build into a portable versioned Windows ZIP asset
 - A Qt 6 desktop shell for loading a video, importing embedded chapters, editing chapter timing and names, choosing output locations, and exporting clips
@@ -93,8 +93,8 @@ $env:VCPKG_ROOT = (Resolve-Path .vcpkg).Path
 
 The CLI's Qt-free ChapterFile loader accepts `.json`, `.yaml`, and `.yml` files, applies the documented output and encoder overrides, and validates the resulting chapters before export planning.
 
-The current CLI target is still a skeleton: it parses its command contract and settings, while probing,
-real planning, and export execution remain `v0.3.0-alpha` work.
+The CLI now probes inputs, plans and exports chapters, supports dry runs, reports bounded progress, and writes
+per-job JSON/CSV manifests. The remaining `v0.3.0-alpha` work is hardening and release validation.
 
 ```powershell
 cmake --preset core-release
@@ -154,7 +154,7 @@ Chapter boundaries can fall between keyframes. Re-encoding with x264 or HEVC NVE
 - Export currently runs sequentially, which is simpler and safer for accurate progress tracking than concurrent multi-process encoding
 - Frame-mode editing uses the probed video frame rate rounded to a whole-number display FPS for the table editor
 - Existing embedded chapters are imported as editable start/end segments, but advanced source metadata mapping is intentionally conservative
-- `VidChopperCLI.exe` does not yet probe or export; the current public package contains only the GUI
+- The current public package contains the GUI and CLI executables, but ffmpeg/ffprobe remain separate dependencies
 
 ## Repository Structure
 

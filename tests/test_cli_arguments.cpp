@@ -45,6 +45,14 @@ auto main() -> int {
     test_support::expect_true(advanced.arguments.use_gui_config, "gui config flag should parse");
     test_support::expect_true(advanced.arguments.stop_on_first_error, "stop-on-first-error flag should parse");
 
+    const CliParseResult manifests =
+        parse({"input.mp4", "chapters.json", "--aggregate-json", "run.json", "--aggregate-csv", "run.csv"});
+    test_support::expect_true(manifests.ok(), "aggregate manifest flags should parse");
+    test_support::expect_eq(
+        *manifests.arguments.aggregate_json_path, Path {"run.json"}, "aggregate JSON path should parse");
+    test_support::expect_eq(
+        *manifests.arguments.aggregate_csv_path, Path {"run.csv"}, "aggregate CSV path should parse");
+
     const CliParseResult embedded = parse({"input.mkv", "--embedded"});
     test_support::expect_true(embedded.ok(), "explicit embedded chapter source should parse");
     test_support::expect_true(embedded.arguments.use_embedded_chapters, "embedded source should be captured");
