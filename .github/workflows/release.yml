@@ -66,14 +66,19 @@ jobs:
           $ErrorActionPreference = "Stop"
           $appDir = Join-Path $PWD $env:RELEASE_DIR
           $exePath = Join-Path $PWD "build/windows-gui-release/Release/VidChopper.exe"
+          $cliExePath = Join-Path $PWD "build/core-release/Release/VidChopperCLI.exe"
           $zipPath = Join-Path $PWD "${{ steps.release_meta.outputs.asset_path }}"
 
           if (!(Test-Path $exePath)) {
             throw "Built executable not found at $exePath"
           }
+          if (!(Test-Path $cliExePath)) {
+            throw "Built CLI executable not found at $cliExePath"
+          }
 
           New-Item -ItemType Directory -Force -Path $appDir | Out-Null
           Copy-Item $exePath -Destination $appDir -Force
+          Copy-Item $cliExePath -Destination $appDir -Force
           Copy-Item "packaging/windows/README.txt" -Destination (Join-Path $appDir "README.txt") -Force
           Copy-Item "packaging/windows/THIRD_PARTY_NOTICES.txt" -Destination $appDir -Force
           Copy-Item "LICENSE" -Destination $appDir -Force
