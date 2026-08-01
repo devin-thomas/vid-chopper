@@ -1,7 +1,9 @@
 # VidChopper Verification and Release Engineering Guide
 
-**Audience:** maintainers, reviewers, release managers, and coding agents  
-**Authority:** repository commands and workflows on the release commit  
+**Audience:** maintainers, reviewers, release managers, and coding agents
+
+**Authority:** repository commands and workflows on the release commit
+
 **Supported release host:** Windows 10/11 x64
 
 This guide defines how VidChopper changes move from a local checkout to a verified release. Run the
