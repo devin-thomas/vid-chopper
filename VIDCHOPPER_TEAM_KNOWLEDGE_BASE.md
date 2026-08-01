@@ -9,7 +9,10 @@ Start here:
 
 Primary sections:
 
+- [`CONTEXT.md`](CONTEXT.md)
+- [`knowledge/architecture/decisions/README.md`](knowledge/architecture/decisions/README.md)
 - [`knowledge/architecture/repo-map.md`](knowledge/architecture/repo-map.md)
+- [`docs/vidchopper_cli_architecture_plan.md`](docs/vidchopper_cli_architecture_plan.md)
 - [`knowledge/coding-style/overview.md`](knowledge/coding-style/overview.md)
 - [`knowledge/coding-style/core-and-qt-boundary.md`](knowledge/coding-style/core-and-qt-boundary.md)
 - [`knowledge/coding-style/testing-and-quality-gates.md`](knowledge/coding-style/testing-and-quality-gates.md)
