@@ -1,0 +1,259 @@
+# VidChopper Verification and Release Engineering Guide
+
+**Audience:** maintainers, reviewers, release managers, and coding agents  
+**Authority:** repository commands and workflows on the release commit  
+**Supported release host:** Windows 10/11 x64
+
+This guide defines how VidChopper changes move from a local checkout to a verified release. Run the
+repository-owned commands first, diagnose the first failing stage, and preserve evidence that ties every
+claim to one commit and one candidate artifact. GitHub Actions confirms a clean runner; it does not
+replace local diagnosis.
+
+Canonical domain terms come from [`CONTEXT.md`](../CONTEXT.md). Accepted architecture boundaries are
+recorded in the [ADR index](../knowledge/architecture/decisions/README.md).
+
+## Manager Decision Frame
+
+| Decision | Required evidence | Stop condition |
+|---|---|---|
+| Is a change ready for review? | Relevant local tier or CI lane, focused tests, and a clean diff | Any unexplained failure or missing prerequisite |
+| Is a PR ready to merge? | Required PR jobs green for the reviewed head commit | Superseded, canceled, skipped-required, or red jobs |
+| Is a package a release candidate? | Release tier, candidate ZIP digest, and clean-runner archive smoke | Candidate bytes differ between stages |
+| Is publication authorized? | Human approval, final commit, release notes, and rollback plan | Missing approval or mutable/unknown artifact identity |
+| Is a release complete? | Tag, commit, release URL, asset URL, remote digest, and supported Windows smoke | Remote asset or metadata does not match the proven candidate |
+
+## Bootstrap Policy
+
+VidChopper uses a hybrid bootstrap: the repository installs small pinned quality tools and a pinned local
+vcpkg checkout, while large platform SDKs remain explicit host prerequisites.
+
+```powershell
+pwsh -NoProfile -File tools/bootstrap.ps1
+pwsh -NoProfile -File tools/bootstrap.ps1 -CheckOnly
+```
+
+The first command creates `.venv-tools`, installs the versions in
+`tools/verification-requirements.txt`, pins `.vcpkg` to `vcpkg.json`'s `builtin-baseline`, and installs
+manifest dependencies. It does not install large SDKs. `-CheckOnly` is read-only and fails when a required
+tool or version is missing.
+
+| Tool or contract | Required policy | Source of truth |
+|---|---|---|
+| CMake | 3.28 or newer | `tools/verification-common.ps1` |
+| MSVC | Visual Studio 2022 x64 tools | `CMakePresets.json` |
+| Qt | 6.9, MSVC 2022 64-bit kit | `tools/verification-common.ps1` |
+| Node.js | 22 or newer | `tools/verification-common.ps1` |
+| Python | 3.12 for CI quality tooling | `.github/workflows/ci.yml` |
+| clang-format / clang-tidy | exactly 18.1.8 | `tools/verification-requirements.txt` |
+| ffmpeg / ffprobe | exactly 7.1.1 for release evidence | `tools/verification-common.ps1` |
+| nlohmann-json / yaml-cpp | vcpkg manifest plus pinned baseline | `vcpkg.json` and ADR 0002 |
+
+Do not silently substitute a global clang tool or a different dependency baseline. If bootstrap finds a
+dirty `.vcpkg` checkout, preserve or remove those local changes before retrying; the script intentionally
+refuses to overwrite them.
+
+## Verification Tiers
+
+Run tiers from the repository root. `-Fix` is allowed only with Quick and changes formatting in tracked
+C++ source/test files, so inspect the resulting diff.
+
+```powershell
+pwsh -NoProfile -File tools/verify.ps1 -Tier Quick
+pwsh -NoProfile -File tools/verify.ps1 -Tier Full
+pwsh -NoProfile -File tools/verify.ps1 -Tier Release
+```
+
+| Tier | What it proves | When to run |
+|---|---|---|
+| Quick | Pinned formatting/static policy, Qt-free core+CLI build, fast tests, skill/docs/site contracts | Before every push; default for ordinary changes |
+| Full | Quick plus real ffmpeg tests, CLI fixtures, Qt build/model tests, and seeded noninteractive GUI startup | Before merging core, CLI, Qt, or workflow changes |
+| Release | Full plus demo capture, version/manifest/PDF consistency, package assembly, and archive audit | From the intended release commit before dispatching publication |
+
+The optional managed hook runs Quick and changes only this repository's Git directory:
+
+```powershell
+pwsh -NoProfile -File tools/install-hooks.ps1
+pwsh -NoProfile -File tools/install-hooks.ps1 -Remove
+```
+
+## Test Taxonomy
+
+CTest execution labels and resource size answer different questions.
+
+| Axis | Class | Contract |
+|---|---|---|
+| Runtime | `fast` | Pure or bounded native tests with no real external media process; default local confidence path |
+| Runtime | `slow` | Real ffmpeg integration; requires the pinned executable on `PATH` |
+| Runtime | `qt` | Qt model/settings tests from the GUI preset; may require a Qt-capable environment |
+| Resource | none | No binary fixture; inline values or small text/JSON/YAML only |
+| Resource | synthetic-small | Runtime-generated, low-resolution, short-duration media; never user media |
+| Resource | candidate | Package, rendered PDF, site, or clean-archive output; store as a bounded artifact, not a normal unit fixture |
+
+Resource class is documentation metadata, not an additional CTest label. The canceled VID-43 scope is not
+reintroduced here. If a test needs a candidate-sized resource, keep it out of `fast`, generate it
+deterministically, bound its duration/size, and retain it only when failure or release evidence requires it.
+
+Run labels directly when diagnosing a tier:
+
+```powershell
+ctest --test-dir build/core-release -C Release -L fast --output-on-failure
+ctest --test-dir build/core-release -C Release -L slow --output-on-failure
+ctest --test-dir build/windows-gui-release -C Release -L qt --output-on-failure
+```
+
+## Quality Gates
+
+### Formatting and static analysis
+
+The Lint lane calls `tools/verify.ps1 -CiLane Lint`. It checks every tracked `.cpp` and `.hpp` under
+`src/` and `tests/`, enforces the pinned formatter, runs deterministic text/review policies, rejects Qt
+includes in `src/core` and `src/cli`, and analyzes core translation units with clang-tidy on Ubuntu.
+Windows verifies the pinned clang-tidy configuration; the Ubuntu job is authoritative for full core
+translation-unit analysis.
+
+### Qt-free and Qt boundaries
+
+`core-release` must configure, build, and test with `VIDCHOPPER_BUILD_GUI=OFF`. A shared-service API is
+not Qt-free merely because one caller avoids Qt: its public headers, link dependencies, and tests must build
+without the Qt SDK. Qt model contracts run under the `qt` label, including `QAbstractItemModelTester`
+coverage where applicable.
+
+### Site and agent skill
+
+The Docs lane runs the deterministic skill contract, `npm ci`, frontend tests, typechecks, canonical route
+build/audit, a Wrangler dry run, and the GitHub Pages compatibility build. Production acceptance additionally
+requires the gated Cloudflare workflow and cache-busted live validation described in
+`knowledge/operations/cloudflare-production.md`.
+
+### Markdown and PDF
+
+Manager-facing Markdown is authoritative. A tracked PDF must be generated from the exact Markdown bytes by
+the repository document command, pass the deterministic freshness/structure check, and be rasterized for
+human review. Inspect every rendered page at normal size for clipping, overlap, broken tables/diagrams,
+missing glyphs, and unreadable code. A timestamp comparison is not acceptable freshness evidence because a
+fresh checkout gives unrelated files new timestamps.
+
+### Package and archive
+
+`tools/package-windows.ps1` assembles `VidChopper-<version>-windows-x64.zip` from already-built GUI and CLI
+inputs, deploys the Qt runtime, includes notices/license and the matching agent skill, rejects a version
+mismatch, and does not bundle ffmpeg/ffprobe. `tools/verify-release-archive.ps1` expands that exact ZIP in an
+isolated workspace, verifies inventory and CLI/skill versions, performs the ChapterBuilder dry-run/export,
+probes rendered outputs, and writes bounded JSON evidence including the archive SHA-256.
+
+## GitHub CI Parity
+
+CI uses path classification to skip only irrelevant jobs. Code paths run Lint, Core, and GUI; docs paths run
+Docs; agent-skill paths additionally run deterministic Windows and Ubuntu checks. Superseded PR runs are
+canceled by the workflow concurrency group. Never treat a canceled older run as evidence for a newer commit.
+
+| GitHub job | Local reproduction | What GitHub adds |
+|---|---|---|
+| `changes` | `git diff --name-only origin/main...HEAD`, then compare with `.github/workflows/ci.yml` filters | `dorny/paths-filter` event context |
+| `lint` | `pwsh -NoProfile -File tools/verify.ps1 -CiLane Lint` | Ubuntu 24.04, GCC 13, cached pinned Python tools |
+| `core-tests` | `pwsh -NoProfile -File tools/verify.ps1 -CiLane Core` | Clean Windows 2022, cached vcpkg, ffmpeg 7.1.1 |
+| `gui-build` | `pwsh -NoProfile -File tools/verify.ps1 -CiLane Gui` | Clean Windows 2022, cached Qt 6.9/vcpkg, ffmpeg 7.1.1 |
+| `docs-check` | `pwsh -NoProfile -File tools/verify.ps1 -CiLane Docs` | Clean Node 22 install and npm cache |
+| agent skill matrix | `pwsh -NoProfile -File tools/agent-skill-artifacts.ps1 -Mode Check` | Both Windows and Ubuntu path/ZIP behavior |
+| Pages | `npm ci; npm run build:pages` from `docs/` | GitHub Pages upload/deploy identity |
+| Cloudflare production | `npm ci; npm test; npm run build; npm run cloudflare:dry-run` from `docs/` | Protected environment, deploy identity, HTTPS live validation |
+| release candidate | `pwsh -NoProfile -File tools/verify.ps1 -Tier Release` | Two clean Windows jobs and immutable artifact handoff |
+
+Each CI lane writes a log under `artifacts/ci` and uploads the last bounded diagnostic section only on
+failure. Download that failure artifact, reproduce the same `-CiLane` locally, and fix the first coherent
+failure class. Cache hits are performance optimizations, not evidence; scripts still validate pinned versions
+and the candidate itself.
+
+## Synthetic Fixture Policy
+
+- Use `ffmpeg` `lavfi` sources for deterministic, short, low-resolution media.
+- Keep public structured fixtures game-neutral and free of user/customer media or private paths.
+- Check in small JSON/YAML/text contracts; generate binary media at test time.
+- Pin duration, dimensions, frame rate, pixel format, and command arguments so probes are comparable.
+- Give every external process a timeout and retain stdout/stderr only within bounded diagnostics.
+- Delete ordinary generated workspaces through existing scoped cleanup; retain a failing/release candidate only
+  as an explicit artifact.
+
+A flaky test is a product defect in the evidence system. Do not add blind retries or rerun until green. Fix
+the race/environment contract, or quarantine it visibly with an owner and a separate follow-up; a quarantined
+test cannot satisfy a release gate.
+
+## Version and Channel Policy
+
+The issue wording refers to earlier "0.3 alpha" and "1.0 beta" plans. The repository's actual published
+sequence is authoritative:
+
+| Line | GitHub state | Meaning |
+|---|---|---|
+| `0.1.x-alpha`, `0.2.0-alpha` | prerelease | Early desktop/product experiments |
+| `0.3.0-beta` | prerelease | First complete portable GUI+CLI beta |
+| `1.0.0` | stable release | Windows 10/11 x64 stable boundary on the shared engine |
+
+Do not relabel history to fit obsolete shorthand. The current release workflow always publishes with
+`--prerelease`; VID-44 must deliberately add stable publication behavior and assert
+`isPrerelease == false` before it can publish `1.0.0`.
+
+### Version-bump checklist
+
+1. Set `VIDCHOPPER_DISPLAY_VERSION` in `CMakeLists.txt`.
+2. Set the numeric base in `vcpkg.json` (`version-semver`) and the display version in
+   `docs/package.json` plus its lockfile root package entries.
+3. Update site release constants/links, package README text, release metadata/notes, and versioned agent-skill
+   routes/artifacts.
+4. Search the whole tree for the old display version and classify every retained historical reference.
+5. Run the deterministic agent-skill artifact generator/check if versioned bytes changed.
+6. Run Quick, Full, then Release from the intended commit; never build release bytes from a dirty checkout.
+
+## Candidate, Publication, and Remote Verification
+
+### Candidate checklist
+
+1. Confirm every non-canceled roadmap blocker is Done on `main` and record any explicit deferral.
+2. Confirm the checkout is clean and `HEAD` is the reviewed release commit.
+3. Run `tools/bootstrap.ps1 -CheckOnly`, then `tools/verify.ps1 -Tier Release`.
+4. Dispatch `.github/workflows/release.yml` with the exact version and `publish=false` first.
+5. Record the package-candidate run, artifact name, candidate SHA-256, and clean-runner evidence.
+6. Compare the clean-runner archive identity with the package job artifact before approving publication.
+
+### Publication checklist
+
+1. Obtain explicit human approval for the exact commit, version, channel, and candidate digest.
+2. Confirm the target tag and GitHub release do not already exist; never overwrite release history.
+3. Dispatch the release workflow with `publish=true` only after the bounded candidate run is green.
+4. For `1.0.0`, verify the stable workflow path omits `--prerelease` and checks non-draft,
+   non-prerelease metadata.
+5. Record the tag, commit, release URL, asset URL, checksum URL, and workflow run in Linear and the knowledge
+   publishing record.
+
+### Remote acceptance checklist
+
+1. Download the ZIP and `.sha256` from the release URL, not from the local workspace.
+2. Verify the downloaded SHA-256 equals the proven candidate digest.
+3. Run `tools/verify-release-archive.ps1` against the downloaded archive on clean supported Windows.
+4. Confirm the GUI seeded startup, Qt-free CLI, version/help/direct/chop modes, ChapterBuilder export,
+   manifests, and ffprobe output evidence.
+5. Verify public download/docs links resolve to the stable tag and asset, then cache-bust the live site checks.
+
+### Rollback and correction
+
+Stop publication before mutation whenever a gate fails. If a GitHub release is already public, do not replace
+assets under the same tag or silently move the tag. Remove or clearly mark unsafe public links, preserve the
+failed release evidence, publish a corrected patch version from a new reviewed commit/tag, and record the
+incident/decision. For the canonical site, use the version-identity rollback procedure in
+`knowledge/operations/cloudflare-production.md`; secret/private-file exposure is an immediate rollback and
+credential-rotation trigger.
+
+## Evidence Before Completion
+
+Humans and agents use the same bar:
+
+- State exactly which local commands ran, on which commit, and which were not run.
+- Do not claim GitHub checks passed until the relevant run reports success for the reviewed head SHA.
+- Do not claim a release passed from a local ZIP; correlate the uploaded/downloaded bytes by SHA-256.
+- Do not paste secrets, tokens, private paths, or unbounded logs into issues or PRs.
+- Do not weaken lint/tests, hide a canceled run, retry a flaky test into green, or substitute another lane.
+- Keep publication, production mutation, destructive cleanup, and rollback behind their explicit human gates.
+- Update Linear by stable issue ID with branch, PR, commit, run URLs, acceptance evidence, and any residual risk.
+
+Completion means the requested acceptance contract is satisfied and evidenced. A prepared command, draft PR,
+queued workflow, or locally passing substitute is progress, not completion.
