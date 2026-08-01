@@ -56,8 +56,8 @@ refuses to overwrite them.
 
 ## Verification Tiers
 
-Run tiers from the repository root. `-Fix` is allowed only with Quick and changes formatting in tracked
-C++ source/test files, so inspect the resulting diff.
+Run tiers from the repository root. `-Fix` is allowed only with local Quick or the Lint CI lane and
+changes formatting in tracked C++ source/test files, so inspect the resulting diff.
 
 ```powershell
 pwsh -NoProfile -File tools/verify.ps1 -Tier Quick
