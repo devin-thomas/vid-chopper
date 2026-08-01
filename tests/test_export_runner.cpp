@@ -4,6 +4,7 @@
 
 #include <chrono>
 #include <filesystem>
+#include <fstream>
 #include <string>
 #include <utility>
 #include <vector>
@@ -87,6 +88,34 @@ auto main() -> int {
     test_support::expect_eq(observed_requests.front().arguments,
         std::vector<std::string> {expected_command.begin() + 1, expected_command.end()},
         "runner should preserve command-builder token order");
+
+    ResolvedExportJob skip_job = make_job(root, chapters());
+    std::filesystem::create_directories(skip_job.output_directory);
+    std::ofstream {skip_job.segments.front().output_path} << "existing";
+    skip_job.settings.overwrite_mode = OverwriteMode::Skip;
+    auto skip_calls = size_t {0};
+    const auto skip_executor = [&skip_calls](const ProcessRequest&) -> ProcessResult {
+        ++skip_calls;
+        return ProcessResult {.state = ProcessExitState::Success};
+    };
+    const ExportRunResult skipped = ExportRunner {skip_executor}.run({skip_job});
+    test_support::expect_true(skipped.ok(), "skipped existing output should remain successful");
+    test_support::expect_eq(skip_calls, size_t {2}, "skip mode should avoid the existing chapter process");
+    test_support::expect_true(
+        skipped.jobs.front().segments.front().skipped, "existing chapter should be marked skipped");
+
+    ResolvedExportJob overwrite_job = make_job(root / "overwrite", chapters());
+    std::filesystem::create_directories(overwrite_job.output_directory);
+    std::ofstream {overwrite_job.segments.front().output_path} << "existing";
+    auto overwrite_messages = std::vector<std::string> {};
+    const ExportRunOptions overwrite_options {
+        .message = [&overwrite_messages](const std::string& message) { overwrite_messages.push_back(message); },
+    };
+    const ExportRunResult overwritten = ExportRunner {successful_executor}.run({overwrite_job}, overwrite_options);
+    test_support::expect_true(overwritten.ok(), "overwrite mode should export existing output");
+    test_support::expect_true(
+        overwritten.jobs.front().segments.front().overwrote_existing, "existing chapter should be marked overwritten");
+    test_support::expect_true(!overwrite_messages.empty(), "overwrite mode should report existing output");
 
     auto continue_call = size_t {0};
     const auto continue_executor = [&continue_call](const ProcessRequest&) -> ProcessResult {

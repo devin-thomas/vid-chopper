@@ -3,6 +3,8 @@ VidChopper for Windows 10/11 x64
 
 This portable zip contains the compiled VidChopper desktop app, the required Qt runtime files, and the Microsoft Visual C++ runtime files needed to launch it on a 64-bit Windows machine.
 
+The archive includes both `VidChopper.exe` and `VidChopperCLI.exe`. The CLI supports chapter planning, dry runs, exports, progress reporting, and JSON/CSV manifests.
+
 Quick start
 -----------
 1. Extract the zip to any writable folder.

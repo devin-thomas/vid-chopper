@@ -80,8 +80,8 @@ constexpr auto default_cli_settings_contents =
     return std::nullopt;
 }
 
-auto apply_setting(ExportSettings& settings, const std::string_view key, const std::string_view value) -> void {
-    if (key == "x264_crf") {
+auto apply_setting(ExportSettings& settings, std::string key, const std::string_view value) -> void {
+    if (key == "x264_crf" || key == "encoding.x264Crf") {
         const std::optional<u8> parsed = parse_u8_setting(value);
         if (parsed.has_value() && *parsed <= 51) {
             settings.x264_crf = *parsed;
@@ -89,7 +89,7 @@ auto apply_setting(ExportSettings& settings, const std::string_view key, const s
         return;
     }
 
-    if (key == "nvenc_cq") {
+    if (key == "nvenc_cq" || key == "encoding.nvencCq") {
         const std::optional<u8> parsed = parse_u8_setting(value);
         if (parsed.has_value() && *parsed <= 51) {
             settings.nvenc_cq = *parsed;
@@ -97,24 +97,24 @@ auto apply_setting(ExportSettings& settings, const std::string_view key, const s
         return;
     }
 
-    if (key == "x264_preset") {
+    if (key == "x264_preset" || key == "encoding.x264Preset") {
         settings.x264_preset = trim_copy(value);
         return;
     }
 
-    if (key == "nvenc_preset") {
+    if (key == "nvenc_preset" || key == "encoding.nvencPreset") {
         settings.nvenc_preset = trim_copy(value);
         return;
     }
 
-    if (key == "preset") {
+    if (key == "preset" || key == "encoding.preset") {
         const std::string preset = trim_copy(value);
         settings.x264_preset = preset;
         settings.nvenc_preset = preset;
         return;
     }
 
-    if (key == "ffmpeg_threads") {
+    if (key == "ffmpeg_threads" || key == "encoding.ffmpegThreads") {
         const std::optional<u8> parsed = parse_u8_setting(value);
         if (parsed.has_value()) {
             settings.ffmpeg_threads = *parsed;
@@ -122,10 +122,70 @@ auto apply_setting(ExportSettings& settings, const std::string_view key, const s
         return;
     }
 
-    if (key == "stop_on_first_error") {
+    if (key == "stop_on_first_error" || key == "execution.stopOnFirstError") {
         const std::optional<bool> parsed = parse_bool_setting(value);
         if (parsed.has_value()) {
             settings.stop_on_first_error = *parsed;
+        }
+        return;
+    }
+
+    if (key == "tools.ffmpegPath") {
+        settings.ffmpeg_path = trim_copy(value);
+        return;
+    }
+
+    if (key == "tools.ffprobePath") {
+        settings.ffprobe_path = trim_copy(value);
+        return;
+    }
+
+    if (key == "output.folderPattern") {
+        settings.output_folder_pattern = trim_copy(value);
+        return;
+    }
+
+    if (key == "output.namingPattern") {
+        settings.naming_pattern = trim_copy(value);
+        return;
+    }
+
+    if (key == "output.overwriteMode") {
+        const std::optional<u8> parsed = parse_u8_setting(value);
+        if (parsed.has_value() && *parsed <= static_cast<u8>(OverwriteMode::Skip)) {
+            settings.overwrite_mode = static_cast<OverwriteMode>(*parsed);
+        }
+        return;
+    }
+
+    if (key == "execution.writeJsonManifest") {
+        const std::optional<bool> parsed = parse_bool_setting(value);
+        if (parsed.has_value()) {
+            settings.write_json_manifest = *parsed;
+        }
+        return;
+    }
+
+    if (key == "execution.writeCsvManifest") {
+        const std::optional<bool> parsed = parse_bool_setting(value);
+        if (parsed.has_value()) {
+            settings.write_csv_manifest = *parsed;
+        }
+        return;
+    }
+
+    if (key == "execution.verifyOutputDurations") {
+        const std::optional<bool> parsed = parse_bool_setting(value);
+        if (parsed.has_value()) {
+            settings.verify_output_durations = *parsed;
+        }
+        return;
+    }
+
+    if (key == "output.copySourceMetadata") {
+        const std::optional<bool> parsed = parse_bool_setting(value);
+        if (parsed.has_value()) {
+            settings.copy_source_metadata = *parsed;
         }
     }
 }
@@ -137,9 +197,14 @@ auto apply_setting(ExportSettings& settings, const std::string_view key, const s
     }
 
     auto line = std::string {};
+    auto section = std::string {};
     while (std::getline(stream, line)) {
         const std::string trimmed = trim_copy(line);
-        const bool is_comment = trimmed.starts_with('#') || trimmed.starts_with(';') || trimmed.starts_with('[');
+        if (trimmed.starts_with('[') && trimmed.ends_with(']')) {
+            section = trimmed.substr(1, trimmed.size() - 2);
+            continue;
+        }
+        const bool is_comment = trimmed.starts_with('#') || trimmed.starts_with(';');
         if (trimmed.empty() || is_comment) {
             continue;
         }
@@ -149,9 +214,12 @@ auto apply_setting(ExportSettings& settings, const std::string_view key, const s
             continue;
         }
 
-        const std::string key = trim_copy(std::string_view {trimmed}.substr(0, separator));
+        std::string key = trim_copy(std::string_view {trimmed}.substr(0, separator));
+        if (!section.empty()) {
+            key = section + "." + key;
+        }
         const std::string value = trim_copy(std::string_view {trimmed}.substr(separator + 1));
-        apply_setting(settings, key, value);
+        apply_setting(settings, std::move(key), value);
     }
 
     return true;
@@ -194,6 +262,8 @@ auto ensure_cli_settings_file(const Path& settings_path) -> bool {
 
 auto load_cli_settings(const CliSettingsPaths& paths) -> CliResolvedSettings {
     auto result = CliResolvedSettings {};
+    result.export_settings.overwrite_mode = OverwriteMode::Overwrite;
+    result.export_settings.stop_on_first_error = false;
 
     if (paths.use_gui_config) {
         result.loaded_gui_settings = apply_settings_file(result.export_settings, paths.gui_settings_path);
