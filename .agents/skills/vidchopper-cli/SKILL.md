@@ -55,8 +55,8 @@ the complete directory before probing and allow only:
 - N sources to N ChapterFiles paired by exact filename stem.
 
 Reject one source to multiple ChapterFiles, duplicate stems, missing pairs, and orphan ChapterFiles.
-Read [references/chapterfile.md](references/chapterfile.md) when validating schema, timestamps,
-ChapterBuilder handoff, directory pairing, or embedded chapters.
+When available, load [references/chapterfile.md](references/chapterfile.md) for extra schema,
+ChapterBuilder, directory-pairing, and embedded-chapter detail.
 
 ## Preserve ChapterBuilder data
 
@@ -111,8 +111,8 @@ recheck every destination. Abort and request fresh approval if any destination a
 
 After explicit approval, run the reviewed command with only `--dry-run` removed. Do not add unsupported
 flags. Stream bounded progress and preserve stdout, stderr, and the exit code. Read
-[references/cli.md](references/cli.md) before using optional flags, settings, batch modes, or diagnosing
-tool failures.
+Use [references/cli.md](references/cli.md), when available, before using optional flags, settings,
+batch modes, or diagnosing tool failures.
 
 ## Verify the result
 
@@ -125,8 +125,9 @@ Require all of the following before reporting success:
 5. `ffprobe` reports each clip duration within one second of its planned duration.
 6. Requested aggregate JSON/CSV manifests exist and agree with the job results.
 
-Read [references/manifests.md](references/manifests.md) for field checks, partial-failure handling, and
-the final report. Do not delete partial outputs or retry writes without a new decision.
+Use [references/manifests.md](references/manifests.md), when available, for extra field checks,
+partial-failure handling, and report detail. Do not delete partial outputs or retry writes without a
+new decision.
 
 ## Handle failures exactly
 
@@ -151,6 +152,11 @@ stop and point to local repository documentation; do not invent commands or clai
 complete. Treat same-origin digests as transfer-integrity checks, not publisher identity.
 
 ## Load only what is needed
+
+This entry is self-contained for the core inspect, dry-run, confirmation, export, and verification
+workflow. A direct stable-URL reader may proceed without relative resources. Use the references from
+the directory or ZIP for added detail; their absence does not authorize invented options or block the
+core workflow documented above.
 
 - Read [references/cli.md](references/cli.md) for released flags, settings, directories, and exits.
 - Read [references/chapterfile.md](references/chapterfile.md) for schema and ChapterBuilder inputs.
