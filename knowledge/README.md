@@ -21,7 +21,10 @@ reconstructing the codebase from scratch.
 
 ## Read First
 
+- [`CONTEXT.md`](../CONTEXT.md)
+- [`knowledge/architecture/decisions/README.md`](architecture/decisions/README.md)
 - [`knowledge/architecture/repo-map.md`](architecture/repo-map.md)
+- [`docs/vidchopper_cli_architecture_plan.md`](../docs/vidchopper_cli_architecture_plan.md)
 - [`knowledge/coding-style/overview.md`](coding-style/overview.md)
 - [`knowledge/coding-style/core-and-qt-boundary.md`](coding-style/core-and-qt-boundary.md)
 - [`knowledge/coding-style/testing-and-quality-gates.md`](coding-style/testing-and-quality-gates.md)
@@ -35,7 +38,7 @@ reconstructing the codebase from scratch.
 ## Directory Map
 
 - `architecture/`
-  - Repo structure, boundary rules, and the desktop export flow.
+  - Canonical architecture decisions, repo structure, boundary rules, and the desktop export flow.
 - `coding-style/`
   - Split view of the root `CODING_STYLE.md` source of truth.
 - `history/`
@@ -50,6 +53,8 @@ reconstructing the codebase from scratch.
 
 - Treat Linear as the authoritative source for roadmap state, issue status, ordering, and acceptance
   criteria. Repository documents are dated snapshots and must not create a competing task system.
+- Keep domain definitions in root `CONTEXT.md`; architecture documents should link to it instead of
+  creating local synonyms or duplicate definitions.
 - Update `knowledge/history/features-and-progress.md` when a release frontier or published milestone
   changes.
 - Update `knowledge/operations/publishing-and-workflows.md` whenever CI, release, or Pages behavior changes.

@@ -5,9 +5,14 @@
 VidChopper is a Windows-first Qt 6 Widgets desktop application that turns one source video into a set
 of chapter clips using `ffmpeg`.
 
-The repo deliberately separates the Qt-free core from the Qt UI shell so the domain logic stays buildable
-and testable without the full Qt SDK. A no-Qt `VidChopperCLI.exe` target is being introduced as the
-power-user and automation-facing entry point.
+Canonical domain terms are defined in [`CONTEXT.md`](../../CONTEXT.md). Accepted system boundaries
+and their rationale live in the [ADR index](decisions/README.md). The preserved CLI planning PDF is a
+historical snapshot; use its [Markdown companion](../../docs/vidchopper_cli_architecture_plan.md) to
+reach the current sources of truth.
+
+The repo deliberately separates the Qt-free core from the Qt UI shell so domain logic stays buildable
+and testable without the full Qt SDK. The GUI and `VidChopperCLI.exe` are current entry points that
+will converge on the shared engine recorded in ADR 0001.
 
 ## Repository Structure
 
@@ -62,6 +67,21 @@ power-user and automation-facing entry point.
 - CLI settings live in `VidChopperCLI.ini`; GUI settings remain in `VidChopper.ini`.
 - The CLI may read GUI settings only when the user explicitly passes `--use-gui-config`.
 
+## Canonical Terms and Transitional Code Names
+
+Architecture documents and issues use the glossary terms. Current implementation names with a
+narrower lifecycle role do not create additional domain concepts:
+
+| Current implementation name | Canonical interpretation |
+|---|---|
+| `ChapterSegment` | The current C++ aggregate representing a Chapter. |
+| `BatchJob` | A source/config pairing used while resolving Jobs for a Batch. |
+| `ResolvedExportJob` | A Job after settings, metadata, and planned paths have been resolved. |
+
+These mappings let implementation migrations remain behavior-preserving. New domain documentation
+should use Chapter, Job, and Batch; code names can be aligned in the implementation work that owns
+their final contracts.
+
 ## Export Flow
 
 1. The user selects a source video in the main window.
@@ -73,11 +93,11 @@ power-user and automation-facing entry point.
 7. Progress, curated logs, and raw logs are surfaced back into the main window.
 8. Output lands in the default or overridden destination folder.
 
-## CLI Flow Target
+## CLI Flow
 
 1. The caller runs `VidChopperCLI.exe <video> <chapters.json|chapters.yaml>` or `VidChopperCLI.exe chop <video> <config>`.
 2. The CLI loads `VidChopperCLI.ini` and never reads `VidChopper.ini` unless `--use-gui-config` is passed.
-3. The CLI resolves explicit chapter configuration from JSON/YAML.
+3. The CLI resolves the selected ChapterSource from a ChapterFile or explicit embedded chapters.
 4. The CLI probes source metadata through a no-Qt probing service.
 5. The CLI validates and plans outputs through `src/core`.
 6. The CLI performs dry-run output or sequential export with human-readable progress.

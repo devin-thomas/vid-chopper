@@ -1,6 +1,13 @@
 # VidChopper CLI chapter config schema
 
-The CLI chapter config is the explicit chapter source for `VidChopperCLI.exe`. JSON and YAML are interchangeable: the same object shape, field names, timestamp policy, and validation rules apply to both formats. The Qt-free loader lives in `src/cli/chapter_config.cpp` and uses `nlohmann-json` and `yaml-cpp` from the pinned vcpkg manifest.
+[`CONTEXT.md`](../CONTEXT.md) defines ChapterFile, ChapterSource, and the other canonical domain
+terms. The [architecture decision records](../knowledge/architecture/decisions/README.md) explain the
+shared-engine boundary and dependency policy. This reference specifies only the ChapterFile
+serialization and validation contract instead of redefining those terms.
+
+JSON and YAML are interchangeable: the same object shape, field names, timestamp policy, and
+validation rules apply to both formats. The Qt-free loader lives in `src/cli/chapter_config.cpp` and
+uses `nlohmann-json` and `yaml-cpp` from the pinned vcpkg manifest.
 
 ## Top-level shape
 
