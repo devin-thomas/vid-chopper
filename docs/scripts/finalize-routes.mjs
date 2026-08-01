@@ -1,4 +1,4 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import {
   distDirectory,
@@ -53,6 +53,14 @@ await writeFile(
   withMetadata(sourceHtml, "/not-found", "Page not found | VidChopper"),
   "utf8",
 );
+
+if (pagesMode) {
+  await Promise.all(
+    [".assetsignore", "_headers"].map((file) =>
+      rm(path.join(distDirectory, file), { force: true }),
+    ),
+  );
+}
 
 console.log(
   `Finalized ${routes.htmlRoutes.length} HTML routes for ${pagesMode ? "GitHub Pages compatibility" : "the canonical site"}.`,
