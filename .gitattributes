@@ -6,6 +6,7 @@ packaging/releases/*.json text eol=lf
 packaging/releases/agent-skills/**/*.md text eol=lf
 packaging/releases/agent-skills/**/*.json text eol=lf
 packaging/releases/agent-skills/**/*.zip -text
+*.pdf binary
 .agents/skills/vidchopper-cli/**/*.md text eol=lf
 .agents/skills/vidchopper-cli/**/*.json text eol=lf
 .agents/skills/vidchopper-cli/**/*.yaml text eol=lf
