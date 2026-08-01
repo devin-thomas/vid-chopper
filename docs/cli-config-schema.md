@@ -112,3 +112,26 @@ The schema file catches structural issues such as missing `chapters`, unknown fi
 - `src/cli/chapter_config.hpp` and `src/cli/chapter_config.cpp`
 - `tests/test_chapter_config.cpp`
 - `vcpkg.json`
+
+## ChapterBuilder compatibility fixture
+
+`tests/fixtures/chapterbuilder/tns-2xko-36-chapters.json` is byte-identical to the
+fixture exported by ChapterBuilder. It uses the public TNS 2XKO #36 VOD timestamps
+and Top 8 bracket while keeping tournament-specific text inside the game-neutral
+`name` and `outputName` fields:
+
+- VOD: https://youtu.be/un-_oJrC-RI
+- Event: https://www.start.gg/tournament/tns-2xko-36/events
+
+The fast loader test proves that VidChopper accepts the export without edits. To
+exercise the complete contract against a local source video, build the CLI and run:
+
+```powershell
+.\build\core-release\Release\VidChopperCLI.exe `
+  <source-video> `
+  .\tests\fixtures\chapterbuilder\tns-2xko-36-chapters.json `
+  --dry-run
+```
+
+The repository intentionally does not include the downloaded VOD or generated
+clips. Real-media validation artifacts remain local and ignored by Git.

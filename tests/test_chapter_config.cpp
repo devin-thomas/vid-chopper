@@ -128,6 +128,24 @@ chapters:
     require_success(yml_result, "YML extension should load");
     test_support::expect_eq(yml_result.config.chapters.front().end_ms, u64 {60000}, "YML timestamp");
 
+    const Path chapterbuilder_fixture =
+        Path {__FILE__}.parent_path() / "fixtures" / "chapterbuilder" / "tns-2xko-36-chapters.json";
+    const ChapterConfigLoadResult chapterbuilder_result =
+        load_chapter_config(chapterbuilder_fixture, 11391756, ExportSettings {});
+    require_success(chapterbuilder_result, "ChapterBuilder TNS 2XKO #36 fixture should load without edits");
+    test_support::expect_eq(
+        chapterbuilder_result.config.chapters.size(), size_t {16}, "ChapterBuilder fixture chapter count");
+    test_support::expect_eq(
+        chapterbuilder_result.config.chapters.front().start_ms, u64 {0}, "ChapterBuilder fixture first start");
+    test_support::expect_eq(chapterbuilder_result.config.chapters.back().start_ms,
+        u64 {10692000},
+        "ChapterBuilder fixture Grand Final start");
+    test_support::expect_eq(
+        chapterbuilder_result.config.chapters.back().end_ms, u64 {11391000}, "ChapterBuilder fixture VOD end");
+    test_support::expect_eq(chapterbuilder_result.config.chapters.back().output_name,
+        std::string {"TNS-2XKO-36-16-Grand-Final-ONi-bleed-vs-WADE"},
+        "ChapterBuilder fixture output name");
+
     const Path unknown_extension_path = root / "chapters.txt";
     write_text(unknown_extension_path, "chapters: []\n");
     require_failure(load_chapter_config(unknown_extension_path, 60000, ExportSettings {}),
