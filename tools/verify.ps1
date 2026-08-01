@@ -187,6 +187,15 @@ function Invoke-GuiBuild {
     }
 }
 
+function Invoke-GuiTests {
+    Invoke-VerificationStage -Name "Qt settings tests" -Action {
+        $ctest = Get-RepoCommand -Name "ctest" -Remediation "Install CMake 3.28 or newer."
+        Invoke-RepoCommand -FilePath $ctest -ArgumentList @(
+            "--test-dir", "build/windows-gui-release", "-C", "Release", "-L", "qt", "--output-on-failure"
+        )
+    }
+}
+
 function Invoke-GuiStartup {
     Invoke-VerificationStage -Name "Seeded noninteractive GUI startup" -Action {
         Invoke-GuiStartupCheck
@@ -199,6 +208,7 @@ function Invoke-FullTier {
     Invoke-SlowTests
     Invoke-CliFixtures
     Invoke-GuiBuild
+    Invoke-GuiTests
     Invoke-GuiStartup
 }
 
@@ -302,6 +312,7 @@ switch ($CiLane) {
         Set-RepoVcpkgRoot
         Set-VerificationQtEnvironment
         Invoke-GuiBuild
+        Invoke-GuiTests
         Invoke-GuiStartup
     }
     "Docs" {

@@ -26,7 +26,8 @@
       "cacheVariables": {
         "VIDCHOPPER_BUILD_CLI": "ON",
         "VIDCHOPPER_BUILD_GUI": "ON",
-        "VIDCHOPPER_BUILD_TESTS": "OFF"
+        "VIDCHOPPER_BUILD_TESTS": "OFF",
+        "VIDCHOPPER_BUILD_QT_TESTS": "ON"
       }
     }
   ],

@@ -6,6 +6,7 @@
 #include <cmath>
 #include <cstddef>
 #include <format>
+#include <limits>
 #include <optional>
 #include <system_error>
 #include <vector>
@@ -44,6 +45,20 @@ auto parse_unsigned(std::string_view value) -> std::optional<u64> {
     return result;
 }
 
+constexpr auto checked_add(const u64 left, const u64 right) noexcept -> std::optional<u64> {
+    if (right > std::numeric_limits<u64>::max() - left) {
+        return std::nullopt;
+    }
+    return left + right;
+}
+
+constexpr auto checked_multiply(const u64 left, const u64 right) noexcept -> std::optional<u64> {
+    if (left != 0 && right > std::numeric_limits<u64>::max() / left) {
+        return std::nullopt;
+    }
+    return left * right;
+}
+
 struct HmsComponents {
     u64 hours;
     u64 minutes;
@@ -64,6 +79,25 @@ struct ParsedHmsSegments {
     u64 seconds;
     std::string trailing_segment;
 };
+
+constexpr auto total_seconds(const u64 hours, const u64 minutes, const u64 seconds) noexcept -> std::optional<u64> {
+    const auto hours_in_minutes = checked_multiply(hours, 60);
+    if (!hours_in_minutes.has_value()) {
+        return std::nullopt;
+    }
+
+    const auto total_minutes = checked_add(*hours_in_minutes, minutes);
+    if (!total_minutes.has_value()) {
+        return std::nullopt;
+    }
+
+    const auto minutes_in_seconds = checked_multiply(*total_minutes, 60);
+    if (!minutes_in_seconds.has_value()) {
+        return std::nullopt;
+    }
+
+    return checked_add(*minutes_in_seconds, seconds);
+}
 
 auto parse_hms_segments(
     std::string_view value, const size_t min_segments, const size_t max_segments) -> std::optional<ParsedHmsSegments> {
@@ -165,7 +199,17 @@ auto parse_millisecond_timecode(std::string_view value) -> std::optional<u64> {
         return std::nullopt;
     }
 
-    return (((*hours * 60) + *minutes) * 60 * 1000) + (*seconds * 1000) + milliseconds;
+    const auto seconds_total = total_seconds(*hours, *minutes, *seconds);
+    if (!seconds_total.has_value()) {
+        return std::nullopt;
+    }
+
+    const auto whole_milliseconds = checked_multiply(*seconds_total, 1000);
+    if (!whole_milliseconds.has_value()) {
+        return std::nullopt;
+    }
+
+    return checked_add(*whole_milliseconds, milliseconds);
 }
 
 auto parse_frame_timecode(std::string_view value, const FrameRate& frame_rate) -> std::optional<u64> {
@@ -184,16 +228,18 @@ auto parse_frame_timecode(std::string_view value, const FrameRate& frame_rate) -
         return std::nullopt;
     }
 
-    if (parsed->seconds >= 60) {
+    const auto base_seconds = total_seconds(parsed->hours, parsed->minutes, parsed->seconds);
+    if (!base_seconds.has_value()) {
         return std::nullopt;
     }
 
-    const u64 base_seconds = (((parsed->hours * 60) + parsed->minutes) * 60) + parsed->seconds;
-    const u64 total_frames = (base_seconds * fps) + *frames;
-    const u64 milliseconds =
-        static_cast<u64>(std::llround((static_cast<f64>(total_frames) * 1000.0) / static_cast<f64>(fps)));
+    const auto whole_milliseconds = checked_multiply(*base_seconds, 1000);
+    if (!whole_milliseconds.has_value()) {
+        return std::nullopt;
+    }
 
-    return milliseconds;
+    const u64 frame_milliseconds = ((*frames * 1000) + (fps / 2)) / fps;
+    return checked_add(*whole_milliseconds, frame_milliseconds);
 }
 
 auto format_millisecond_timecode(const u64 milliseconds) -> std::string {
@@ -209,10 +255,13 @@ auto format_frame_timecode(const u64 milliseconds, const FrameRate& frame_rate) 
         return "00:00:00:00";
     }
 
-    const u64 total_frames =
-        static_cast<u64>(std::llround((static_cast<f64>(milliseconds) * static_cast<f64>(fps)) / 1000.0));
-    const u64 frames = total_frames % fps;
-    const HmsComponents hms = decompose_total_seconds(total_frames / fps);
+    auto total_seconds_value = milliseconds / 1000;
+    auto frames = (((milliseconds % 1000) * fps) + 500) / 1000;
+    if (frames == fps) {
+        ++total_seconds_value;
+        frames = 0;
+    }
+    const HmsComponents hms = decompose_total_seconds(total_seconds_value);
 
     return std::format("{:02}:{:02}:{:02}:{:02}", hms.hours, hms.minutes, hms.seconds, frames);
 }

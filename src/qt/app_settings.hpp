@@ -4,6 +4,7 @@
 
 #include <QSize>
 #include <QString>
+#include <QStringList>
 
 class QObject;
 class QSettings;
@@ -15,13 +16,25 @@ struct SettingsStore {
     QString config_path;
 };
 
+struct AppSettingsSnapshot {
+    ExportSettings export_settings;
+    int zoom_percent {100};
+    QSize last_screen_size;
+};
+
+struct SettingsLoadResult {
+    AppSettingsSnapshot values;
+    QStringList diagnostics;
+};
+
+struct SettingsSaveResult {
+    bool success {false};
+    QString error_message;
+};
+
 [[nodiscard]] auto create_settings_store(QObject* parent) -> SettingsStore;
-[[nodiscard]] auto load_export_settings(QSettings& settings) -> ExportSettings;
-auto save_export_settings(QSettings& settings, const ExportSettings& values) -> void;
-[[nodiscard]] auto load_zoom_percent(QSettings& settings) -> int;
-auto save_zoom_percent(QSettings& settings, int zoom_percent) -> void;
-[[nodiscard]] auto load_last_screen_size(QSettings& settings) -> QSize;
-auto save_last_screen_size(QSettings& settings, const QSize& screen_size) -> void;
+[[nodiscard]] auto load_app_settings(QSettings& settings) -> SettingsLoadResult;
+[[nodiscard]] auto save_app_settings(QSettings& settings, const AppSettingsSnapshot& values) -> SettingsSaveResult;
 [[nodiscard]] auto clamp_zoom_percent(int zoom_percent) -> int;
 [[nodiscard]] auto auto_zoom_percent_for_screen_height(int logical_height) -> int;
 

@@ -10,6 +10,7 @@ project(
 option(VIDCHOPPER_BUILD_CLI "Build the no-Qt CLI target" ON)
 option(VIDCHOPPER_BUILD_GUI "Build the Qt GUI target" ON)
 option(VIDCHOPPER_BUILD_TESTS "Build the test targets" ON)
+option(VIDCHOPPER_BUILD_QT_TESTS "Build Qt-dependent test targets" OFF)
 set(VIDCHOPPER_DISPLAY_VERSION "0.2.0-alpha" CACHE STRING "User-facing version string for prerelease labeling")
 
 set(CMAKE_CXX_STANDARD 20)
@@ -86,9 +87,11 @@ endif()
 
 include(CTest)
 
-if(VIDCHOPPER_BUILD_TESTS)
+if(VIDCHOPPER_BUILD_TESTS OR VIDCHOPPER_BUILD_QT_TESTS)
     enable_testing()
+endif()
 
+if(VIDCHOPPER_BUILD_TESTS)
     function(add_vidchopper_test target_name source_file label_name)
         add_executable("${target_name}" "${source_file}")
         target_link_libraries("${target_name}" PRIVATE vidchopper_core ${ARGN})
@@ -172,4 +175,17 @@ if(VIDCHOPPER_BUILD_GUI)
     apply_vidchopper_warnings(VidChopper)
 
     set_target_properties(VidChopper PROPERTIES WIN32_EXECUTABLE TRUE OUTPUT_NAME "VidChopper")
+
+    if(VIDCHOPPER_BUILD_QT_TESTS)
+        add_executable(vidchopper_test_app_settings
+            tests/test_app_settings.cpp
+            src/qt/app_settings.cpp
+            src/qt/app_settings.hpp
+        )
+        target_include_directories(vidchopper_test_app_settings PRIVATE "${PROJECT_SOURCE_DIR}/tests")
+        target_link_libraries(vidchopper_test_app_settings PRIVATE Qt6::Core vidchopper_core)
+        apply_vidchopper_warnings(vidchopper_test_app_settings)
+        add_test(NAME qt.vidchopper_test_app_settings COMMAND vidchopper_test_app_settings)
+        set_tests_properties(qt.vidchopper_test_app_settings PROPERTIES LABELS "qt")
+    endif()
 endif()
