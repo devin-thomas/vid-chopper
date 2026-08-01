@@ -4,20 +4,20 @@ VidChopper is a Windows desktop application for turning one source video into ch
 
 ## Windows Download
 
-If you want to run VidChopper on Windows 10/11 x64 without building from source, use the current `v0.2.0-alpha` GitHub prerelease zip:
+If you want to run VidChopper on Windows 10/11 x64 without building from source, use the current `v0.3.0-beta` GitHub prerelease zip:
 
-- [Download the `v0.2.0-alpha` Windows x64 release zip](https://github.com/devin-thomas/vid-chopper/releases/download/v0.2.0-alpha/VidChopper-0.2.0-alpha-windows-x64.zip)
+- [Download the `v0.3.0-beta` Windows x64 release zip](https://github.com/devin-thomas/vid-chopper/releases/download/v0.3.0-beta/VidChopper-0.3.0-beta-windows-x64.zip)
 - [Browse all GitHub releases](https://github.com/devin-thomas/vid-chopper/releases)
 
 The release zip is a portable build that includes `VidChopper.exe`, the required Qt runtime files, and the Microsoft Visual C++ runtime. It does **not** bundle `ffmpeg` or `ffprobe`, so those still need to be on `PATH` or configured in the advanced settings dialog.
 
 ### Quick Start
 
-1. Download and unzip `VidChopper-0.2.0-alpha-windows-x64.zip`.
+1. Download and unzip `VidChopper-0.3.0-beta-windows-x64.zip`.
 2. Launch `VidChopper.exe`.
 3. Install `ffmpeg` and `ffprobe` separately, or point VidChopper at custom tool paths in Advanced Settings.
 
-## Project Status - building towards 0.3.0-beta release
+## Project Status - 0.3.0-beta
 
 The current codebase includes:
 
@@ -28,9 +28,9 @@ The current codebase includes:
 - A staged test suite split into fast unit-level coverage and slower `ffmpeg` integration coverage
 - A Vite + React + TypeScript + Tailwind Pages site in `docs/` for the product landing page, release portal, and developer docs
 
-The next release objective is `v0.3.0-beta`: complete the Qt-free CLI, package
-`VidChopperCLI.exe` beside the GUI, and verify a ChapterBuilder-produced ChapterFile through dry-run,
-export, and release-archive smoke testing. Linear's
+The `v0.3.0-beta` release completes the Qt-free CLI, packages `VidChopperCLI.exe` beside the GUI,
+and verifies a ChapterBuilder-produced ChapterFile through dry-run, export, and clean release-archive
+smoke testing. Linear's
 [vid-chopper project](https://linear.app/devin-main/project/vid-chopper-d0e76dad962c) is the
 authoritative roadmap; repository progress documents are dated snapshots.
 
@@ -93,8 +93,8 @@ $env:VCPKG_ROOT = (Resolve-Path .vcpkg).Path
 
 The CLI's Qt-free ChapterFile loader accepts `.json`, `.yaml`, and `.yml` files, applies the documented output and encoder overrides, and validates the resulting chapters before export planning.
 
-The CLI now probes inputs, plans and exports chapters, supports dry runs, reports bounded progress, and writes
-per-job JSON/CSV manifests. The remaining `v0.3.0-beta` work is compatibility and release validation.
+The CLI probes inputs, plans and exports chapters, supports dry runs, reports bounded progress, and writes
+per-job JSON/CSV manifests. Run `VidChopperCLI.exe --version` to confirm the installed package version.
 
 ```powershell
 cmake --preset core-release
@@ -115,12 +115,13 @@ ctest --test-dir build/windows-gui-release -C Release -L qt --output-on-failure
 
 ### GitHub Release Packaging
 
-Published GitHub releases trigger a Windows packaging workflow that:
+The manually triggered release workflow:
 
 - builds the `windows-gui-release` preset on `windows-2022`
 - runs `windeployqt` to bundle the required Qt runtime and VC++ runtime beside `VidChopper.exe`
 - zips the portable folder as `VidChopper-<version>-windows-x64.zip`
-- uploads that zip back onto the GitHub release as the installable asset
+- verifies the extracted archive in a second clean Windows runner
+- publishes the prerelease only after the archive smoke test passes
 
 That release asset is the intended end-user download. Building from source is only necessary for development, debugging, or local modification work.
 
@@ -159,7 +160,7 @@ Chapter boundaries can fall between keyframes. Re-encoding with x264 or HEVC NVE
 ## Repository Structure
 
 - `src/core/`: domain logic, timestamp handling, chapter planning, naming, and `ffmpeg` command construction
-- `src/cli/`: Qt-free command parsing, settings, and ChapterFile loading under active `v0.3.0-beta` development
+- `src/cli/`: Qt-free command parsing, settings, ChapterFile loading, dry-run planning, and export execution
 - `src/qt/`: Qt application shell, settings persistence, chapter table model, ffprobe integration, GPU detection, and export coordination
 - `tests/`: staged native tests
 - `docs/`: Vite + React + TypeScript + Tailwind GitHub Pages app

@@ -53,3 +53,11 @@ GitHub Actions calls the same verification script with focused lanes:
 The Lint lane uses the pinned formatter and static-analysis versions and discovers tracked `.cpp` and `.hpp` files. The Core lane builds the CLI and core, runs fast tests, slow ffmpeg-backed tests, and CLI fixtures. The GUI lane performs a fresh Qt build and seeded startup. The Docs lane runs `npm ci`, type checks, and the production build.
 
 Pull requests use path filtering so docs-only changes skip the C++ lanes. Workflow, tool, source, test, build, and packaging changes run the full code lanes. Superseded runs for the same pull request are canceled, and a failing lane uploads a short diagnostic tail for seven days.
+
+## Release candidate workflow
+
+The manual `Release` workflow builds the Windows ZIP, uploads it as a one-day candidate artifact,
+then downloads and extracts that exact archive in a second fresh `windows-2022` job. The clean job
+checks the GUI ready marker, the isolated Qt-free CLI, help/version/direct/chop modes, all 16 chapters
+from the ChapterBuilder fixture, generated clips, and the JSON manifest. Publication is conditional on
+that job succeeding; the remote ZIP is downloaded again and matched to the candidate SHA-256.

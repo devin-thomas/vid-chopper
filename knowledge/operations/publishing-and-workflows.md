@@ -3,9 +3,9 @@
 ## Current Published State
 
 - Branch: `main`
-- Current prerelease tag: `v0.2.0-alpha`
-- Release URL: `https://github.com/devin-thomas/vid-chopper/releases/tag/v0.2.0-alpha`
-- Release asset: `VidChopper-0.2.0-alpha-windows-x64.zip`
+- Current prerelease tag: `v0.3.0-beta`
+- Release URL: `https://github.com/devin-thomas/vid-chopper/releases/tag/v0.3.0-beta`
+- Release asset: `VidChopper-0.3.0-beta-windows-x64.zip`
 
 ## CI Workflow
 
@@ -34,12 +34,14 @@ File: `.github/workflows/release.yml`
 
 Behavior:
 
-1. Check out the tagged source.
-2. Install Qt 6.9.
-3. Build the GUI preset.
-4. Rebuild the core preset and run `fast` tests.
-5. Package the portable Windows directory.
-6. Upload `VidChopper-<version>-windows-x64.zip` as both an artifact and a release asset.
+1. A maintainer manually supplies the release version and whether to publish.
+2. A Windows 2022 runner builds the GUI and CLI, runs native tests, and packages the portable ZIP.
+3. A second fresh Windows 2022 runner downloads and extracts that exact candidate artifact.
+4. The clean runner verifies the packaged GUI, isolated Qt-free CLI, version/help/direct/chop modes,
+   the 16-chapter ChapterBuilder fixture, actual exports, and manifests.
+5. Only after the archive smoke passes, the publish job creates the prerelease and attaches the ZIP
+   and SHA-256 file.
+6. The publish job downloads the remote asset again and verifies its digest matches the proven candidate.
 
 ## Pages Workflow
 

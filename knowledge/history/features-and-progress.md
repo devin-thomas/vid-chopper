@@ -11,8 +11,9 @@ The current `main` branch includes the complete Qt-free CLI path through `VID-26
 local/CI verification parity and release-critical hardening through `VID-35`. GitHub Actions pass
 the lint, core/CLI, and Qt GUI lanes on the merged stack.
 
-The active release objective is `0.3.0-beta`: finish and package the deterministic Qt-free CLI
-alongside the existing GUI. Shared-engine GUI migration remains the later stable `1.0.0` objective.
+The `0.3.0-beta` objective is shipped: the deterministic Qt-free CLI is packaged beside the existing
+GUI and verified from the extracted release archive. Shared-engine GUI migration remains the later
+stable `1.0.0` objective.
 
 ## Task Status
 
@@ -37,9 +38,9 @@ alongside the existing GUI. Shared-engine GUI migration remains the later stable
 
 - `VID-17` through `VID-26`: complete on `main`
 - `VID-31` through `VID-35`: complete on `main`
-- `VID-47`: ChapterBuilder-to-VidChopper end-to-end release validation - in progress and
-  release-blocking
-- `VID-36`: package, publish, and verify `0.3.0-beta` - final release task
+- `VID-47`: ChapterBuilder-to-VidChopper end-to-end release validation - done
+- `VID-36`: package, publish, and verify `0.3.0-beta` - done
+- `VID-28`: shared-engine convergence for stable `1.0.0` - next release frontier
 
 ## Release Milestones
 
@@ -47,6 +48,9 @@ alongside the existing GUI. Shared-engine GUI migration remains the later stable
 - Pages deployment workflow landed on `main`.
 - `v0.2.0-alpha` was published as a GitHub prerelease.
 - The release workflow produced and attached `VidChopper-0.2.0-alpha-windows-x64.zip`.
+- `v0.3.0-beta` packages the complete Qt-free CLI beside the GUI and proves the archive in a second
+  clean Windows runner before publication.
+- The TNS 2XKO #36 ChapterBuilder fixture plans and exports all 16 chapters through the packaged CLI.
 - The Pages rewrite now publishes a multi-page site that covers the product landing page, release portal, and developer docs surface.
 
 ## Reconciliation Note
