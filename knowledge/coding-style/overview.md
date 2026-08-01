@@ -26,5 +26,6 @@ VidChopper resolves tradeoffs in this order:
 
 ## Read Next
 
+- [C++20 clarity and safety guide](../../docs/cpp20-clarity-and-safety.md)
 - [`knowledge/coding-style/core-and-qt-boundary.md`](core-and-qt-boundary.md)
 - [`knowledge/coding-style/testing-and-quality-gates.md`](testing-and-quality-gates.md)
