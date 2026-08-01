@@ -57,6 +57,10 @@ jobs:
           cache: npm
           cache-dependency-path: docs/package-lock.json
 
+      - name: Install pinned frontend dependencies
+        working-directory: docs
+        run: npm ci
+
       - name: Verify Cloudflare credentials before build
         working-directory: docs
         env:
@@ -69,8 +73,8 @@ jobs:
             echo "Cloudflare production secrets are missing." >&2
             exit 1
           fi
-          deployments_json="$(npx --yes wrangler@4.118.0 deployments list --name vidchopper --json)"
-          versions_json="$(npx --yes wrangler@4.118.0 versions list --name vidchopper --json)"
+          deployments_json="$(npx --no-install wrangler deployments list --name vidchopper --json)"
+          versions_json="$(npx --no-install wrangler versions list --name vidchopper --json)"
           printf '%s\n' "$deployments_json" | jq -e '
             type == "array" and
             length > 0 and
@@ -82,10 +86,6 @@ jobs:
             all(.[]; (.id | type == "string") and (.metadata.created_on | type == "string"))
           ' > /dev/null
           echo "Cloudflare credential and read-contract preflight passed."
-
-      - name: Install pinned frontend dependencies
-        working-directory: docs
-        run: npm ci
 
       - name: Validate deterministic agent skill artifacts
         shell: pwsh

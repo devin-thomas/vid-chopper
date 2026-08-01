@@ -73,10 +73,12 @@ Only after the explicit production approval:
    VID-55. That deployment becomes the last known good production release.
 
 The read-only credential preflight catches an invalid token, wrong account scope, or changed
-Wrangler response contract before dependency installation. Cloudflare does not expose the stored
-token's complete permission list to this workflow, so the first upload remains the decisive proof
-that the token retains the template's Worker write permissions. The deployment action is pinned to
-an audited commit rather than a mutable version tag because it receives both production secrets.
+Wrangler response contract immediately after the lockfile install and before tests, builds, or
+deployment. The install step never receives production secrets, and the preflight uses only the
+lockfile-installed Wrangler binary. Cloudflare does not expose the stored token's complete
+permission list to this workflow, so the first upload remains the decisive proof that the token
+retains the template's Worker write permissions. The deployment action is pinned to an audited
+commit rather than a mutable version tag because it receives both production secrets.
 
 The custom domain already exists, so the expected operation updates the Worker version and its
 static assets rather than creating a new hostname. Stop if Wrangler proposes a different hostname,
