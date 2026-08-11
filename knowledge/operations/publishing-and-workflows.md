@@ -1,5 +1,8 @@
 # Publishing And Workflows
 
+The detailed local-to-release evidence contract is the
+[verification and release engineering guide](../../docs/verification-and-release-engineering.md).
+
 ## Current Published State
 
 - Branch: `main`
