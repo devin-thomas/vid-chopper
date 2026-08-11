@@ -1,19 +1,18 @@
 # Features And Progress
 
-Snapshot date: 2026-07-31. Linear is authoritative for live status and acceptance criteria:
+Snapshot date: 2026-08-11. Linear is authoritative for live status and acceptance criteria:
 [vid-chopper project](https://linear.app/devin-main/project/vid-chopper-d0e76dad962c).
 
 ## Current Delivery State
 
 The `v0.2.0-alpha` feature round is complete, including the Pages rewrite.
 
-The current `main` branch includes the complete Qt-free CLI path through `VID-26`, followed by
-local/CI verification parity and release-critical hardening through `VID-35`. GitHub Actions pass
-the lint, core/CLI, and Qt GUI lanes on the merged stack.
+The stable `1.0.0` objective is shipped. The desktop app and CLI use the same Qt-free process,
+probe, planning, export, progress, verification, and manifest services. The supported Windows x64
+archive is published and verified from the public download.
 
-The `0.3.0-beta` objective is shipped: the deterministic Qt-free CLI is packaged beside the existing
-GUI and verified from the extracted release archive. Shared-engine GUI migration remains the later
-stable `1.0.0` objective.
+Update checks (`VID-10`) and broader test-architecture expansion (`VID-43`) were explicitly canceled
+as 1.0 requirements. Public documentation presentation polish remains separate post-1.0 work.
 
 ## Task Status
 
@@ -40,7 +39,9 @@ stable `1.0.0` objective.
 - `VID-31` through `VID-35`: complete on `main`
 - `VID-47`: ChapterBuilder-to-VidChopper end-to-end release validation - done
 - `VID-36`: package, publish, and verify `0.3.0-beta` - done
-- `VID-28`: shared-engine convergence for stable `1.0.0` - next release frontier
+- `VID-37` through `VID-42`, plus `VID-45`: shared-engine architecture, migration, and hardening - done
+- `VID-44`: package, publish, and remotely verify stable `1.0.0` - done
+- `VID-28`: shared-engine convergence roadmap for stable `1.0.0` - done
 
 ## Release Milestones
 
@@ -51,6 +52,8 @@ stable `1.0.0` objective.
 - `v0.3.0-beta` packages the complete Qt-free CLI beside the GUI and proves the archive in a second
   clean Windows runner before publication.
 - The TNS 2XKO #36 ChapterBuilder fixture plans and exports all 16 chapters through the packaged CLI.
+- `v1.0.0` puts the GUI and CLI on the shared engine and publishes the verified Windows x64 archive
+  from commit `cccbe88b51a3766bb0dd94e1321c2a257d9e07c5`.
 - The Pages rewrite now publishes a multi-page site that covers the product landing page, release portal, and developer docs surface.
 
 ## Reconciliation Note

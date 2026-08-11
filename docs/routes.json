@@ -96,7 +96,7 @@
       "route": "/releases/v1.0.0/manifest.json",
       "contentType": "application/json; charset=utf-8",
       "cache": "immutable",
-      "sha256": "87f5197dcc81dc054d9e975e31c451a5854bc6c323586c58c92e1f79ebd8c06f"
+      "sha256": "99702520f5843199a9906b064c4ccf0b41cb21ed055826974979f37b28347649"
     },
     {
       "source": "packaging/releases/0.3.0-beta.json",

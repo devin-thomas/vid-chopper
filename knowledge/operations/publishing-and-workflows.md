@@ -6,16 +6,18 @@ The detailed local-to-release evidence contract is the
 ## Current Published State
 
 - Branch: `main`
-- Current prerelease tag: `v0.3.0-beta`
-- Release URL: `https://github.com/devin-thomas/vid-chopper/releases/tag/v0.3.0-beta`
-- Release asset: `VidChopper-0.3.0-beta-windows-x64.zip`
-- Release commit: `886815578066c972de7ef400eb0b6de41a5bc33d`
-- Release workflow: `https://github.com/devin-thomas/vid-chopper/actions/runs/30684000425`
-- Archive SHA-256: `12c55d150f82db07b1f14545005b79edae4d0c1904eedf5107b0685dbabf70e6`
-- Canonical docs URL: `https://vidchopper.app/docs` (source/build prepared by VID-51; production
-  acceptance remains gated by VID-55)
-- Clean-runner proof: packaged CLI planned and exported all 16 ChapterBuilder chapters, the GUI wrote
-  its ready marker, the CLI ran without Qt, and the publish job matched the downloaded remote asset.
+- Current stable tag: `v1.0.0`
+- Release URL: `https://github.com/devin-thomas/vid-chopper/releases/tag/v1.0.0`
+- Release asset: `https://github.com/devin-thomas/vid-chopper/releases/download/v1.0.0/VidChopper-1.0.0-windows-x64.zip`
+- Checksum asset: `https://github.com/devin-thomas/vid-chopper/releases/download/v1.0.0/VidChopper-1.0.0-windows-x64.zip.sha256`
+- Release commit: `cccbe88b51a3766bb0dd94e1321c2a257d9e07c5`
+- Release workflow: `https://github.com/devin-thomas/vid-chopper/actions/runs/31461059345`
+- Archive SHA-256: `ca8639c7f9482f6abac0d4954326593632630afcb43da0f2ed7889b8380e43ac`
+- Checksum-file SHA-256: `4d41363a1388099b0f79d64412cdb720507ae62ebcb8c767e6adb72d074da85b`
+- Canonical docs URL: `https://vidchopper.app/docs`
+- Clean-runner proof: the downloaded public archive started the GUI, kept the CLI Qt-free, retained
+  the offline skill integrity tuple, and planned, exported, and duration-verified all 16
+  ChapterBuilder chapters.
 
 ## CI Workflow
 
