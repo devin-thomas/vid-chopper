@@ -16,6 +16,7 @@ enum class ProcessExitState : u8 {
     FailedStart = 1,
     TimedOut = 2,
     Crashed = 3,
+    Signaled = Crashed,
     NonzeroExit = 4,
     Cancelled = 5,
 };
@@ -34,6 +35,7 @@ struct ProcessRequest {
 struct ProcessResult {
     ProcessExitState state {ProcessExitState::FailedStart};
     i32 exit_code {0};
+    i32 termination_signal {0};
     std::string standard_output;
     std::string standard_error;
     std::string error_message;
@@ -45,6 +47,7 @@ struct ProcessResult {
 using ProcessExecutor = std::function<ProcessResult(const ProcessRequest&)>;
 
 [[nodiscard]] auto run_process(const ProcessRequest& request) -> ProcessResult;
+[[nodiscard]] auto is_default_process_executor(const ProcessExecutor& executor) noexcept -> bool;
 [[nodiscard]] auto process_exit_state_name(ProcessExitState state) -> std::string;
 
 } // namespace vidchopper

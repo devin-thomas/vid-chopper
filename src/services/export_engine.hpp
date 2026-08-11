@@ -2,6 +2,7 @@
 
 #include "core/models.hpp"
 #include "services/process_runner.hpp"
+#include "services/tool_discovery.hpp"
 
 #include <chrono>
 #include <functional>
@@ -92,11 +93,13 @@ class ExportEngine final {
 public:
     explicit ExportEngine(ProcessExecutor executor = run_process);
 
-    [[nodiscard]] auto run(
-        const std::vector<ResolvedExportJob>& jobs, const ExportRunOptions& options = {}) const -> ExportRunResult;
+    [[nodiscard]] auto run(const std::vector<ResolvedExportJob>& jobs, const ExportRunOptions& options = {}) const
+        -> ExportRunResult;
 
 private:
     ProcessExecutor executor_;
+    MediaToolResolver tool_resolver_;
+    bool validate_tools_ {false};
 };
 
 } // namespace vidchopper

@@ -32,10 +32,9 @@ using Json = nlohmann::json;
     return context;
 }
 
-[[nodiscard]] auto failure(const Path& executable,
-    const Path& source_path,
-    ProcessResult process,
-    const std::string_view detail) -> ProbeResult {
+[[nodiscard]] auto failure(
+    const Path& executable, const Path& source_path, ProcessResult process, const std::string_view detail)
+    -> ProbeResult {
     const std::string context =
         bounded_context(process.standard_error.empty() ? process.error_message : process.standard_error);
     auto message = std::format("ffprobe executable '{}' failed for source '{}' ({})",
@@ -209,13 +208,30 @@ auto ProbeResult::ok() const noexcept -> bool {
 }
 
 ProbeService::ProbeService(ProcessExecutor executor)
-    : executor_ {std::move(executor)} {
+    : executor_ {std::move(executor)}
+    , tool_resolver_ {ToolDiscoveryOptions {.executor = executor_}}
+    , validate_tools_ {is_default_process_executor(executor_)} {
 }
 
-auto ProbeService::probe(
-    const Path& executable, const Path& source_path, const std::stop_token stop_token) const -> ProbeResult {
+auto ProbeService::probe(const Path& executable, const Path& source_path, const std::stop_token stop_token) const
+    -> ProbeResult {
+    auto resolved_executable = executable;
+    auto tool = ToolResolution {.kind = ToolKind::Ffprobe};
+    if (validate_tools_) {
+        tool = tool_resolver_.resolve(ToolKind::Ffprobe, executable);
+        if (!tool.ok()) {
+            const std::string message = std::format(
+                "ffprobe tool discovery failed for source '{}': {}", path_to_utf8(source_path), tool.failure_reason);
+            return ProbeResult {
+                .process = ProcessResult {.state = ProcessExitState::FailedStart, .error_message = message},
+                .error_message = message,
+                .tool = std::move(tool),
+            };
+        }
+        resolved_executable = tool.selected_path;
+    }
     const auto request = ProcessRequest {
-        .executable = executable,
+        .executable = resolved_executable,
         .arguments = {"-v",
             "error",
             "-print_format",
@@ -226,7 +242,11 @@ auto ProbeService::probe(
             path_to_utf8(source_path)},
         .stop_token = stop_token,
     };
-    return parse_probe_output(executable, source_path, executor_(request));
+    ProbeResult result = parse_probe_output(resolved_executable, source_path, executor_(request));
+    if (validate_tools_) {
+        result.tool = std::move(tool);
+    }
+    return result;
 }
 
 auto parse_probe_output(const Path& executable, const Path& source_path, ProcessResult process) -> ProbeResult {

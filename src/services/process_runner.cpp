@@ -3,16 +3,28 @@
 #ifdef _WIN32
 #define NOMINMAX
 #include <Windows.h>
+#else
+#include <cerrno>
+#include <csignal>
+#include <fcntl.h>
+#include <poll.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <unistd.h>
 #endif
 
 #include <algorithm>
 #include <array>
 #include <chrono>
+#include <cstring>
 #include <format>
 #include <functional>
 #include <limits>
+#include <optional>
 #include <string_view>
 #include <thread>
+#include <utility>
+#include <vector>
 
 namespace vidchopper {
 
@@ -173,10 +185,174 @@ auto read_pipe(const HANDLE pipe,
 
 #endif
 
+#ifndef _WIN32
+
+class FileDescriptor final {
+public:
+    FileDescriptor() = default;
+    explicit FileDescriptor(const int value)
+        : value_ {value} {
+    }
+    FileDescriptor(const FileDescriptor&) = delete;
+    auto operator=(const FileDescriptor&) -> FileDescriptor& = delete;
+    FileDescriptor(FileDescriptor&& other) noexcept
+        : value_ {other.release()} {
+    }
+    auto operator=(FileDescriptor&& other) noexcept -> FileDescriptor& {
+        if (this != &other) {
+            reset(other.release());
+        }
+        return *this;
+    }
+    ~FileDescriptor() {
+        reset();
+    }
+
+    [[nodiscard]] auto get() const noexcept -> int {
+        return value_;
+    }
+
+    [[nodiscard]] auto valid() const noexcept -> bool {
+        return value_ >= 0;
+    }
+
+    auto reset(const int value = -1) noexcept -> void {
+        if (valid()) {
+            static_cast<void>(::close(value_));
+        }
+        value_ = value;
+    }
+
+    [[nodiscard]] auto release() noexcept -> int {
+        const int value = value_;
+        value_ = -1;
+        return value;
+    }
+
+private:
+    int value_ {-1};
+};
+
+enum class ChildStartOperation : i32 {
+    ProcessGroup = 1,
+    StandardOutput = 2,
+    StandardError = 3,
+    CloseOnExec = 4,
+    Execute = 5,
+};
+
+struct ChildStartError {
+    ChildStartOperation operation {ChildStartOperation::Execute};
+    i32 error_number {0};
+};
+
+inline constexpr auto process_termination_grace = std::chrono::milliseconds {250};
+
+[[nodiscard]] auto posix_error_message(const std::string_view operation, const int error_number) -> std::string {
+    return std::format("{}: {}", operation, std::strerror(error_number));
+}
+
+[[nodiscard]] auto set_close_on_exec(const int descriptor) -> bool {
+    const int flags = ::fcntl(descriptor, F_GETFD, 0);
+    return flags >= 0 && ::fcntl(descriptor, F_SETFD, flags | FD_CLOEXEC) == 0;
+}
+
+[[nodiscard]] auto set_nonblocking(const int descriptor) -> bool {
+    const int flags = ::fcntl(descriptor, F_GETFL, 0);
+    return flags >= 0 && ::fcntl(descriptor, F_SETFL, flags | O_NONBLOCK) == 0;
+}
+
+[[nodiscard]] auto create_pipe(FileDescriptor& read_end, FileDescriptor& write_end) -> bool {
+    auto descriptors = std::array<int, 2> {};
+    if (::pipe(descriptors.data()) != 0) {
+        return false;
+    }
+    read_end.reset(descriptors[0]);
+    write_end.reset(descriptors[1]);
+    return true;
+}
+
+auto report_child_start_error(
+    const int descriptor, const ChildStartOperation operation, const int error_number) noexcept -> void {
+    const auto error = ChildStartError {.operation = operation, .error_number = error_number};
+    const auto* bytes = reinterpret_cast<const char*>(&error);
+    size_t written = size_t {0};
+    while (written < sizeof(error)) {
+        const ssize_t count = ::write(descriptor, bytes + written, sizeof(error) - written);
+        if (count > 0) {
+            written += static_cast<size_t>(count);
+        } else if (count < 0 && errno == EINTR) {
+            continue;
+        } else {
+            break;
+        }
+    }
+    _exit(127);
+}
+
+auto drain_pipe(FileDescriptor& descriptor,
+    std::string& output,
+    const size_t limit,
+    const std::function<void(std::string_view)>& chunk_callback,
+    std::string& pipe_error) -> void {
+    auto buffer = std::array<char, 8192> {};
+    while (descriptor.valid()) {
+        const ssize_t bytes_read = ::read(descriptor.get(), buffer.data(), buffer.size());
+        if (bytes_read > 0) {
+            const size_t available = output.size() < limit ? limit - output.size() : 0;
+            const size_t count = (std::min)(available, static_cast<size_t>(bytes_read));
+            if (count > 0) {
+                output.append(buffer.data(), count);
+                if (chunk_callback) {
+                    chunk_callback(std::string_view {buffer.data(), count});
+                }
+            }
+            continue;
+        }
+        if (bytes_read == 0) {
+            descriptor.reset();
+            return;
+        }
+        if (errno == EINTR) {
+            continue;
+        }
+        if (errno == EAGAIN || errno == EWOULDBLOCK) {
+            return;
+        }
+        if (pipe_error.empty()) {
+            pipe_error = posix_error_message("Could not read child output", errno);
+        }
+        descriptor.reset();
+    }
+}
+
+[[nodiscard]] auto child_start_operation_name(const ChildStartOperation operation) -> std::string_view {
+    switch (operation) {
+    case ChildStartOperation::ProcessGroup:
+        return "create process group";
+    case ChildStartOperation::StandardOutput:
+        return "redirect standard output";
+    case ChildStartOperation::StandardError:
+        return "redirect standard error";
+    case ChildStartOperation::CloseOnExec:
+        return "configure startup pipe";
+    case ChildStartOperation::Execute:
+        return "execute process";
+    }
+    return "start process";
+}
+
+#endif
+
 } // namespace
 
 auto ProcessResult::ok() const noexcept -> bool {
     return state == ProcessExitState::Success;
+}
+
+auto is_default_process_executor(const ProcessExecutor& executor) noexcept -> bool {
+    const auto target = executor.target<ProcessResult (*)(const ProcessRequest&)>();
+    return target != nullptr && *target == &run_process;
 }
 
 auto process_exit_state_name(const ProcessExitState state) -> std::string {
@@ -311,8 +487,263 @@ auto run_process(const ProcessRequest& request) -> ProcessResult {
     stderr_thread.join();
     return result;
 #else
-    (void)request;
-    return ProcessResult {.error_message = "Native process execution is not implemented on this platform."};
+    auto stdout_read = FileDescriptor {};
+    auto stdout_write = FileDescriptor {};
+    auto stderr_read = FileDescriptor {};
+    auto stderr_write = FileDescriptor {};
+    auto startup_error_read = FileDescriptor {};
+    auto startup_error_write = FileDescriptor {};
+    if (!create_pipe(stdout_read, stdout_write) || !create_pipe(stderr_read, stderr_write)
+        || !create_pipe(startup_error_read, startup_error_write)) {
+        return ProcessResult {
+            .state = ProcessExitState::FailedStart,
+            .error_message = posix_error_message("Could not create process pipes", errno),
+        };
+    }
+    if (!set_close_on_exec(startup_error_write.get())) {
+        return ProcessResult {
+            .state = ProcessExitState::FailedStart,
+            .error_message = posix_error_message("Could not configure startup pipe", errno),
+        };
+    }
+    if (!set_nonblocking(stdout_read.get()) || !set_nonblocking(stderr_read.get())) {
+        return ProcessResult {
+            .state = ProcessExitState::FailedStart,
+            .error_message = posix_error_message("Could not configure output pipes", errno),
+        };
+    }
+
+    auto executable_text = request.executable.string();
+    auto argument_storage = request.arguments;
+    auto argv = std::vector<char*> {};
+    argv.reserve(argument_storage.size() + 2);
+    argv.push_back(executable_text.data());
+    for (std::string& argument : argument_storage) {
+        argv.push_back(argument.data());
+    }
+    argv.push_back(nullptr);
+
+    const pid_t child = ::fork();
+    if (child < 0) {
+        return ProcessResult {
+            .state = ProcessExitState::FailedStart,
+            .error_message = posix_error_message("Could not fork process", errno),
+        };
+    }
+    if (child == 0) {
+        if (::setpgid(0, 0) != 0) {
+            report_child_start_error(startup_error_write.get(), ChildStartOperation::ProcessGroup, errno);
+        }
+        if (::dup2(stdout_write.get(), STDOUT_FILENO) < 0) {
+            report_child_start_error(startup_error_write.get(), ChildStartOperation::StandardOutput, errno);
+        }
+        if (::fcntl(STDOUT_FILENO, F_SETFD, 0) != 0) {
+            report_child_start_error(startup_error_write.get(), ChildStartOperation::CloseOnExec, errno);
+        }
+        if (::dup2(stderr_write.get(), STDERR_FILENO) < 0) {
+            report_child_start_error(startup_error_write.get(), ChildStartOperation::StandardError, errno);
+        }
+        if (::fcntl(STDERR_FILENO, F_SETFD, 0) != 0) {
+            report_child_start_error(startup_error_write.get(), ChildStartOperation::CloseOnExec, errno);
+        }
+
+        const auto descriptors = std::array<int, 5> {
+            stdout_read.get(), stdout_write.get(), stderr_read.get(), stderr_write.get(), startup_error_read.get()};
+        for (const int descriptor : descriptors) {
+            if (descriptor >= 0 && descriptor != STDOUT_FILENO && descriptor != STDERR_FILENO
+                && descriptor != startup_error_write.get()) {
+                static_cast<void>(::close(descriptor));
+            }
+        }
+        ::execvp(argv.front(), argv.data());
+        report_child_start_error(startup_error_write.get(), ChildStartOperation::Execute, errno);
+    }
+
+    stdout_write.reset();
+    stderr_write.reset();
+    startup_error_write.reset();
+    auto process_group_error = std::string {};
+    if (::setpgid(child, child) != 0 && errno != EACCES && errno != ESRCH) {
+        process_group_error = posix_error_message("Could not confirm process group", errno);
+    }
+
+    auto result = ProcessResult {};
+    auto wait_status = 0;
+    bool child_reaped = false;
+    auto wait_error = std::string {};
+    auto pipe_error = std::string {};
+    auto signal_error = std::string {};
+    auto termination_state = std::optional<ProcessExitState> {};
+    auto termination_deadline = std::chrono::steady_clock::time_point {};
+    bool kill_sent = false;
+    const auto timeout_count = (std::max)(i64 {0}, static_cast<i64>(request.timeout.count()));
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds {timeout_count};
+
+    const auto reap_child = [&]() -> void {
+        while (!child_reaped && wait_error.empty()) {
+            const pid_t waited = ::waitpid(child, &wait_status, WNOHANG);
+            if (waited == child) {
+                child_reaped = true;
+            } else if (waited == 0) {
+                return;
+            } else if (waited < 0 && errno == EINTR) {
+                continue;
+            } else if (waited < 0) {
+                wait_error = posix_error_message("Could not reap process", errno);
+            }
+        }
+    };
+
+    const auto signal_group = [&](const int signal) -> void {
+        if (::kill(-child, signal) != 0 && errno != ESRCH && signal_error.empty()) {
+            signal_error = posix_error_message("Could not signal process group", errno);
+        }
+    };
+
+    const auto begin_termination = [&](const ProcessExitState state) -> void {
+        termination_state = state;
+        termination_deadline = std::chrono::steady_clock::now() + process_termination_grace;
+        signal_group(SIGTERM);
+    };
+
+    const auto poll_output = [&](const int timeout_ms) -> void {
+        auto descriptors = std::array<pollfd, 2> {};
+        nfds_t count = 0;
+        if (stdout_read.valid()) {
+            descriptors[count++] = pollfd {.fd = stdout_read.get(), .events = POLLIN};
+        }
+        if (stderr_read.valid()) {
+            descriptors[count++] = pollfd {.fd = stderr_read.get(), .events = POLLIN};
+        }
+        while (true) {
+            const int polled = ::poll(descriptors.data(), count, timeout_ms);
+            if (polled >= 0 || errno != EINTR) {
+                break;
+            }
+        }
+        drain_pipe(
+            stdout_read, result.standard_output, request.stdout_limit_bytes, request.standard_output_chunk, pipe_error);
+        drain_pipe(
+            stderr_read, result.standard_error, request.stderr_limit_bytes, request.standard_error_chunk, pipe_error);
+    };
+
+    const auto finish_group_termination = [&]() -> void {
+        if (!child_reaped || !termination_state.has_value() || kill_sent) {
+            return;
+        }
+        while (std::chrono::steady_clock::now() < termination_deadline) {
+            const auto remaining = std::chrono::duration_cast<std::chrono::milliseconds>(
+                termination_deadline - std::chrono::steady_clock::now())
+                                       .count();
+            poll_output(static_cast<int>((std::min)(i64 {50}, (std::max)(i64 {0}, remaining))));
+        }
+        signal_group(SIGKILL);
+        kill_sent = true;
+    };
+
+    while (!child_reaped && wait_error.empty()) {
+        reap_child();
+        if (child_reaped || !wait_error.empty()) {
+            break;
+        }
+
+        const auto now = std::chrono::steady_clock::now();
+        if (!termination_state.has_value()) {
+            if (request.stop_token.stop_requested()) {
+                begin_termination(ProcessExitState::Cancelled);
+            } else if (now >= deadline) {
+                begin_termination(ProcessExitState::TimedOut);
+            }
+        } else if (!kill_sent && now >= termination_deadline) {
+            signal_group(SIGKILL);
+            kill_sent = true;
+        }
+
+        auto wait_ms = i64 {50};
+        if (!termination_state.has_value()) {
+            const auto remaining = std::chrono::duration_cast<std::chrono::milliseconds>(deadline - now).count();
+            wait_ms = (std::min)(wait_ms, (std::max)(i64 {0}, remaining));
+        } else if (!kill_sent) {
+            const auto remaining =
+                std::chrono::duration_cast<std::chrono::milliseconds>(termination_deadline - now).count();
+            wait_ms = (std::min)(wait_ms, (std::max)(i64 {0}, remaining));
+        }
+        poll_output(static_cast<int>((std::min)(wait_ms, i64 {50})));
+    }
+    finish_group_termination();
+
+    while (!child_reaped && wait_error.empty()) {
+        reap_child();
+        if (child_reaped || !wait_error.empty()) {
+            break;
+        }
+        poll_output(50);
+    }
+    finish_group_termination();
+
+    while (stdout_read.valid() || stderr_read.valid()) {
+        drain_pipe(
+            stdout_read, result.standard_output, request.stdout_limit_bytes, request.standard_output_chunk, pipe_error);
+        drain_pipe(
+            stderr_read, result.standard_error, request.stderr_limit_bytes, request.standard_error_chunk, pipe_error);
+        if (!stdout_read.valid() && !stderr_read.valid()) {
+            break;
+        }
+        poll_output(50);
+    }
+
+    auto startup_error = ChildStartError {};
+    auto startup_error_bytes = size_t {0};
+    while (startup_error_bytes < sizeof(startup_error)) {
+        const ssize_t bytes_read = ::read(startup_error_read.get(),
+            reinterpret_cast<char*>(&startup_error) + startup_error_bytes,
+            sizeof(startup_error) - startup_error_bytes);
+        if (bytes_read > 0) {
+            startup_error_bytes += static_cast<size_t>(bytes_read);
+        } else if (bytes_read < 0 && errno == EINTR) {
+            continue;
+        } else {
+            break;
+        }
+    }
+    startup_error_read.reset();
+
+    if (!wait_error.empty()) {
+        result.state = ProcessExitState::Crashed;
+        result.error_message = wait_error;
+    } else if (startup_error_bytes == sizeof(startup_error) && !termination_state.has_value()) {
+        result.state = ProcessExitState::FailedStart;
+        result.error_message = std::format(
+            "{}: {}", child_start_operation_name(startup_error.operation), std::strerror(startup_error.error_number));
+    } else if (termination_state.has_value()) {
+        result.state = *termination_state;
+        result.error_message = *termination_state == ProcessExitState::Cancelled ? "Process cancellation was requested."
+                                                                                 : "Process exceeded its timeout.";
+        if (WIFSIGNALED(wait_status)) {
+            result.termination_signal = WTERMSIG(wait_status);
+        }
+    } else if (WIFEXITED(wait_status)) {
+        result.exit_code = WEXITSTATUS(wait_status);
+        result.state = result.exit_code == 0 ? ProcessExitState::Success : ProcessExitState::NonzeroExit;
+    } else if (WIFSIGNALED(wait_status)) {
+        result.state = ProcessExitState::Crashed;
+        result.termination_signal = WTERMSIG(wait_status);
+        result.error_message = std::format("Process terminated by signal {}.", result.termination_signal);
+    } else {
+        result.state = ProcessExitState::Crashed;
+        result.error_message = "Process ended without an exit status.";
+    }
+
+    if (!process_group_error.empty()) {
+        result.error_message += (result.error_message.empty() ? "" : " ") + process_group_error;
+    }
+    if (!signal_error.empty()) {
+        result.error_message += (result.error_message.empty() ? "" : " ") + signal_error;
+    }
+    if (!pipe_error.empty()) {
+        result.error_message += (result.error_message.empty() ? "" : " ") + pipe_error;
+    }
+    return result;
 #endif
 }
 

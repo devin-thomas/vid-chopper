@@ -67,6 +67,8 @@ add_library(vidchopper_services
     src/services/probe_service.hpp
     src/services/process_runner.cpp
     src/services/process_runner.hpp
+    src/services/tool_discovery.cpp
+    src/services/tool_discovery.hpp
 )
 
 target_include_directories(vidchopper_services PUBLIC "${PROJECT_SOURCE_DIR}/src")
@@ -150,6 +152,7 @@ if(VIDCHOPPER_BUILD_TESTS)
     add_vidchopper_test(vidchopper_test_enum_clamp tests/test_enum_clamp.cpp fast)
     add_vidchopper_test(vidchopper_test_demo_launch_options tests/test_demo_launch_options.cpp fast)
     add_vidchopper_test(vidchopper_test_process_runner tests/test_process_runner.cpp fast vidchopper_services)
+    add_vidchopper_test(vidchopper_test_tool_discovery tests/test_tool_discovery.cpp fast vidchopper_services)
     add_vidchopper_test(vidchopper_test_probe_service tests/test_probe_service.cpp fast vidchopper_services)
     add_vidchopper_test(
         vidchopper_test_output_planner_golden tests/test_output_planner_golden.cpp fast vidchopper_services

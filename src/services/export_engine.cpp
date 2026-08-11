@@ -31,9 +31,10 @@ auto record_failure(ExportRunResult& result, const ProcessExitState state) -> vo
 
 [[nodiscard]] auto make_process_request(const std::vector<std::string>& command,
     const ExportRunOptions& options,
-    std::function<void(std::string_view)> progress_output) -> ProcessRequest {
+    std::function<void(std::string_view)> progress_output,
+    const Path& executable) -> ProcessRequest {
     return ProcessRequest {
-        .executable = path_from_utf8(command.front()),
+        .executable = executable.empty() ? path_from_utf8(command.front()) : executable,
         .arguments = {command.begin() + 1, command.end()},
         .timeout = options.process_timeout,
         .stdout_limit_bytes = options.stdout_limit_bytes,
@@ -152,13 +153,13 @@ struct DurationVerification {
 [[nodiscard]] auto verify_duration(const ResolvedExportJob& job,
     const PlannedExportSegment& segment,
     const ProcessExecutor& executor,
-    const std::stop_token stop_token) -> DurationVerification {
+    const std::stop_token stop_token,
+    const Path& ffprobe_executable) -> DurationVerification {
     if (!job.settings.verify_output_durations) {
         return {};
     }
 
-    ProbeResult probe =
-        ProbeService {executor}.probe(path_from_utf8(job.settings.ffprobe_path), segment.output_path, stop_token);
+    ProbeResult probe = ProbeService {executor}.probe(ffprobe_executable, segment.output_path, stop_token);
     if (!probe.ok()) {
         return DurationVerification {
             .success = false,
@@ -214,11 +215,13 @@ auto ExportRunResult::ok() const noexcept -> bool {
 }
 
 ExportEngine::ExportEngine(ProcessExecutor executor)
-    : executor_ {std::move(executor)} {
+    : executor_ {std::move(executor)}
+    , tool_resolver_ {ToolDiscoveryOptions {.executor = executor_}}
+    , validate_tools_ {is_default_process_executor(executor_)} {
 }
 
-auto ExportEngine::run(
-    const std::vector<ResolvedExportJob>& jobs, const ExportRunOptions& options) const -> ExportRunResult {
+auto ExportEngine::run(const std::vector<ResolvedExportJob>& jobs, const ExportRunOptions& options) const
+    -> ExportRunResult {
     auto result = ExportRunResult {};
     result.jobs.reserve(jobs.size());
     const u64 batch_duration_ms = total_duration(jobs);
@@ -255,6 +258,29 @@ auto ExportEngine::run(
                 break;
             }
             continue;
+        }
+
+        Path ffmpeg_executable = path_from_utf8(job.settings.ffmpeg_path);
+        Path ffprobe_executable = path_from_utf8(job.settings.ffprobe_path);
+        if (validate_tools_) {
+            const ToolDiscoveryResult tools = tool_resolver_.resolve_pair(ffmpeg_executable, ffprobe_executable);
+            if (!tools.ok()) {
+                job_result.error_message = "Media tool discovery failed: " + tools.failure_reason;
+                result.exit_code = ExportExitCode::ToolingError;
+                result.jobs.push_back(std::move(job_result));
+                if (stop_on_first_error) {
+                    result.stopped_early = result.jobs.size() < jobs.size();
+                    break;
+                }
+                continue;
+            }
+            ffmpeg_executable = tools.ffmpeg.selected_path;
+            ffprobe_executable = tools.ffprobe.selected_path;
+            if (options.message) {
+                for (const std::string& warning : tools.warnings) {
+                    options.message(warning);
+                }
+            }
         }
 
         auto directory_error = std::error_code {};
@@ -341,11 +367,14 @@ auto ExportEngine::run(
                     options, completed_duration_ms + (std::min)(elapsed_ms, segment_duration_ms), batch_duration_ms);
             }};
             ProcessResult process = executor_(make_process_request(
-                segment.command, options, [&parser](const std::string_view chunk) { parser.consume(chunk); }));
+                segment.command,
+                options,
+                [&parser](const std::string_view chunk) { parser.consume(chunk); },
+                ffmpeg_executable));
             bool succeeded = process.ok();
             auto verification = DurationVerification {};
             if (succeeded) {
-                verification = verify_duration(job, segment, executor_, options.stop_token);
+                verification = verify_duration(job, segment, executor_, options.stop_token, ffprobe_executable);
                 succeeded = verification.success;
                 if (!succeeded) {
                     record_failure(result, verification.process.state);
