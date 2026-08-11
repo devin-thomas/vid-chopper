@@ -198,9 +198,8 @@ sequence is authoritative:
 | `0.3.0-beta` | prerelease | First complete portable GUI+CLI beta |
 | `1.0.0` | stable release | Windows 10/11 x64 stable boundary on the shared engine |
 
-Do not relabel history to fit obsolete shorthand. The current release workflow always publishes with
-`--prerelease`; VID-44 must deliberately add stable publication behavior and assert
-`isPrerelease == false` before it can publish `1.0.0`.
+Do not relabel history to fit obsolete shorthand. The release workflow now publishes through the
+protected stable path without `--prerelease` and asserts `isPrerelease == false` for `1.0.0`.
 
 ### Version-bump checklist
 

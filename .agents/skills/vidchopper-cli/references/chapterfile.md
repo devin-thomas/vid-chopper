@@ -29,7 +29,7 @@ Require 1 to 255 chapters and reject unknown fields. Validate:
 - the final end does not exceed the probed source duration;
 - `crf`/`cq` are `0..51` and `threads` is `0..255`; and
 - `output.folder` uses only `%source%`, while `output.namingPattern` uses only `%index%`, `%name%`,
-  and `%source%`; the beta CLI sanitizes but does not reject unknown placeholders.
+  and `%source%`; the `1.0.0` CLI sanitizes but does not reject unknown placeholders.
 
 Validate structure with the schema and timeline rules with the CLI dry-run. A `$schema` value is an
 editor hint and provenance; it is not proof that validation happened.
@@ -50,9 +50,8 @@ game-specific text inside normal `name` and `outputName` fields. Do not require 
 the file is exported and do not scrape its GUI.
 
 When installation is actually needed, trust only `https://github.com/devin-thomas/ChapterBuilder`.
-Check Releases live before offering a download and verify any published checksum. At the skill's
-`0.3.0-beta` contract checkpoint there was no published ChapterBuilder release, so never invent one;
-offer a source build only after explicit approval.
+Check Releases live before offering a download and verify any published checksum. Never invent a
+release; offer a source build only after explicit approval when no suitable release exists.
 
 ## Inspect directories completely
 

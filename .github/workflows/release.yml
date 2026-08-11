@@ -6,10 +6,10 @@ on:
       version:
         description: Release version without the v prefix
         required: true
-        default: 0.3.0-beta
+        default: 1.0.0
         type: string
       publish:
-        description: Publish the prerelease after the clean archive smoke test passes
+        description: Publish the stable release after the clean archive smoke test passes
         required: true
         default: false
         type: boolean
@@ -170,11 +170,12 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
-  publish-prerelease:
+  publish-release:
     needs: smoke-clean-archive
     if: ${{ inputs.publish }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    environment: release-environment
     env:
       GH_TOKEN: ${{ github.token }}
       VERSION: ${{ inputs.version }}
@@ -191,7 +192,7 @@ jobs:
           name: vidchopper-windows-x64-${{ inputs.version }}
           path: artifacts/candidate
 
-      - name: Publish proven prerelease
+      - name: Publish proven stable release
         shell: bash
         run: |
           set -euo pipefail
@@ -206,10 +207,9 @@ jobs:
             --repo "$GITHUB_REPOSITORY" \
             --target "$GITHUB_SHA" \
             --title "VidChopper ${VERSION}" \
-            --notes-file "packaging/releases/${VERSION}.md" \
-            --prerelease
+            --notes-file "packaging/releases/${VERSION}.md"
 
-      - name: Verify remote prerelease and asset
+      - name: Verify remote stable release and asset
         shell: bash
         run: |
           set -euo pipefail
@@ -221,7 +221,7 @@ jobs:
           jq -e --arg tag "$tag" --arg asset "$asset_name" --arg checksum "$checksum_name" '
             .tagName == $tag and
             .isDraft == false and
-            .isPrerelease == true and
+            .isPrerelease == false and
             any(.assets[]; .name == $asset) and
             any(.assets[]; .name == $checksum)
           ' artifacts/release.json >/dev/null

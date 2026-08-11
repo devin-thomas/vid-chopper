@@ -4,9 +4,9 @@ VidChopper is a Windows desktop application for turning one source video into ch
 
 ## Windows Download
 
-If you want to run VidChopper on Windows 10/11 x64 without building from source, use the current `v0.3.0-beta` GitHub prerelease zip:
+If you want to run VidChopper on Windows 10/11 x64 without building from source, use the stable `v1.0.0` GitHub release zip:
 
-- [Download the `v0.3.0-beta` Windows x64 release zip](https://github.com/devin-thomas/vid-chopper/releases/download/v0.3.0-beta/VidChopper-0.3.0-beta-windows-x64.zip)
+- [Download the `v1.0.0` Windows x64 release zip](https://github.com/devin-thomas/vid-chopper/releases/download/v1.0.0/VidChopper-1.0.0-windows-x64.zip)
 - [Browse all GitHub releases](https://github.com/devin-thomas/vid-chopper/releases)
 - [Open the staged canonical documentation route](https://vidchopper.app/docs) (production rollout and live acceptance are tracked separately)
 
@@ -17,11 +17,11 @@ settings dialog.
 
 ### Quick Start
 
-1. Download and unzip `VidChopper-0.3.0-beta-windows-x64.zip`.
+1. Download and unzip `VidChopper-1.0.0-windows-x64.zip`.
 2. Launch `VidChopper.exe`.
 3. Install `ffmpeg` and `ffprobe` separately, or point VidChopper at custom tool paths in Advanced Settings.
 
-## Project Status - 0.3.0-beta
+## Project Status - 1.0.0
 
 The current codebase includes:
 
@@ -32,9 +32,9 @@ The current codebase includes:
 - A staged test suite split into fast unit-level coverage and slower `ffmpeg` integration coverage
 - A Vite + React + TypeScript + Tailwind site in `docs/` for the canonical product, release, and CLI documentation surface, with GitHub Pages retained as a legacy mirror
 
-The `v0.3.0-beta` release completes the Qt-free CLI, packages `VidChopperCLI.exe` beside the GUI,
-and verifies a ChapterBuilder-produced ChapterFile through dry-run, export, and clean release-archive
-smoke testing. Linear's
+The stable `v1.0.0` release puts the GUI and CLI on one shared Qt-free probe/export engine, packages
+`VidChopperCLI.exe` beside the GUI, and verifies a ChapterBuilder-produced ChapterFile through dry-run,
+export, and clean release-archive smoke testing. Linear's
 [vid-chopper project](https://linear.app/devin-main/project/vid-chopper-d0e76dad962c) is the
 authoritative roadmap; repository progress documents are dated snapshots.
 
@@ -138,7 +138,7 @@ The manually triggered release workflow:
 - runs `windeployqt` to bundle the required Qt runtime and VC++ runtime beside `VidChopper.exe`
 - zips the portable folder as `VidChopper-<version>-windows-x64.zip`
 - verifies the extracted archive in a second clean Windows runner
-- publishes the prerelease only after the archive smoke test passes
+- pauses at the protected release environment, then publishes the stable release only after the archive smoke test passes
 
 That release asset is the intended end-user download. Building from source is only necessary for development, debugging, or local modification work.
 

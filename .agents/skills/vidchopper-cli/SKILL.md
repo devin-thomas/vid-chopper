@@ -4,7 +4,7 @@ description: Plan, review, export, and verify local video chapter clips with Vid
 license: MIT
 metadata:
   vidchopper.skill-contract-version: "1"
-  vidchopper.cli-version: "0.3.0-beta"
+  vidchopper.cli-version: "1.0.0"
   vidchopper.chapterfile-schema-version: "1"
   vidchopper.export-manifest-schema-version: "1"
 ---
@@ -27,7 +27,7 @@ Use a local-capable Windows harness. Never upload media to bridge a remote runti
 
 Require this exact tuple before following the workflow:
 
-- `VidChopperCLI 0.3.0-beta`
+- `VidChopperCLI 1.0.0`
 - ChapterFile schema `1`
 - export-manifest schema `1`
 - skill contract `1`
@@ -42,8 +42,8 @@ ffprobe -version
 
 Report the detected CLI, ffmpeg, and ffprobe versions. FFmpeg `7.1.1` is the clean-release evidence;
 other versions are outside that exact proof and are not silently rejected. Ask before downloading or
-installing any missing tool. Use `--crf` in examples; do not promise that `--cq` selects NVENC in the
-`0.3.0-beta` standalone CLI.
+installing any missing tool. Use `--crf` in examples unless the effective plan actually selects
+NVENC; `--cq` alone does not select it in the `1.0.0` CLI.
 
 ## Inspect inputs read-only
 
@@ -102,7 +102,7 @@ Present one compact review containing:
 - the `VidChopperCLI.ini` path that a normal run may create beside the executable; and
 - the exact command that will run without `--dry-run`.
 
-Stop on every `Existing output: yes`. The beta CLI has no explicit safe overwrite flag and normally
+Stop on every `Existing output: yes`. The `1.0.0` CLI has no explicit safe overwrite flag and normally
 uses overwrite mode. Prefer a fresh sibling output folder; otherwise require explicit approval for
 each listed overwrite. A broad approval does not authorize unlisted paths. Immediately before export,
 recheck every destination. Abort and request fresh approval if any destination appeared or changed.
@@ -142,10 +142,10 @@ and report them rather than deleting them.
 
 ## Work offline or stop on mismatch
 
-Prefer a compatible copy bundled with a future release, then a previously verified local copy, then
-the stable `https://vidchopper.app/agents/vidchopper-cli/SKILL.md` copy. The already-published
-`v0.3.0-beta` application ZIP does not contain this skill. Verify the complete exact-version tuple and
-SHA-256 metadata before replacing a trusted cached copy.
+Prefer the compatible copy bundled with the release, then a previously verified local copy, then the
+stable `https://vidchopper.app/agents/vidchopper-cli/SKILL.md` copy. The `v1.0.0` application ZIP
+contains this skill and its adjacent manifest. Verify the complete exact-version tuple and SHA-256
+metadata before replacing a trusted cached copy.
 
 When offline, use this skill's bundled schema and examples. If no compatible verified copy exists,
 stop and point to local repository documentation; do not invent commands or claim onboarding is

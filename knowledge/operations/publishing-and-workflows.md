@@ -49,9 +49,9 @@ Behavior:
 3. A second fresh Windows 2022 runner downloads and extracts that exact candidate artifact.
 4. The clean runner verifies the packaged GUI, isolated Qt-free CLI, version/help/direct/chop modes,
    the 16-chapter ChapterBuilder fixture, actual exports, and manifests.
-5. Only after the archive smoke passes, the publish job creates the prerelease and attaches the ZIP
-   and SHA-256 file.
-6. The publish job downloads the remote asset again and verifies its digest matches the proven candidate.
+5. Only after the archive smoke passes, the publish job pauses at the protected `release-environment`.
+6. After approval, the job creates the stable release and attaches the ZIP and SHA-256 file.
+7. The publish job downloads the remote asset again and verifies its digest matches the proven candidate.
 
 ## Pages Workflow
 
