@@ -20,6 +20,26 @@ Decision checkpoint: 2026-08-01, against `origin/main` commit `07aba676`.
 - This design does not authorize automatic installation, overwrite, deletion, upload, publishing,
   spending, deployment, DNS changes, or other external mutations.
 
+## 1.1.0 support boundary for agents
+
+The `1.1.0` foundation does not widen the agent's end-user support claim. Agents must say explicitly
+that the release publishes Windows 10/11 x64 binaries only. macOS and Linux source builds, core/CLI test
+lanes, and Unix GUI compile/launch smoke are qualification evidence, not supported Unix binaries or
+installation paths. Do not recommend a macOS install, Linux package, or a public Unix download for
+`1.1.0`.
+
+The current CLI flag contract remains the one in `src/cli/cli_arguments.cpp`: `--embedded`, `--dry-run`,
+`--crf`, `--cq`, `--preset`, `--threads`, `--aggregate-json`, `--aggregate-csv`,
+`--stop-on-first-error`, `--use-gui-config`, `--version`, and `--help`/`-h`. The ChapterFile path is
+positional. There is no final `--config`, `--portable`, `--ffmpeg`, or `--ffprobe` flag; agents must not
+invent one.
+
+For foundation qualification, agents may report the approved tool contract: external FFmpeg/ffprobe,
+executable and `-version` validation, supported versions 6.1 through major 8.x, visible pair-mismatch
+warnings, and no automatic install/download. Auto hardware selection requires a real capability test and
+falls back to x264 before export on failure; an explicit hardware failure blocks export. VideoToolbox is
+deferred to `1.2.0`.
+
 ## Decision
 
 The checked-in skill is the canonical source. The hosted and packaged forms are verified products of

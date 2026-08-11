@@ -92,6 +92,30 @@ Config-local fields sit between loaded settings and explicit CLI flags:
 
 This means config files can travel with a video/chapter plan, but command-line flags remain the final override for one-off runs.
 
+## Settings and encoder boundary
+
+The ChapterFile is not a second settings file. Its `output` and `encoder` fields override loaded
+settings, while the supported CLI flags override the ChapterFile for one run. Tool paths belong to the
+INI settings boundary (`tools.ffmpegPath` and `tools.ffprobePath`); the current parser has no `--config`,
+`--portable`, `--ffmpeg`, or `--ffprobe` flag.
+
+The current schema exposes quality/preset values, not encoder selection:
+
+| ChapterFile value | Applies to |
+| --- | --- |
+| `encoder.crf` | x264 CRF, range `0..51` |
+| `encoder.cq` | HEVC NVENC CQ, range `0..51` |
+| `encoder.preset` | The selected backend's preset; `--preset` overrides both backend preset fields for one run |
+| `encoder.threads` | FFmpeg thread count, range `0..255`; `0` uses the FFmpeg default |
+
+`--crf` and `--cq` tune a selected backend; neither flag selects an encoder. Auto hardware selection is
+resolved by a real capability test. In the `1.1.0` boundary, failed Auto hardware capability resolves to
+x264 before export, while an explicit hardware failure blocks export without changing the stored
+preference. VideoToolbox is deferred to `1.2.0`.
+
+The platform support boundary and native settings roots are documented in
+[`docs/cli-settings.md`](cli-settings.md) and [`docs/support-matrix.md`](support-matrix.md).
+
 ## Validation errors
 
 Bad configs should fail before export starts. Error messages should name the file and the config path that failed.

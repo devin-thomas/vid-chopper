@@ -31,6 +31,18 @@ export const docsLinks = [
     href: agentSkillUrl,
   },
   {
+    title: "1.1.0 support matrix",
+    description:
+      "Windows-only publication boundary with macOS/Linux source and GUI smoke evidence, not Unix end-user support.",
+    href: `${repositoryUrl}/blob/main/docs/support-matrix.md`,
+  },
+  {
+    title: "1.1.0 foundation evidence",
+    description:
+      "Candidate identity, dependency, lane, checksum, and publication-gate fields for the Windows-only release.",
+    href: `${repositoryUrl}/blob/main/docs/1.1.0-foundation-evidence.md`,
+  },
+  {
     title: "Release metadata",
     description:
       "Version, source commit, package URL, size, checksum, and schema compatibility for v1.0.0.",
@@ -189,6 +201,30 @@ export const docsGuideposts = [
     command: `& "C:\\Tools\\VidChopper\\VidChopperCLI.exe" --version
 ffmpeg -version
 ffprobe -version`,
+  },
+  {
+    slug: "support-boundary",
+    path: "/docs/support-boundary",
+    title: "1.1.0 support boundary",
+    summary:
+      "Windows binaries are the only 1.1.0 end-user release; Unix source builds and GUI smoke runs are portability evidence.",
+    points: [
+      "Windows 10/11 x64 is the only 1.1.0 end-user supported platform and the only platform with a public binary candidate.",
+      "macOS 15/26 arm64 and Ubuntu 24.04/26.04 x86-64 may run native core/CLI tests and GUI compile/launch smoke in qualification lanes.",
+      "A Unix source build, internal CI artifact, or GUI smoke result is not an end-user support claim and does not create a public Unix package.",
+      "FFmpeg and ffprobe remain external and are validated from 6.1 through major 8.x; Auto hardware failure falls back to x264 before export.",
+      "Do not invent a config, portable, ffmpeg, or ffprobe CLI flag; use the current parser contract and settings documentation.",
+    ],
+    links: [
+      {
+        label: "Open the support matrix",
+        href: `${repositoryUrl}/blob/main/docs/support-matrix.md`,
+      },
+      {
+        label: "Open the foundation evidence record",
+        href: `${repositoryUrl}/blob/main/docs/1.1.0-foundation-evidence.md`,
+      },
+    ],
   },
   {
     slug: "cli",

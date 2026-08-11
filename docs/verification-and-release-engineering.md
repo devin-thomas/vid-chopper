@@ -11,6 +11,22 @@ repository-owned commands first, diagnose the first failing stage, and preserve 
 claim to one commit and one candidate artifact. GitHub Actions confirms a clean runner; it does not
 replace local diagnosis.
 
+## 1.1.0 Support Boundary
+
+`1.1.0` publishes Windows 10/11 x64 binaries only. macOS and Linux source builds, native core/CLI tests,
+and Unix GUI compile/launch smoke are foundation evidence; they are not end-user support and do not
+produce public Unix packages. The first planned end-user macOS release is `1.2.0`, and the first planned
+end-user Linux release is `1.3.0`.
+
+The required foundation lanes are Windows x64, macOS 15 arm64, macOS 26 arm64 when hosted or its
+documented equivalent, Ubuntu 24.04 x86-64, and Ubuntu 26.04 x86-64. A failure in an assigned lane blocks
+publication. Use the [support matrix](support-matrix.md) for the platform table and the
+[1.1.0 evidence record](1.1.0-foundation-evidence.md) for candidate identity and lane fields.
+
+The release/package implementation remains deliberately separate from this documentation change. This
+branch does not modify release workflows, CMake/vcpkg version metadata, release manifests, or generated
+package artifacts; VCU-111 owns the Windows candidate and publication path.
+
 Canonical domain terms come from [`CONTEXT.md`](../CONTEXT.md). Accepted architecture boundaries are
 recorded in the [ADR index](../knowledge/architecture/decisions/README.md).
 
@@ -47,7 +63,7 @@ tool or version is missing.
 | Node.js | 22 or newer | `tools/verification-common.ps1` |
 | Python | 3.12 for CI quality tooling | `.github/workflows/ci.yml` |
 | clang-format / clang-tidy | exactly 18.1.8 | `tools/verification-requirements.txt` |
-| ffmpeg / ffprobe | exactly 7.1.1 for release evidence | `tools/verification-common.ps1` |
+| ffmpeg / ffprobe | 6.1 through major 8.x for the foundation; record the exact pair, with 7.1.1 currently pinned for Windows release evidence | `tools/verification-common.ps1` and the 1.1.0 evidence record |
 | nlohmann-json / yaml-cpp | vcpkg manifest plus pinned baseline | `vcpkg.json` and ADR 0002 |
 
 Do not silently substitute a global clang tool or a different dependency baseline. If bootstrap finds a
