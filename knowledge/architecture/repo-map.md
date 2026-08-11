@@ -6,9 +6,11 @@ VidChopper is a Windows-first Qt 6 Widgets desktop application that turns one so
 of chapter clips using `ffmpeg`.
 
 Canonical domain terms are defined in [`CONTEXT.md`](../../CONTEXT.md). Accepted system boundaries
-and their rationale live in the [ADR index](decisions/README.md). The preserved CLI planning PDF is a
-historical snapshot; use its [Markdown companion](../../docs/vidchopper_cli_architecture_plan.md) to
-reach the current sources of truth.
+and their rationale live in the [ADR index](decisions/README.md). The
+[shared engine and Qt boundary guide](../../docs/shared-engine-boundary-guide.md) is the target
+dependency, service, failure, and migration contract. The preserved CLI planning PDF is a historical
+snapshot; use its [Markdown companion](../../docs/vidchopper_cli_architecture_plan.md) to reach the
+current sources of truth.
 
 The repo deliberately separates the Qt-free core from the Qt UI shell so domain logic stays buildable
 and testable without the full Qt SDK. The GUI and `VidChopperCLI.exe` are current entry points that
