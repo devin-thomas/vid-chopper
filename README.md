@@ -86,6 +86,9 @@ The repository intentionally separates the non-Qt core from the GUI shell. That 
 
 The repository-owned verification scripts are the canonical local workflow. See
 [`docs/verification.md`](docs/verification.md) for tier contents, remediation, and the optional pre-push hook.
+The manager-facing
+[verification and release engineering guide](docs/verification-and-release-engineering.md) defines the
+evidence required for review, candidate approval, publication, remote acceptance, and rollback.
 
 ```powershell
 .\tools\bootstrap.ps1

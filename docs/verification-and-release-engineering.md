@@ -69,7 +69,7 @@ pwsh -NoProfile -File tools/verify.ps1 -Tier Release
 |---|---|---|
 | Quick | Pinned formatting/static policy, Qt-free core+CLI build, fast tests, skill/docs/site contracts | Before every push; default for ordinary changes |
 | Full | Quick plus real ffmpeg tests, CLI fixtures, Qt build/model tests, and seeded noninteractive GUI startup | Before merging core, CLI, Qt, or workflow changes |
-| Release | Full plus demo capture, version/manifest/PDF consistency, package assembly, and archive audit | From the intended release commit before dispatching publication |
+| Release | Full plus demo capture, version/manifest/document consistency, package assembly, and archive audit | From the intended release commit before dispatching publication |
 
 The optional managed hook runs Quick and changes only this repository's Git directory:
 
@@ -89,7 +89,7 @@ CTest execution labels and resource size answer different questions.
 | Runtime | `qt` | Qt model/settings tests from the GUI preset; may require a Qt-capable environment |
 | Resource | none | No binary fixture; inline values or small text/JSON/YAML only |
 | Resource | synthetic-small | Runtime-generated, low-resolution, short-duration media; never user media |
-| Resource | candidate | Package, rendered PDF, site, or clean-archive output; store as a bounded artifact, not a normal unit fixture |
+| Resource | candidate | Package, deployed site, or clean-archive output; store as a bounded artifact, not a normal unit fixture |
 
 Resource class is documentation metadata, not an additional CTest label. The canceled VID-43 scope is not
 reintroduced here. If a test needs a candidate-sized resource, keep it out of `fast`, generate it
@@ -127,13 +127,12 @@ build/audit, a Wrangler dry run, and the GitHub Pages compatibility build. Produ
 requires the gated Cloudflare workflow and cache-busted live validation described in
 `knowledge/operations/cloudflare-production.md`.
 
-### Markdown and PDF
+### Internal Markdown and public documentation
 
-Manager-facing Markdown is authoritative. A tracked PDF must be generated from the exact Markdown bytes by
-the repository document command, pass the deterministic freshness/structure check, and be rasterized for
-human review. Inspect every rendered page at normal size for clipping, overlap, broken tables/diagrams,
-missing glyphs, and unreadable code. A timestamp comparison is not acceptable freshness evidence because a
-fresh checkout gives unrelated files new timestamps.
+Repository Markdown is the authoritative internal documentation source for 1.0. Keep commands, links, and
+release contracts accurate in the Markdown itself. Do not add a tracked PDF copy, PDF freshness gate, or new
+document-rendering infrastructure for this guide. Presentation work for the public documentation at
+`vidchopper.app/docs` is a separate post-1.0 concern and is not a 1.0 release gate.
 
 ### Package and archive
 
@@ -209,8 +208,9 @@ Do not relabel history to fit obsolete shorthand. The current release workflow a
    the numeric project version and user-facing channel label are separate contracts.
 2. Set the numeric base in `vcpkg.json` (`version-semver`) and the display version in
    `docs/package.json` plus its lockfile root package entries.
-3. Update site release constants/links, package README text, release metadata/notes, and versioned agent-skill
-   routes/artifacts.
+3. Update required release/download constants, package README text, release metadata/notes, and versioned
+   agent-skill routes/artifacts. Public documentation presentation at `vidchopper.app/docs` is tracked
+   separately after 1.0.
 4. Search the whole tree for the old display version and classify every retained historical reference.
 5. Run the deterministic agent-skill artifact generator/check if versioned bytes changed.
 6. Run Quick, Full, then Release from the intended commit; never build release bytes from a dirty checkout.
@@ -249,7 +249,8 @@ Do not relabel history to fit obsolete shorthand. The current release workflow a
 3. Run `tools/verify-release-archive.ps1` against the downloaded archive on clean supported Windows.
 4. Confirm the GUI seeded startup, Qt-free CLI, version/help/direct/chop modes, ChapterBuilder export,
    manifests, and ffprobe output evidence.
-5. Verify public download/docs links resolve to the stable tag and asset, then cache-bust the live site checks.
+5. Verify public download links resolve to the stable tag and asset, then cache-bust the live download checks.
+   Public documentation presentation at `vidchopper.app/docs` remains separate post-1.0 work.
 
 ### Rollback and correction
 

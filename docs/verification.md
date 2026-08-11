@@ -1,6 +1,8 @@
 # Local verification
 
 The repository-owned PowerShell scripts are the canonical local workflow. Run them from the repository root.
+For release-manager decisions, artifact identity, publication gates, and rollback evidence, use the
+[verification and release engineering guide](verification-and-release-engineering.md).
 
 ```powershell
 .\tools\bootstrap.ps1
