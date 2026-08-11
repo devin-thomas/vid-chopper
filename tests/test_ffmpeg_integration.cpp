@@ -9,6 +9,7 @@
 #include <chrono>
 #include <filesystem>
 #include <fstream>
+#include <iostream>
 #include <sstream>
 #include <string>
 #include <string_view>
@@ -111,6 +112,11 @@ auto main() -> int {
     test_support::expect_true(std::filesystem::exists(source_path), "generated source fixture should exist");
 
     const ProbeResult probed = ProbeService {}.probe(path_from_utf8("ffprobe"), source_path);
+    if (!probed.ok()) {
+        std::cerr << "Probe diagnostic: " << probed.error_message << "\n"
+                  << "state=" << process_exit_state_name(probed.process.state) << " exit=" << probed.process.exit_code
+                  << "\nstdout=" << probed.process.standard_output << "\nstderr=" << probed.process.standard_error << "\n";
+    }
     test_support::expect_true(probed.ok(), "real ffprobe should parse the generated source");
     test_support::expect_eq(probed.metadata.source_path, source_path, "probe should retain a Unicode source path");
     test_support::expect_true(probed.metadata.duration_ms >= 5500 && probed.metadata.duration_ms <= 6500,
