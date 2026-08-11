@@ -338,5 +338,14 @@ if(VIDCHOPPER_BUILD_GUI)
         apply_vidchopper_warnings(vidchopper_test_gpu_detector)
         add_test(NAME qt.vidchopper_test_gpu_detector COMMAND vidchopper_test_gpu_detector)
         set_tests_properties(qt.vidchopper_test_gpu_detector PROPERTIES LABELS "qt")
+
+        add_executable(vidchopper_test_gui_resources
+            tests/test_gui_resources.cpp
+            resources/app_icon.qrc
+        )
+        target_link_libraries(vidchopper_test_gui_resources PRIVATE Qt6::Core Qt6::Gui)
+        apply_vidchopper_warnings(vidchopper_test_gui_resources)
+        add_test(NAME qt.vidchopper_test_gui_resources COMMAND vidchopper_test_gui_resources)
+        set_tests_properties(qt.vidchopper_test_gui_resources PROPERTIES LABELS "qt")
     endif()
 endif()

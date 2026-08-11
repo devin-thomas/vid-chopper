@@ -44,6 +44,11 @@ auto main() -> int {
         const auto result = parse_demo_launch_options(static_cast<int>(argv.size()), argv.data());
         expect_parse_success(result);
         test_support::expect_eq(result.options.scene, DemoScene::WorkspaceLogs, "workspace logs scene should parse");
+        test_support::expect_eq(
+            result.options.demo_source, demo_source, "UTF-8 demo source paths should round-trip through the parser");
+        test_support::expect_eq(result.options.demo_ready_file,
+            demo_ready_file,
+            "UTF-8 ready-marker paths should round-trip through the parser");
         test_support::expect_true(
             result.options.window_size.has_value(), "window size should be available for valid demo arguments");
         test_support::expect_eq(result.options.window_size->width, 1280, "window width should parse");
