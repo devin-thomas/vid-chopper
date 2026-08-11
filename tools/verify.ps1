@@ -41,7 +41,8 @@ function Invoke-ReviewFindingChecks {
         @{ Name = "duplicate enum clamping"; Pattern = "safe_enum_cast|clamp_enum" },
         @{ Name = "switch defaults that hide new enumerators"; Pattern = "^[[:space:]]*default:" },
         @{ Name = "Windows-unsafe min/max calls"; Pattern = "std::(min|max)(<[^>]+>)?\(" },
-        @{ Name = "chapter-plan copies"; Pattern = "const auto chapters = chapter_model_->chapters\(\)" }
+        @{ Name = "chapter-plan copies"; Pattern = "const auto chapters = chapter_model_->chapters\(\)" },
+        @{ Name = "blocking Qt process waits"; Pattern = "waitFor(Started|Finished)\(" }
     )
     foreach ($check in $patterns) {
         $matches = @(& git -C $repoRoot grep -n -E $check.Pattern -- "src")

@@ -21,6 +21,17 @@ auto contains_diagnostic(const QStringList& diagnostics, const QString& fragment
 } // namespace
 
 auto main() -> int {
+    test_support::expect_eq(ZoomPolicy::clamp(62), 50, "zoom should snap down to the nearest policy step");
+    test_support::expect_eq(ZoomPolicy::clamp(63), 75, "zoom should snap up to the nearest policy step");
+    test_support::expect_eq(ZoomPolicy::for_screen_height(1080), 100, "1080p should use the baseline zoom");
+    test_support::expect_eq(ZoomPolicy::for_screen_height(0),
+        ZoomPolicy::default_percent,
+        "an unavailable screen height should use the default zoom");
+    test_support::expect_eq(
+        ZoomPolicy::presets().front(), ZoomPolicy::minimum_percent, "presets should start at the minimum zoom");
+    test_support::expect_eq(
+        ZoomPolicy::presets().back(), ZoomPolicy::maximum_percent, "presets should end at the maximum zoom");
+
     auto directory = QTemporaryDir {};
     test_support::expect_true(directory.isValid(), "temporary settings directory should be available");
 
