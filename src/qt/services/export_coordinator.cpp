@@ -1,40 +1,67 @@
 #include "qt/services/export_coordinator.hpp"
 
-#include "core/command_builder.hpp"
-#include "qt/services/probe_coordinator.hpp"
+#include "services/export_engine.hpp"
+#include "services/export_planner.hpp"
+#include "services/manifest_writer.hpp"
 
 #include <QDir>
-#include <QJsonArray>
-#include <QJsonDocument>
-#include <QJsonObject>
-#include <QSaveFile>
-#include <QTextStream>
+#include <QMetaObject>
+#include <QThread>
 
-#include <cstddef>
-#include <system_error>
+#include <functional>
+#include <mutex>
+#include <stop_token>
+#include <string_view>
+#include <utility>
 
 namespace vidchopper {
 
+struct ExportCoordinator::TaskState {
+    std::mutex receiver_mutex;
+    ExportCoordinator* receiver {nullptr};
+    std::stop_source stop_source;
+};
+
 namespace {
 
-auto display_path(const std::filesystem::path& path) -> QString {
+[[nodiscard]] auto display_path(const std::filesystem::path& path) -> QString {
     return QDir::toNativeSeparators(QString::fromStdWString(path.wstring()));
+}
+
+[[nodiscard]] auto segment_error(const RenderedSegment& segment) -> std::string {
+    if (!segment.verification_error.empty()) {
+        return segment.verification_error;
+    }
+    if (!segment.process.error_message.empty()) {
+        return segment.process.error_message;
+    }
+    return segment.process.standard_error;
 }
 
 } // namespace
 
 ExportCoordinator::ExportCoordinator(QObject* parent)
-    : QObject(parent)
-    , probe_coordinator_(new ProbeCoordinator {this}) {
-    connect(&process_, &QProcess::readyReadStandardOutput, this, &ExportCoordinator::handle_ready_read_stdout);
-    connect(&process_, &QProcess::readyReadStandardError, this, &ExportCoordinator::handle_ready_read_stderr);
-    connect(&process_, &QProcess::finished, this, &ExportCoordinator::handle_process_finished);
-    connect(&process_, &QProcess::errorOccurred, this, &ExportCoordinator::handle_process_error);
-    connect(probe_coordinator_, &ProbeCoordinator::finished, this, &ExportCoordinator::handle_probe_finished);
+    : ExportCoordinator(run_process, parent) {
 }
 
-auto ExportCoordinator::busy() const -> bool {
-    return busy_;
+ExportCoordinator::ExportCoordinator(ProcessExecutor executor, QObject* parent)
+    : QObject(parent)
+    , executor_ {std::move(executor)} {
+}
+
+ExportCoordinator::~ExportCoordinator() {
+    cancel();
+    const std::shared_ptr<TaskState> state = std::move(state_);
+    if (state == nullptr) {
+        return;
+    }
+
+    const auto lock = std::scoped_lock {state->receiver_mutex};
+    state->receiver = nullptr;
+}
+
+auto ExportCoordinator::busy() const noexcept -> bool {
+    return state_ != nullptr;
 }
 
 auto ExportCoordinator::start_export(const VideoMetadata& metadata,
@@ -42,266 +69,151 @@ auto ExportCoordinator::start_export(const VideoMetadata& metadata,
     const std::filesystem::path& output_directory,
     const ExportSettings& settings,
     const EncoderEnvironment& environment) -> void {
-    if (busy_) {
+    if (busy()) {
         emit log_message(LogCategory::Warning, "Export is already running.");
         return;
     }
 
-    busy_ = true;
-    cancel_requested_ = false;
-    stdout_buffer_.clear();
-    errors_.clear();
-    exports_.clear();
-    metadata_ = metadata;
-    settings_ = settings;
-    output_directory_ = output_directory;
-    current_index_ = 0;
-    completed_duration_ms_ = 0;
-    total_duration_ms_ = 0;
-
-    auto directory_error = std::error_code {};
-    std::filesystem::create_directories(output_directory_, directory_error);
-    if (directory_error) {
-        busy_ = false;
-        const auto message = QStringLiteral("Failed to create output directory: %1")
-                                 .arg(QString::fromStdString(directory_error.message()));
-        emit log_message(LogCategory::Error, message);
-        emit finished(false, QStringList {message});
+    OutputPlanResult plan = plan_outputs({OutputPlanInput {
+        .metadata = metadata,
+        .output_directory = output_directory,
+        .chapters = chapters,
+        .settings = settings,
+        .environment = environment,
+    }});
+    if (!plan.ok()) {
+        auto errors = QStringList {};
+        for (const std::string& error : plan.errors) {
+            errors.push_back(QString::fromStdString(error));
+        }
+        emit finished(false, errors);
         return;
     }
 
-    for (auto index = size_t {0}; index < chapters.size(); ++index) {
-        const auto chapter_index = static_cast<u16>(index);
-        const auto output_path = output_path_for(metadata, chapters[index], chapter_index, output_directory_, settings);
-        auto command = build_ffmpeg_command(metadata, chapters[index], output_path, settings, environment);
-        auto arguments = QStringList {};
-        for (auto command_index = size_t {1}; command_index < command.size(); ++command_index) {
-            arguments.push_back(QString::fromStdString(command[command_index]));
-        }
+    auto state = std::make_shared<TaskState>();
+    state->receiver = this;
+    state_ = state;
+    ProcessExecutor executor = executor_;
+    auto jobs = std::move(plan.jobs);
 
-        arguments.insert(arguments.size() - 1, "-progress");
-        arguments.insert(arguments.size() - 1, "pipe:1");
-        arguments.insert(arguments.size() - 1, "-nostats");
+    auto* thread = QThread::create([state, executor = std::move(executor), jobs = std::move(jobs)]() mutable {
+        const auto dispatch = [state](std::function<void(ExportCoordinator&)> callback) {
+            const auto lock = std::scoped_lock {state->receiver_mutex};
+            if (state->receiver == nullptr) {
+                return;
+            }
+            auto* receiver = state->receiver;
+            static_cast<void>(QMetaObject::invokeMethod(
+                receiver,
+                [state, callback = std::move(callback)]() mutable {
+                    auto* active_receiver = static_cast<ExportCoordinator*>(nullptr);
+                    {
+                        const auto state_lock = std::scoped_lock {state->receiver_mutex};
+                        active_receiver = state->receiver;
+                    }
+                    if (active_receiver != nullptr) {
+                        callback(*active_receiver);
+                    }
+                },
+                Qt::QueuedConnection));
+        };
 
-        exports_.push_back(PendingExport {
-            .chapter_index = chapter_index,
-            .chapter = chapters[index],
-            .output_file = display_path(output_path),
-            .duration_ms = chapters[index].end_ms - chapters[index].start_ms,
-            .program = QString::fromStdString(command.front()),
-            .arguments = arguments,
+        const auto options = ExportRunOptions {
+            .stop_token = state->stop_source.get_token(),
+            .progress_changed =
+                [dispatch](const int percent) {
+                    dispatch([percent](ExportCoordinator& receiver) { emit receiver.progress_changed(percent); });
+                },
+            .process_output =
+                [dispatch](const std::string_view chunk) {
+                    const QString output =
+                        QString::fromUtf8(chunk.data(), static_cast<qsizetype>(chunk.size())).trimmed();
+                    if (!output.isEmpty()) {
+                        dispatch([output](ExportCoordinator& receiver) {
+                            emit receiver.log_message(LogCategory::ProcessRaw, output);
+                        });
+                    }
+                },
+            .segment_started =
+                [dispatch](const size_t,
+                    const size_t,
+                    const size_t chapter_index,
+                    const size_t chapter_count,
+                    const ResolvedExportJob&,
+                    const PlannedExportSegment& segment) {
+                    const QString output = display_path(segment.output_path);
+                    dispatch([chapter_index, chapter_count, output](ExportCoordinator& receiver) {
+                        emit receiver.chapter_started(
+                            static_cast<int>(chapter_index), static_cast<int>(chapter_count), output);
+                        emit receiver.log_message(
+                            LogCategory::ExportLifecycle, QStringLiteral("Exporting %1").arg(output));
+                    });
+                },
+            .segment_finished =
+                [dispatch](const RenderedSegment& segment) {
+                    if (!segment.ok()) {
+                        const QString error = QString::fromStdString(segment_error(segment));
+                        dispatch([error](ExportCoordinator& receiver) {
+                            emit receiver.log_message(LogCategory::Error, error);
+                        });
+                    }
+                },
+            .message =
+                [dispatch](const std::string& message) {
+                    const QString text = QString::fromStdString(message);
+                    dispatch([text](ExportCoordinator& receiver) {
+                        emit receiver.log_message(LogCategory::ExportLifecycle, text);
+                    });
+                },
+        };
+
+        ExportRunResult run_result = ExportEngine {executor}.run(jobs, options);
+        ManifestWriteResult manifest_result = write_manifests(jobs, run_result);
+        dispatch([state, run_result = std::move(run_result), manifest_result = std::move(manifest_result)](
+                     ExportCoordinator& receiver) mutable {
+            receiver.complete(state, std::move(run_result), std::move(manifest_result));
         });
-
-        total_duration_ms_ += chapters[index].end_ms - chapters[index].start_ms;
-    }
-
+    });
+    QObject::connect(thread, &QThread::finished, thread, &QObject::deleteLater);
     emit progress_changed(0);
-    start_next();
+    thread->start();
 }
 
 auto ExportCoordinator::cancel() -> void {
-    if (!busy_) {
+    if (state_ == nullptr) {
         return;
     }
-
-    cancel_requested_ = true;
+    state_->stop_source.request_stop();
     emit log_message(LogCategory::ExportLifecycle, "Cancellation requested. Waiting for ffmpeg to stop.");
-    process_.kill();
-    probe_coordinator_->cancel();
 }
 
-auto ExportCoordinator::start_next() -> void {
-    if (current_index_ >= exports_.size()) {
-        write_manifests();
-        busy_ = false;
-        emit progress_changed(100);
-        emit finished(errors_.isEmpty(), errors_);
+auto ExportCoordinator::complete(
+    const std::shared_ptr<TaskState>& state, ExportRunResult run_result, ManifestWriteResult manifest_result) -> void {
+    if (state_ != state) {
         return;
     }
+    {
+        const auto lock = std::scoped_lock {state->receiver_mutex};
+        state->receiver = nullptr;
+    }
+    state_.reset();
 
-    stdout_buffer_.clear();
-    const auto& item = exports_[current_index_];
-    emit chapter_started(static_cast<int>(current_index_ + 1), static_cast<int>(exports_.size()), item.output_file);
-    emit log_message(LogCategory::ExportLifecycle, QStringLiteral("Exporting %1").arg(item.output_file));
-
-    process_.setProgram(item.program);
-    process_.setArguments(item.arguments);
-    process_.start();
-}
-
-auto ExportCoordinator::handle_ready_read_stdout() -> void {
-    stdout_buffer_.append(process_.readAllStandardOutput());
-
-    forever {
-        const auto newline_index = stdout_buffer_.indexOf('\n');
-        if (newline_index < 0) {
-            break;
+    auto errors = QStringList {};
+    for (const ExportJobResult& job : run_result.jobs) {
+        if (!job.error_message.empty()) {
+            errors.push_back(QString::fromStdString(job.error_message));
         }
-
-        const auto line = QString::fromLocal8Bit(stdout_buffer_.first(newline_index)).trimmed();
-        stdout_buffer_.remove(0, newline_index + 1);
-
-        if (line.startsWith("out_time_ms=") && current_index_ < exports_.size()) {
-            auto ok = false;
-            const auto out_time_us = line.mid(QStringLiteral("out_time_ms=").size()).toULongLong(&ok);
-            if (!ok) {
-                continue;
+        for (const RenderedSegment& segment : job.segments) {
+            if (!segment.ok()) {
+                errors.push_back(QString::fromStdString(segment_error(segment)));
             }
-
-            const auto chapter_ms = (std::min<u64>)(out_time_us / 1000, exports_[current_index_].duration_ms);
-            const auto overall_ms = completed_duration_ms_ + chapter_ms;
-            const auto progress =
-                total_duration_ms_ == 0 ? 0 : static_cast<int>((overall_ms * 100) / total_duration_ms_);
-            emit progress_changed(progress);
         }
     }
-}
-
-auto ExportCoordinator::handle_ready_read_stderr() -> void {
-    const auto output = QString::fromLocal8Bit(process_.readAllStandardError()).trimmed();
-    if (!output.isEmpty()) {
-        emit log_message(LogCategory::ProcessRaw, output);
-    }
-}
-
-auto ExportCoordinator::handle_process_error(const QProcess::ProcessError error) -> void {
-    if (error == QProcess::FailedToStart) {
-        const auto message =
-            QStringLiteral("Failed to start ffmpeg (%1). Check that the path is correct in Advanced Settings.")
-                .arg(exports_[current_index_].program);
-        handle_failure(message);
-    }
-}
-
-auto ExportCoordinator::handle_process_finished(const int exit_code, const QProcess::ExitStatus exit_status) -> void {
-    if (cancel_requested_) {
-        busy_ = false;
-        errors_.push_back("Export cancelled.");
-        emit log_message(LogCategory::Warning, "Export cancelled.");
-        emit finished(false, errors_);
-        return;
+    for (const std::string& error : manifest_result.errors) {
+        errors.push_back(QString::fromStdString(error));
     }
 
-    if (exit_status != QProcess::NormalExit || exit_code != 0) {
-        handle_failure(QStringLiteral("ffmpeg exited with code %1 while exporting %2")
-                           .arg(exit_code)
-                           .arg(exports_[current_index_].output_file));
-        return;
-    }
-
-    if (settings_.verify_output_durations) {
-        const bool started = probe_coordinator_->start_probe(
-            Path {settings_.ffprobe_path}, Path {exports_[current_index_].output_file.toStdWString()});
-        if (!started) {
-            handle_failure("Could not start output duration verification because ffprobe is already busy.");
-            return;
-        }
-        return;
-    }
-
-    complete_current_export();
-}
-
-auto ExportCoordinator::handle_probe_finished(const ProbeResult& result) -> void {
-    if (cancel_requested_) {
-        busy_ = false;
-        errors_.push_back("Export cancelled.");
-        emit log_message(LogCategory::Warning, "Export cancelled.");
-        emit finished(false, errors_);
-        return;
-    }
-    if (!result.ok()) {
-        handle_failure(QString::fromStdString(result.error_message));
-        return;
-    }
-
-    const auto expected_duration = exports_[current_index_].duration_ms;
-    const auto actual_duration = result.metadata.duration_ms;
-    const auto delta =
-        expected_duration > actual_duration ? expected_duration - actual_duration : actual_duration - expected_duration;
-    if (delta > 1000) {
-        handle_failure(
-            QStringLiteral("Duration verification failed for %1.").arg(exports_[current_index_].output_file));
-        return;
-    }
-    complete_current_export();
-}
-
-auto ExportCoordinator::complete_current_export() -> void {
-    completed_duration_ms_ += exports_[current_index_].duration_ms;
-    emit progress_changed(
-        total_duration_ms_ == 0 ? 100 : static_cast<int>((completed_duration_ms_ * 100) / total_duration_ms_));
-    ++current_index_;
-    start_next();
-}
-
-auto ExportCoordinator::handle_failure(const QString& message) -> void {
-    emit log_message(LogCategory::Error, message);
-    errors_.push_back(message);
-
-    if (settings_.stop_on_first_error || current_index_ + 1 >= exports_.size()) {
-        busy_ = false;
-        emit finished(false, errors_);
-        return;
-    }
-
-    ++current_index_;
-    start_next();
-}
-
-auto ExportCoordinator::write_manifests() -> void {
-    if (settings_.write_json_manifest) {
-        auto chapter_array = QJsonArray {};
-        for (const auto& item : exports_) {
-            chapter_array.push_back(QJsonObject {
-                {"index", static_cast<int>(item.chapter_index + 1)},
-                {"name", QString::fromStdString(item.chapter.name)},
-                {"startMs", static_cast<qint64>(item.chapter.start_ms)},
-                {"endMs", static_cast<qint64>(item.chapter.end_ms)},
-                {"outputFile", item.output_file},
-            });
-        }
-
-        auto root = QJsonObject {
-            {"source", QString::fromStdWString(metadata_.source_path.wstring())},
-            {"outputDirectory", QString::fromStdWString(output_directory_.wstring())},
-            {"chapters", chapter_array},
-        };
-
-        const auto json_path = QString::fromStdWString((output_directory_ / "vidchopper-manifest.json").wstring());
-        auto file = QSaveFile {json_path};
-        const QByteArray content = QJsonDocument(root).toJson(QJsonDocument::Indented);
-        if (!file.open(QIODevice::WriteOnly) || file.write(content) != content.size() || !file.commit()) {
-            const auto message =
-                QStringLiteral("Could not completely write JSON manifest '%1': %2").arg(json_path, file.errorString());
-            emit log_message(LogCategory::Error, message);
-            errors_.push_back(message);
-        }
-    }
-
-    if (settings_.write_csv_manifest) {
-        const auto csv_path = QString::fromStdWString((output_directory_ / "vidchopper-manifest.csv").wstring());
-        auto content = QByteArray {};
-        auto stream = QTextStream {&content};
-        stream << "index,name,start_ms,end_ms,output_file\n";
-        for (const auto& item : exports_) {
-            stream << (item.chapter_index + 1) << ",\""
-                   << QString {QString::fromStdString(item.chapter.name)}.replace('"', '\'') << "\""
-                   << "," << item.chapter.start_ms << "," << item.chapter.end_ms << ",\""
-                   << QString {item.output_file}.replace('"', '\'') << "\"\n";
-        }
-        stream.flush();
-
-        auto file = QSaveFile {csv_path};
-        if (stream.status() != QTextStream::Ok || !file.open(QIODevice::WriteOnly | QIODevice::Text)
-            || file.write(content) != content.size() || !file.commit()) {
-            const auto message =
-                QStringLiteral("Could not completely write CSV manifest '%1': %2").arg(csv_path, file.errorString());
-            emit log_message(LogCategory::Error, message);
-            errors_.push_back(message);
-            return;
-        }
-    }
+    emit finished(run_result.ok() && manifest_result.ok(), errors);
 }
 
 } // namespace vidchopper

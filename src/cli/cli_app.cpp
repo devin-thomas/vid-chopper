@@ -6,8 +6,9 @@
 #include "cli/cli_arguments.hpp"
 #include "cli/cli_settings.hpp"
 #include "cli/dry_run_renderer.hpp"
-#include "cli/manifest_writer.hpp"
-#include "cli/output_planner.hpp"
+#include "services/export_engine.hpp"
+#include "services/export_planner.hpp"
+#include "services/manifest_writer.hpp"
 
 #include <filesystem>
 #include <ostream>
@@ -24,6 +25,16 @@ namespace {
 
 [[nodiscard]] auto export_exit_code(const ExportRunResult& result) -> CliExitCode {
     return result.exit_code == ExportExitCode::ToolingError ? CliExitCode::ToolingError : CliExitCode::ExportFailure;
+}
+
+[[nodiscard]] auto rendered_segment_error(const RenderedSegment& segment) -> const std::string& {
+    if (!segment.verification_error.empty()) {
+        return segment.verification_error;
+    }
+    if (!segment.process.error_message.empty()) {
+        return segment.process.error_message;
+    }
+    return segment.process.standard_error;
 }
 
 } // namespace
@@ -181,7 +192,7 @@ auto run_cli(const CliRunRequest& request) -> CliExitCode {
         return rendered.ok() ? CliExitCode::Success : CliExitCode::ExportFailure;
     }
 
-    const ExportRunResult export_result = ExportRunner {request.process_executor}.run(output_plan.jobs,
+    const ExportRunResult export_result = ExportEngine {request.process_executor}.run(output_plan.jobs,
         ExportRunOptions {
             .segment_started =
                 [&request](const size_t job_index,
@@ -201,7 +212,7 @@ auto run_cli(const CliRunRequest& request) -> CliExitCode {
                                        << segment.output_path.string() << "\n";
                     } else {
                         request.error_output << "Failed Chapter " << segment.chapter_index + 1 << ": "
-                                             << segment.output_path.string() << ": " << segment.process.error_message
+                                             << segment.output_path.string() << ": " << rendered_segment_error(segment)
                                              << "\n";
                     }
                 },

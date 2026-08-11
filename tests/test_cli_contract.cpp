@@ -288,6 +288,29 @@ auto main() -> int {
     test_support::expect_true(
         contains(export_failure.error_output, "exit code 9"), "ffmpeg failure should retain the process exit code");
 
+    auto duration_mismatch_call = size_t {0};
+    const ProcessExecutor duration_mismatch_executor = [&duration_mismatch_call](
+                                                           const ProcessRequest& request) -> ProcessResult {
+        ++duration_mismatch_call;
+        if (duration_mismatch_call == 1) {
+            return probe_with_chapters(request);
+        }
+        if (duration_mismatch_call == 2) {
+            return ProcessResult {.state = ProcessExitState::Success};
+        }
+        return ProcessResult {
+            .state = ProcessExitState::Success,
+            .standard_output =
+                R"({"format":{"duration":"4"},"streams":[{"codec_type":"video","avg_frame_rate":"30/1"}],"chapters":[]})",
+        };
+    };
+    const CliRunSnapshot duration_mismatch =
+        run_with({input_path, json_config_path}, executable_path, duration_mismatch_executor);
+    test_support::expect_eq(
+        duration_mismatch.exit_code, CliExitCode::ExportFailure, "duration mismatch should use export exit code 2");
+    test_support::expect_true(contains(duration_mismatch.error_output, "expected 2000 ms, observed 4000 ms"),
+        "CLI should surface shared duration-verification diagnostics");
+
     const CliRunSnapshot help = run_with({"--help"}, executable_path);
     test_support::expect_eq(help.exit_code, CliExitCode::Success, "help should succeed");
     test_support::expect_true(

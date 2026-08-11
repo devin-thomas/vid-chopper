@@ -98,7 +98,7 @@ their final contracts.
 3. The UI imports embedded chapters or seeds a default layout.
 4. The chapter table model exposes editable chapter rows plus the synthetic append row.
 5. App settings and advanced settings determine export behavior.
-6. `export_coordinator` validates the chapter plan and runs sequential `ffmpeg` jobs.
+6. `export_coordinator` plans through the shared service and runs `ExportEngine` on a worker thread.
 7. Progress, curated logs, and raw logs are surfaced back into the main window.
 8. Output lands in the default or overridden destination folder.
 
@@ -108,8 +108,8 @@ their final contracts.
 2. The CLI loads `VidChopperCLI.ini` and never reads `VidChopper.ini` unless `--use-gui-config` is passed.
 3. The CLI resolves the selected ChapterSource from a ChapterFile or explicit embedded chapters.
 4. The CLI probes source metadata directly through the shared Qt-free `ProbeService`.
-5. The CLI validates and plans outputs through `src/core`.
-6. The CLI performs dry-run output or sequential export with human-readable progress.
+5. The CLI validates and plans outputs through the shared Qt-free services.
+6. The CLI performs dry-run output or runs the same `ExportEngine` and manifest writer as the GUI.
 
 ## Stable Contracts
 

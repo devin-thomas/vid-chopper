@@ -139,13 +139,19 @@ private:
     return message;
 }
 
-auto read_pipe(const HANDLE pipe, std::string& output, const size_t limit) -> void {
+auto read_pipe(const HANDLE pipe,
+    std::string& output,
+    const size_t limit,
+    const std::function<void(std::string_view)>& chunk_callback) -> void {
     auto buffer = std::array<char, 4096> {};
     auto bytes_read = DWORD {0};
     while (ReadFile(pipe, buffer.data(), static_cast<DWORD>(buffer.size()), &bytes_read, nullptr) != FALSE) {
         const size_t remaining = output.size() < limit ? limit - output.size() : 0;
         const size_t count = (std::min)(remaining, static_cast<size_t>(bytes_read));
         output.append(buffer.data(), count);
+        if (count > 0 && chunk_callback) {
+            chunk_callback(std::string_view {buffer.data(), count});
+        }
     }
 }
 
@@ -239,10 +245,16 @@ auto run_process(const ProcessRequest& request) -> ProcessResult {
     stderr_write.reset();
 
     auto result = ProcessResult {};
-    auto stdout_thread =
-        std::thread {read_pipe, stdout_read.get(), std::ref(result.standard_output), request.stdout_limit_bytes};
-    auto stderr_thread =
-        std::thread {read_pipe, stderr_read.get(), std::ref(result.standard_error), request.stderr_limit_bytes};
+    auto stdout_thread = std::thread {read_pipe,
+        stdout_read.get(),
+        std::ref(result.standard_output),
+        request.stdout_limit_bytes,
+        std::cref(request.standard_output_chunk)};
+    auto stderr_thread = std::thread {read_pipe,
+        stderr_read.get(),
+        std::ref(result.standard_error),
+        request.stderr_limit_bytes,
+        std::cref(request.standard_error_chunk)};
 
     const auto timeout_count = std::clamp<i64>(request.timeout.count(), 0, std::numeric_limits<DWORD>::max());
     const auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds {timeout_count};
