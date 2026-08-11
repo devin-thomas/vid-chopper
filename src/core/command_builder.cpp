@@ -25,6 +25,8 @@ constexpr auto threads = std::string_view {"-threads"};
 constexpr auto map_metadata = std::string_view {"-map_metadata"};
 constexpr auto metadata = std::string_view {"-metadata"};
 constexpr auto movflags = std::string_view {"-movflags"};
+constexpr auto progress = std::string_view {"-progress"};
+constexpr auto no_stats = std::string_view {"-nostats"};
 
 } // namespace ffmpeg_arg
 
@@ -171,6 +173,7 @@ auto build_ffmpeg_command(const VideoMetadata& metadata,
 
     const std::vector<std::string> extra_arguments = split_quoted_arguments(settings.extra_ffmpeg_args);
     command.insert(command.end(), extra_arguments.begin(), extra_arguments.end());
+    append(command, {ffmpeg_arg::progress, "pipe:1", ffmpeg_arg::no_stats});
     command.emplace_back(output_path.string());
 
     return command;

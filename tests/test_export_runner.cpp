@@ -1,11 +1,13 @@
-#include "cli/export_runner.hpp"
-#include "cli/output_planner.hpp"
+#include "services/export_engine.hpp"
+#include "services/export_planner.hpp"
 #include "test_support.hpp"
 
+#include <algorithm>
 #include <chrono>
 #include <filesystem>
 #include <fstream>
 #include <string>
+#include <stop_token>
 #include <utility>
 #include <vector>
 
@@ -19,6 +21,7 @@ namespace {
     settings.overwrite_mode = OverwriteMode::Overwrite;
     settings.container_mode = ContainerMode::Mp4;
     settings.stop_on_first_error = false;
+    settings.verify_output_durations = false;
     const auto input = OutputPlanInput {
         .metadata =
             VideoMetadata {
@@ -63,7 +66,7 @@ auto main() -> int {
         .stdout_limit_bytes = 17,
         .stderr_limit_bytes = 23,
     };
-    const ExportRunResult successful = ExportRunner {successful_executor}.run({successful_job}, capture_options);
+    const ExportRunResult successful = ExportEngine {successful_executor}.run({successful_job}, capture_options);
     test_support::expect_true(successful.ok(), "successful chapters should complete the run");
     test_support::expect_eq(successful.jobs.size(), size_t {1}, "one resolved job should produce one job result");
     test_support::expect_eq(
@@ -98,7 +101,7 @@ auto main() -> int {
         ++skip_calls;
         return ProcessResult {.state = ProcessExitState::Success};
     };
-    const ExportRunResult skipped = ExportRunner {skip_executor}.run({skip_job});
+    const ExportRunResult skipped = ExportEngine {skip_executor}.run({skip_job});
     test_support::expect_true(skipped.ok(), "skipped existing output should remain successful");
     test_support::expect_eq(skip_calls, size_t {2}, "skip mode should avoid the existing chapter process");
     test_support::expect_true(
@@ -111,7 +114,7 @@ auto main() -> int {
     const ExportRunOptions overwrite_options {
         .message = [&overwrite_messages](const std::string& message) { overwrite_messages.push_back(message); },
     };
-    const ExportRunResult overwritten = ExportRunner {successful_executor}.run({overwrite_job}, overwrite_options);
+    const ExportRunResult overwritten = ExportEngine {successful_executor}.run({overwrite_job}, overwrite_options);
     test_support::expect_true(overwritten.ok(), "overwrite mode should export existing output");
     test_support::expect_true(
         overwritten.jobs.front().segments.front().overwrote_existing, "existing chapter should be marked overwritten");
@@ -128,7 +131,7 @@ auto main() -> int {
                                   : ProcessResult {.state = ProcessExitState::Success};
     };
     const ExportRunResult continued =
-        ExportRunner {continue_executor}.run({make_job(root, chapters()), make_job(root / "second", chapters())});
+        ExportEngine {continue_executor}.run({make_job(root, chapters()), make_job(root / "second", chapters())});
     test_support::expect_eq(
         continued.exit_code, ExportExitCode::ExportFailure, "nonzero ffmpeg should map to exit code 2");
     test_support::expect_eq(
@@ -156,7 +159,7 @@ auto main() -> int {
     };
     ResolvedExportJob stop_job = make_job(root, chapters());
     stop_job.settings.stop_on_first_error = true;
-    const ExportRunResult stopped = ExportRunner {stop_executor}.run({stop_job});
+    const ExportRunResult stopped = ExportEngine {stop_executor}.run({stop_job});
     test_support::expect_eq(
         stopped.exit_code, ExportExitCode::ExportFailure, "crashed ffmpeg should map to exit code 2");
     test_support::expect_true(stopped.stopped_early, "stop policy should report an early stop");
@@ -169,7 +172,7 @@ auto main() -> int {
     };
     ResolvedExportJob invalid_plan_job = make_job(root, chapters());
     invalid_plan_job.segments.front().command.clear();
-    const ExportRunResult invalid_plan = ExportRunner {invalid_plan_executor}.run({invalid_plan_job});
+    const ExportRunResult invalid_plan = ExportEngine {invalid_plan_executor}.run({invalid_plan_job});
     test_support::expect_eq(
         invalid_plan.exit_code, ExportExitCode::ExportFailure, "invalid immutable plan should fail export");
     test_support::expect_eq(invalid_plan_calls, size_t {0}, "invalid immutable plan should not start a process");
@@ -177,7 +180,7 @@ auto main() -> int {
     const auto missing_executor = [](const ProcessRequest&) -> ProcessResult {
         return ProcessResult {.state = ProcessExitState::FailedStart, .error_message = "not found"};
     };
-    const ExportRunResult missing = ExportRunner {missing_executor}.run({make_job(root, chapters())});
+    const ExportRunResult missing = ExportEngine {missing_executor}.run({make_job(root, chapters())});
     test_support::expect_eq(
         missing.exit_code, ExportExitCode::ToolingError, "missing ffmpeg should map to tooling exit code 3");
     test_support::expect_eq(
@@ -189,6 +192,84 @@ auto main() -> int {
     test_support::expect_true(
         missing.jobs.front().segments.front().process.error_message.find("failed start") != std::string::npos,
         "missing-tool failure should not be reported as a timeout");
+
+    ResolvedExportJob verified_job = make_job(root / "verified", {chapters().front()});
+    verified_job.settings.verify_output_durations = true;
+    auto verification_calls = size_t {0};
+    auto progress = std::vector<int> {};
+    auto process_output = std::string {};
+    const auto verified_executor = [&verification_calls](const ProcessRequest& request) -> ProcessResult {
+        ++verification_calls;
+        if (request.executable.filename() == "ffprobe") {
+            return ProcessResult {
+                .state = ProcessExitState::Success,
+                .standard_output =
+                    R"({"format":{"duration":"2"},"streams":[{"codec_type":"video","avg_frame_rate":"30/1"}],"chapters":[]})",
+            };
+        }
+        if (request.standard_output_chunk) {
+            request.standard_output_chunk("out_time_ms=1000");
+            request.standard_output_chunk("000\nprogress=continue\n");
+        }
+        if (request.standard_error_chunk) {
+            request.standard_error_chunk("bounded raw output");
+        }
+        return ProcessResult {.state = ProcessExitState::Success};
+    };
+    const ExportRunResult verified = ExportEngine {verified_executor}.run({verified_job},
+        ExportRunOptions {
+            .progress_changed = [&progress](const int value) { progress.push_back(value); },
+            .process_output = [&process_output](const std::string_view value) { process_output.append(value); },
+        });
+    test_support::expect_true(verified.ok(), "matching ffprobe duration should preserve export success");
+    test_support::expect_eq(verification_calls, size_t {2}, "duration verification should run after ffmpeg");
+    test_support::expect_true(
+        verified.jobs.front().segments.front().duration_verified, "a matching duration should be explicit");
+    test_support::expect_eq(
+        verified.jobs.front().segments.front().actual_duration_ms, u64 {2000}, "verified duration should be retained");
+    test_support::expect_true(progress.size() >= 3, "progress should include start, streamed progress, and completion");
+    test_support::expect_eq(progress.front(), 0, "progress should start at zero");
+    test_support::expect_eq(progress.back(), 100, "progress should finish at one hundred");
+    test_support::expect_true(
+        std::ranges::find(progress, 50) != progress.end(), "split ffmpeg progress chunks should parse incrementally");
+    test_support::expect_eq(
+        process_output, std::string {"bounded raw output"}, "bounded process output should reach adapters");
+
+    const auto mismatched_executor = [](const ProcessRequest& request) -> ProcessResult {
+        if (request.executable.filename() == "ffprobe") {
+            return ProcessResult {
+                .state = ProcessExitState::Success,
+                .standard_output =
+                    R"({"format":{"duration":"4"},"streams":[{"codec_type":"video","avg_frame_rate":"30/1"}],"chapters":[]})",
+            };
+        }
+        return ProcessResult {.state = ProcessExitState::Success};
+    };
+    const ExportRunResult mismatched = ExportEngine {mismatched_executor}.run({verified_job});
+    test_support::expect_true(!mismatched.ok(), "a mismatched rendered duration should fail its segment");
+    test_support::expect_true(
+        mismatched.jobs.front().segments.front().verification_error.find("expected 2000 ms, observed 4000 ms")
+            != std::string::npos,
+        "duration mismatch should retain expected and observed values");
+
+    auto cancellation = std::stop_source {};
+    auto cancellation_calls = size_t {0};
+    const auto cancelling_executor = [&cancellation, &cancellation_calls](const ProcessRequest&) -> ProcessResult {
+        ++cancellation_calls;
+        cancellation.request_stop();
+        return ProcessResult {
+            .state = ProcessExitState::Cancelled,
+            .error_message = "cancelled by test",
+        };
+    };
+    const ExportRunResult cancelled = ExportEngine {cancelling_executor}.run(
+        {make_job(root / "cancelled", chapters())}, ExportRunOptions {.stop_token = cancellation.get_token()});
+    test_support::expect_true(cancelled.cancelled, "process cancellation should be explicit at batch level");
+    test_support::expect_true(!cancelled.ok(), "cancelled export should fail");
+    test_support::expect_eq(cancellation_calls, size_t {1}, "cancellation should prevent later chapters");
+    test_support::expect_eq(cancelled.jobs.front().segments.front().process.state,
+        ProcessExitState::Cancelled,
+        "cancelled chapter should retain its process state");
 
     std::filesystem::remove_all(root);
     return 0;

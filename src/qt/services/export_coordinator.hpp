@@ -2,20 +2,19 @@
 
 #include "core/models.hpp"
 #include "qt/logging.hpp"
+#include "services/process_runner.hpp"
 
-#include <QByteArray>
 #include <QObject>
-#include <QProcess>
 #include <QStringList>
 
-#include <cstddef>
 #include <filesystem>
+#include <memory>
 #include <vector>
 
 namespace vidchopper {
 
-class ProbeCoordinator;
-struct ProbeResult;
+struct ExportRunResult;
+struct ManifestWriteResult;
 
 class ExportCoordinator final : public QObject {
     Q_OBJECT
@@ -23,8 +22,10 @@ class ExportCoordinator final : public QObject {
 
 public:
     explicit ExportCoordinator(QObject* parent = nullptr);
+    explicit ExportCoordinator(ProcessExecutor executor, QObject* parent = nullptr);
+    ~ExportCoordinator() override;
 
-    [[nodiscard]] auto busy() const -> bool;
+    [[nodiscard]] auto busy() const noexcept -> bool;
     auto start_export(const VideoMetadata& metadata,
         const std::vector<ChapterSegment>& chapters,
         const std::filesystem::path& output_directory,
@@ -38,43 +39,15 @@ signals:
     void chapter_started(int current, int total, const QString& output_file);
     void finished(bool success, const QStringList& errors);
 
-private slots:
-    void handle_ready_read_stdout();
-    void handle_ready_read_stderr();
-    void handle_process_finished(int exit_code, QProcess::ExitStatus exit_status);
-    void handle_process_error(QProcess::ProcessError error);
-
 private:
-    struct PendingExport {
-        u16 chapter_index {0};
-        ChapterSegment chapter;
-        QString output_file;
-        u64 duration_ms {0};
-        QString program;
-        QStringList arguments;
-    };
+    struct TaskState;
 
-    auto start_next() -> void;
-    auto complete_current_export() -> void;
-    auto handle_probe_finished(const ProbeResult& result) -> void;
-    auto handle_failure(const QString& message) -> void;
-    auto write_manifests() -> void;
+    auto complete(const std::shared_ptr<TaskState>& state,
+        ExportRunResult run_result,
+        ManifestWriteResult manifest_result) -> void;
 
-    QProcess process_;
-    ProbeCoordinator* probe_coordinator_ {nullptr};
-    QByteArray stdout_buffer_;
-    std::vector<PendingExport> exports_;
-    QStringList errors_;
-
-    VideoMetadata metadata_;
-    ExportSettings settings_;
-    std::filesystem::path output_directory_;
-
-    size_t current_index_ {0};
-    u64 total_duration_ms_ {0};
-    u64 completed_duration_ms_ {0};
-    bool busy_ {false};
-    bool cancel_requested_ {false};
+    ProcessExecutor executor_;
+    std::shared_ptr<TaskState> state_;
 };
 
 } // namespace vidchopper

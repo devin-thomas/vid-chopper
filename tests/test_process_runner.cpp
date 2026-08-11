@@ -54,10 +54,21 @@ auto main(const int argument_count, char** arguments) -> int {
     }
 
     const Path self = executable_path();
-    const ProcessResult success = run_process(ProcessRequest {.executable = self, .arguments = {"--emit"}});
+    auto streamed_stdout = std::string {};
+    auto streamed_stderr = std::string {};
+    const ProcessResult success = run_process(ProcessRequest {
+        .executable = self,
+        .arguments = {"--emit"},
+        .standard_output_chunk = [&streamed_stdout](const std::string_view chunk) { streamed_stdout.append(chunk); },
+        .standard_error_chunk = [&streamed_stderr](const std::string_view chunk) { streamed_stderr.append(chunk); },
+    });
     test_support::expect_eq(success.state, ProcessExitState::Success, "successful child should be distinguished");
     test_support::expect_eq(success.standard_output, std::string {"standard output"}, "stdout should be captured");
     test_support::expect_eq(success.standard_error, std::string {"standard error"}, "stderr should be captured");
+    test_support::expect_eq(
+        streamed_stdout, success.standard_output, "bounded stdout chunks should be available while capturing");
+    test_support::expect_eq(
+        streamed_stderr, success.standard_error, "bounded stderr chunks should be available while capturing");
 
     const Path missing_executable = self.parent_path() / "missing.exe";
     const ProcessResult missing = run_process(ProcessRequest {.executable = missing_executable});

@@ -1,4 +1,4 @@
-#include "cli/manifest_writer.hpp"
+#include "services/manifest_writer.hpp"
 
 #include <chrono>
 #include <filesystem>
@@ -38,10 +38,14 @@ using Json = nlohmann::json;
     if (rendered != nullptr) {
         value["processState"] = process_exit_state_name(rendered->process.state);
         value["processExitCode"] = rendered->process.exit_code;
+        value["durationVerified"] = rendered->duration_verified;
+        value["actualDurationMs"] = rendered->actual_duration_ms;
         value["skipped"] = rendered->skipped;
         value["overwroteExisting"] = rendered->overwrote_existing;
-        value["error"] = rendered->process.error_message.empty() ? rendered->process.standard_error
-                                                                 : rendered->process.error_message;
+        value["error"] = !rendered->verification_error.empty()
+            ? rendered->verification_error
+            : (rendered->process.error_message.empty() ? rendered->process.standard_error
+                                                       : rendered->process.error_message);
     } else {
         value["processState"] = "planned";
         value["skipped"] = false;
@@ -161,7 +165,9 @@ auto write_csv(const Path& target,
             }
         }
         const std::string state = rendered == nullptr ? "planned" : process_exit_state_name(rendered->process.state);
-        const std::string error = rendered == nullptr ? "" : rendered->process.error_message;
+        const std::string error = rendered == nullptr
+            ? ""
+            : (!rendered->verification_error.empty() ? rendered->verification_error : rendered->process.error_message);
         text += std::to_string(planned.chapter_index + 1) + "," + csv_escape(planned.chapter.name) + ","
             + std::to_string(planned.chapter.start_ms) + "," + std::to_string(planned.chapter.end_ms) + ","
             + csv_escape(planned.output_path.string()) + "," + csv_escape(state) + ","
@@ -190,7 +196,10 @@ auto write_aggregate_csv(const Path& target,
             }
             const std::string state =
                 rendered == nullptr ? "planned" : process_exit_state_name(rendered->process.state);
-            const std::string error = rendered == nullptr ? "" : rendered->process.error_message;
+            const std::string error = rendered == nullptr
+                ? ""
+                : (!rendered->verification_error.empty() ? rendered->verification_error
+                                                         : rendered->process.error_message);
             text += csv_escape(job.metadata.source_path.string()) + "," + std::to_string(planned.chapter_index + 1)
                 + "," + csv_escape(planned.chapter.name) + "," + std::to_string(planned.chapter.start_ms) + ","
                 + std::to_string(planned.chapter.end_ms) + "," + csv_escape(planned.output_path.string()) + ","

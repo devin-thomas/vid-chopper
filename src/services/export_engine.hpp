@@ -1,12 +1,14 @@
 #pragma once
 
-#include "services/process_runner.hpp"
 #include "core/models.hpp"
+#include "services/process_runner.hpp"
 
 #include <chrono>
 #include <functional>
 #include <optional>
+#include <stop_token>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace vidchopper {
@@ -34,6 +36,8 @@ struct ResolvedExportJob {
     ExportSettings settings;
     EncoderEnvironment environment;
     std::vector<PlannedExportSegment> segments;
+
+    [[nodiscard]] auto operator==(const ResolvedExportJob&) const -> bool = default;
 };
 
 struct RenderedSegment {
@@ -42,6 +46,9 @@ struct RenderedSegment {
     std::string chapter_name;
     Path output_path;
     ProcessResult process;
+    bool duration_verified {false};
+    u64 actual_duration_ms {0};
+    std::string verification_error;
     bool skipped {false};
     bool overwrote_existing {false};
 
@@ -61,6 +68,9 @@ struct ExportRunOptions {
     std::chrono::milliseconds process_timeout {std::chrono::hours {24}};
     size_t stdout_limit_bytes {1024 * 1024};
     size_t stderr_limit_bytes {4096};
+    std::stop_token stop_token;
+    std::function<void(int)> progress_changed;
+    std::function<void(std::string_view)> process_output;
     std::function<void(size_t, size_t, size_t, size_t, const ResolvedExportJob&, const PlannedExportSegment&)>
         segment_started;
     std::function<void(const RenderedSegment&)> segment_finished;
@@ -71,13 +81,14 @@ struct ExportRunResult {
     std::vector<ExportJobResult> jobs;
     ExportExitCode exit_code {ExportExitCode::Success};
     bool stopped_early {false};
+    bool cancelled {false};
 
     [[nodiscard]] auto ok() const noexcept -> bool;
 };
 
-class ExportRunner final {
+class ExportEngine final {
 public:
-    explicit ExportRunner(ProcessExecutor executor = run_process);
+    explicit ExportEngine(ProcessExecutor executor = run_process);
 
     [[nodiscard]] auto run(
         const std::vector<ResolvedExportJob>& jobs, const ExportRunOptions& options = {}) const -> ExportRunResult;

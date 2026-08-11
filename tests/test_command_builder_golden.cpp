@@ -54,7 +54,8 @@ auto main() -> int {
         const auto expected = std::string {"ffmpeg\n-y\n-i\nC:/media/demo-video.mov\n-ss\n00:00:05.000\n-t\n"
                                            "00:00:10.000\n-c:v\nlibx264\n-preset\nslow\n-crf\n18\n-threads\n4\n"
                                            "-c:a\naac\n-b:a\n192k\n-map_metadata\n0\n-metadata\ntitle=Intro / Setup\n"
-                                           "-movflags\n+faststart\n-pix_fmt\nyuv420p\nC:/out/clip.mp4\n"};
+                                           "-movflags\n+faststart\n-pix_fmt\nyuv420p\n-progress\npipe:1\n-nostats\n"
+                                           "C:/out/clip.mp4\n"};
         test_support::expect_eq(joined(command), expected, "x264 accurate aac mp4 command");
     }
 
@@ -78,7 +79,7 @@ auto main() -> int {
         const auto expected = std::string {"ffmpeg\n-n\n-ss\n00:00:05.000\n-i\nC:/media/demo-video.mov\n-t\n"
                                            "00:00:10.000\n-c:v\nhevc_nvenc\n-preset\np5\n-cq\n22\n-rc\nvbr_hq\n"
                                            "-c:a\ncopy\n-map_metadata\n-1\n-metadata\ntitle=Intro / Setup\n"
-                                           "C:/out/clip.mkv\n"};
+                                           "-progress\npipe:1\n-nostats\nC:/out/clip.mkv\n"};
         test_support::expect_eq(joined(command), expected, "nvenc fast copy mkv command");
     }
 

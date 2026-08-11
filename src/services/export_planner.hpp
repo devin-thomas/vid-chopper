@@ -1,6 +1,6 @@
 #pragma once
 
-#include "cli/export_runner.hpp"
+#include "services/export_engine.hpp"
 
 #include <optional>
 #include <string>
@@ -11,6 +11,7 @@ namespace vidchopper {
 struct OutputPlanInput {
     VideoMetadata metadata;
     std::optional<Path> chapter_source_path;
+    std::optional<Path> output_directory;
     bool uses_embedded_chapters {false};
     std::vector<ChapterSegment> chapters;
     ExportSettings settings;
@@ -22,6 +23,7 @@ struct OutputPlanResult {
     std::vector<std::string> errors;
 
     [[nodiscard]] auto ok() const noexcept -> bool;
+    [[nodiscard]] auto operator==(const OutputPlanResult&) const -> bool = default;
 };
 
 [[nodiscard]] auto plan_outputs(const std::vector<OutputPlanInput>& inputs) -> OutputPlanResult;

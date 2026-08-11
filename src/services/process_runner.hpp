@@ -6,6 +6,7 @@
 #include <functional>
 #include <stop_token>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace vidchopper {
@@ -26,6 +27,8 @@ struct ProcessRequest {
     size_t stdout_limit_bytes {1024 * 1024};
     size_t stderr_limit_bytes {4096};
     std::stop_token stop_token;
+    std::function<void(std::string_view)> standard_output_chunk;
+    std::function<void(std::string_view)> standard_error_chunk;
 };
 
 struct ProcessResult {

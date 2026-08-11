@@ -1,4 +1,4 @@
-#include "cli/output_planner.hpp"
+#include "services/export_planner.hpp"
 
 #include "core/chapter_plan.hpp"
 #include "core/command_builder.hpp"
@@ -53,7 +53,8 @@ auto plan_outputs(const std::vector<OutputPlanInput>& inputs) -> OutputPlanResul
             continue;
         }
 
-        const Path output_directory = default_output_directory(input.metadata.source_path, input.settings);
+        const Path output_directory =
+            input.output_directory.value_or(default_output_directory(input.metadata.source_path, input.settings));
         auto job = ResolvedExportJob {
             .metadata = input.metadata,
             .chapter_source_path = input.chapter_source_path,
