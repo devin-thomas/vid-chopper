@@ -41,11 +41,8 @@ namespace {
 
 } // namespace
 
-LogViewController::LogViewController(QToolButton& toggle_button,
-    QWidget& panel,
-    QCheckBox& advanced_checkbox,
-    QPlainTextEdit& output,
-    QObject* parent)
+LogViewController::LogViewController(
+    QToolButton& toggle_button, QWidget& panel, QCheckBox& advanced_checkbox, QPlainTextEdit& output, QObject* parent)
     : QObject(parent)
     , toggle_button_(&toggle_button)
     , panel_(&panel)

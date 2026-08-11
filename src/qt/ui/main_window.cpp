@@ -101,10 +101,8 @@ MainWindow::MainWindow(DemoLaunchOptions demo_options, QWidget* parent)
     build_ui();
     create_menus();
     apply_settings_to_ui();
-    connect(presentation_controller_,
-        &PresentationController::zoom_changed,
-        this,
-        [this](const int, const bool persist) {
+    connect(
+        presentation_controller_, &PresentationController::zoom_changed, this, [this](const int, const bool persist) {
             update_chapter_table_columns();
             update_export_button_style();
             if (persist) {
@@ -142,8 +140,7 @@ MainWindow::MainWindow(DemoLaunchOptions demo_options, QWidget* parent)
         });
     connect(export_coordinator_, &ExportCoordinator::finished, this, &MainWindow::handle_export_finished);
     connect(session_controller_, &SessionController::video_loaded, this, &MainWindow::handle_video_loaded);
-    connect(
-        session_controller_, &SessionController::video_load_failed, this, &MainWindow::handle_video_load_failed);
+    connect(session_controller_, &SessionController::video_load_failed, this, &MainWindow::handle_video_load_failed);
     connect(demo_controller_, &DemoAutomationController::automation_error, this, [this](const QString& message) {
         log_controller_->append(LogCategory::Error, message);
         statusBar()->showMessage("Demo automation marker could not be written");

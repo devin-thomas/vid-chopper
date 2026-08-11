@@ -57,9 +57,7 @@ auto DemoAutomationController::activate(LoadVideo load_video, SeedScene seed_sce
 
     const DemoScene scene = options_.scene;
     const bool started = load_video(options_.demo_source,
-        [this, scene, seed_scene = std::move(seed_scene)](const bool loaded) {
-            finish(loaded && seed_scene(scene));
-        });
+        [this, scene, seed_scene = std::move(seed_scene)](const bool loaded) { finish(loaded && seed_scene(scene)); });
     if (!started) {
         finish(false);
     }

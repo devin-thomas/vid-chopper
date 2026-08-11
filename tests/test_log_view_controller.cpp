@@ -38,14 +38,13 @@ auto main(int argc, char* argv[]) -> int {
     for (auto index = size_t {0}; index < LogViewController::maximum_entry_count + 20; ++index) {
         controller.append(LogCategory::App, QStringLiteral("retained-%1").arg(index));
     }
-    test_support::expect_eq(controller.entry_count(),
-        LogViewController::maximum_entry_count,
-        "log entry retention should remain bounded");
+    test_support::expect_eq(
+        controller.entry_count(), LogViewController::maximum_entry_count, "log entry retention should remain bounded");
     test_support::expect_true(controller.retained_character_count() <= LogViewController::maximum_total_characters,
         "log character retention should remain bounded");
-    test_support::expect_true(output.toPlainText().contains(QStringLiteral("retained-%1")
-                                                               .arg(static_cast<qulonglong>(
-                                                                   LogViewController::maximum_entry_count + 19))),
+    test_support::expect_true(
+        output.toPlainText().contains(
+            QStringLiteral("retained-%1").arg(static_cast<qulonglong>(LogViewController::maximum_entry_count + 19))),
         "the newest retained message should remain visible");
     test_support::expect_true(!output.toPlainText().contains("frame=1"),
         "entries evicted from bounded storage should also leave the active view");
