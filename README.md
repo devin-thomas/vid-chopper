@@ -73,8 +73,8 @@ start with [`knowledge/README.md`](knowledge/README.md).
 
 ### Source Build Prerequisites
 
-- Windows 10 or newer
-- C++20-capable MSVC toolchain
+- Windows 10 or newer, macOS, or Linux for the platform-appropriate preset
+- C++20-capable MSVC, Clang, or GCC toolchain
 - CMake 3.28+
 - vcpkg with the repository's pinned `nlohmann-json` and `yaml-cpp` manifest dependencies
 - `ffmpeg` and `ffprobe` on `PATH`, or custom paths configured in the advanced settings dialog
@@ -105,6 +105,11 @@ git clone https://github.com/microsoft/vcpkg.git .vcpkg
 $env:VCPKG_ROOT = (Resolve-Path .vcpkg).Path
 ```
 
+On macOS or Linux, bootstrap vcpkg with `./.vcpkg/bootstrap-vcpkg.sh -disableMetrics` and export
+`VCPKG_ROOT` to that checkout. The presets use this environment variable for manifest-mode dependency
+resolution and never store a machine-specific path. GUI presets also require `CMAKE_PREFIX_PATH` to
+point to the supplied pinned Qt 6 desktop SDK.
+
 The CLI's Qt-free ChapterFile loader accepts `.json`, `.yaml`, and `.yml` files, applies the documented output and encoder overrides, and validates the resulting chapters before export planning.
 
 The CLI probes inputs, plans and exports chapters, supports dry runs, reports bounded progress, and writes
@@ -118,6 +123,24 @@ cmake --preset core-release
 cmake --build --preset core-release
 ctest --test-dir build/core-release -C Release -L fast --output-on-failure
 ctest --test-dir build/core-release -C Release -L slow --output-on-failure
+```
+
+The Windows presets retain the Visual Studio generator. `unix-core-release` is generator-neutral and
+uses `build/unix-core-release`; `macos-gui-release` and `linux-gui-release` use the local default
+generator and write to deterministic platform-specific build directories:
+
+```sh
+cmake --preset unix-core-release
+cmake --build --preset unix-core-release
+ctest --test-dir build/unix-core-release -L fast --output-on-failure
+
+cmake --preset macos-gui-release    # macOS with CMAKE_PREFIX_PATH set
+cmake --build --preset macos-gui-release
+ctest --test-dir build/macos-gui-release -L qt --output-on-failure
+
+cmake --preset linux-gui-release    # Linux with CMAKE_PREFIX_PATH set
+cmake --build --preset linux-gui-release
+ctest --test-dir build/linux-gui-release -L qt --output-on-failure
 ```
 
 ### Full GUI Build

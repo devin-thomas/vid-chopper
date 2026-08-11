@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.28)
 
 project(
     VidChopper
-    VERSION 1.0.0
+    VERSION 1.1.0
     DESCRIPTION "Qt desktop app for splitting videos into chapter clips with ffmpeg"
     LANGUAGES CXX
 )
@@ -11,7 +11,7 @@ option(VIDCHOPPER_BUILD_CLI "Build the no-Qt CLI target" ON)
 option(VIDCHOPPER_BUILD_GUI "Build the Qt GUI target" ON)
 option(VIDCHOPPER_BUILD_TESTS "Build the test targets" ON)
 option(VIDCHOPPER_BUILD_QT_TESTS "Build Qt-dependent test targets" OFF)
-set(VIDCHOPPER_DISPLAY_VERSION "1.0.0" CACHE STRING "User-facing version string")
+set(VIDCHOPPER_DISPLAY_VERSION "1.1.0" CACHE STRING "User-facing version string")
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -23,6 +23,10 @@ function(apply_vidchopper_warnings target_name)
     else()
         target_compile_options("${target_name}" PRIVATE -Wall -Wextra -Wpedantic)
     endif()
+endfunction()
+
+function(apply_vidchopper_display_version target_name)
+    target_compile_definitions("${target_name}" PRIVATE VIDCHOPPER_DISPLAY_VERSION="${VIDCHOPPER_DISPLAY_VERSION}")
 endfunction()
 
 add_library(vidchopper_core
@@ -42,6 +46,7 @@ add_library(vidchopper_core
 )
 
 target_include_directories(vidchopper_core PUBLIC "${PROJECT_SOURCE_DIR}/src")
+apply_vidchopper_display_version(vidchopper_core)
 target_compile_features(vidchopper_core PUBLIC cxx_std_20)
 apply_vidchopper_warnings(vidchopper_core)
 
@@ -62,6 +67,7 @@ add_library(vidchopper_services
 
 target_include_directories(vidchopper_services PUBLIC "${PROJECT_SOURCE_DIR}/src")
 target_link_libraries(vidchopper_services PUBLIC vidchopper_core PRIVATE nlohmann_json::nlohmann_json)
+apply_vidchopper_display_version(vidchopper_services)
 target_compile_features(vidchopper_services PUBLIC cxx_std_20)
 apply_vidchopper_warnings(vidchopper_services)
 
@@ -93,12 +99,14 @@ if(VIDCHOPPER_BUILD_CLI)
         vidchopper_services
         yaml-cpp::yaml-cpp
     )
-    target_compile_definitions(vidchopper_cli PUBLIC VIDCHOPPER_DISPLAY_VERSION="${VIDCHOPPER_DISPLAY_VERSION}")
+    target_link_libraries(vidchopper_cli PRIVATE nlohmann_json::nlohmann_json)
+    apply_vidchopper_display_version(vidchopper_cli)
     target_compile_features(vidchopper_cli PUBLIC cxx_std_20)
     apply_vidchopper_warnings(vidchopper_cli)
 
     add_executable(VidChopperCLI src/cli/main.cpp)
     target_link_libraries(VidChopperCLI PRIVATE vidchopper_cli)
+    apply_vidchopper_display_version(VidChopperCLI)
     apply_vidchopper_warnings(VidChopperCLI)
     set_target_properties(VidChopperCLI PROPERTIES OUTPUT_NAME "VidChopperCLI")
 endif()
@@ -114,6 +122,7 @@ if(VIDCHOPPER_BUILD_TESTS)
         add_executable("${target_name}" "${source_file}")
         target_link_libraries("${target_name}" PRIVATE vidchopper_core ${ARGN})
         target_include_directories("${target_name}" PRIVATE "${PROJECT_SOURCE_DIR}/tests")
+        apply_vidchopper_display_version("${target_name}")
         apply_vidchopper_warnings("${target_name}")
 
         add_test(NAME "${label_name}.${target_name}" COMMAND "${target_name}")
@@ -204,7 +213,7 @@ if(VIDCHOPPER_BUILD_GUI)
     )
 
     target_link_libraries(VidChopper PRIVATE Qt6::Core Qt6::Gui Qt6::Widgets vidchopper_core vidchopper_services)
-    target_compile_definitions(VidChopper PRIVATE VIDCHOPPER_DISPLAY_VERSION="${VIDCHOPPER_DISPLAY_VERSION}")
+    apply_vidchopper_display_version(VidChopper)
     apply_vidchopper_warnings(VidChopper)
 
     set_target_properties(VidChopper PROPERTIES WIN32_EXECUTABLE TRUE OUTPUT_NAME "VidChopper")
@@ -221,6 +230,7 @@ if(VIDCHOPPER_BUILD_GUI)
         )
         target_include_directories(vidchopper_test_app_settings PRIVATE "${PROJECT_SOURCE_DIR}/tests")
         target_link_libraries(vidchopper_test_app_settings PRIVATE Qt6::Core vidchopper_core)
+        apply_vidchopper_display_version(vidchopper_test_app_settings)
         apply_vidchopper_warnings(vidchopper_test_app_settings)
         add_test(NAME qt.vidchopper_test_app_settings COMMAND vidchopper_test_app_settings)
         set_tests_properties(qt.vidchopper_test_app_settings PROPERTIES LABELS "qt")
@@ -240,6 +250,7 @@ if(VIDCHOPPER_BUILD_GUI)
             Qt6::Test
             vidchopper_core
         )
+        apply_vidchopper_display_version(vidchopper_test_chapter_table_model)
         apply_vidchopper_warnings(vidchopper_test_chapter_table_model)
         add_test(NAME qt.vidchopper_test_chapter_table_model COMMAND vidchopper_test_chapter_table_model)
         set_tests_properties(qt.vidchopper_test_chapter_table_model PROPERTIES LABELS "qt")
@@ -258,6 +269,7 @@ if(VIDCHOPPER_BUILD_GUI)
             Qt6::Gui
             Qt6::Widgets
         )
+        apply_vidchopper_display_version(vidchopper_test_log_view_controller)
         apply_vidchopper_warnings(vidchopper_test_log_view_controller)
         add_test(NAME qt.vidchopper_test_log_view_controller COMMAND vidchopper_test_log_view_controller)
         set_tests_properties(qt.vidchopper_test_log_view_controller PROPERTIES LABELS "qt")
@@ -276,6 +288,7 @@ if(VIDCHOPPER_BUILD_GUI)
             Qt6::Test
             vidchopper_services
         )
+        apply_vidchopper_display_version(vidchopper_test_probe_coordinator)
         apply_vidchopper_warnings(vidchopper_test_probe_coordinator)
         add_test(NAME qt.vidchopper_test_probe_coordinator COMMAND vidchopper_test_probe_coordinator)
         set_tests_properties(qt.vidchopper_test_probe_coordinator PROPERTIES LABELS "qt")
@@ -294,6 +307,7 @@ if(VIDCHOPPER_BUILD_GUI)
             Qt6::Test
             vidchopper_services
         )
+        apply_vidchopper_display_version(vidchopper_test_export_coordinator)
         apply_vidchopper_warnings(vidchopper_test_export_coordinator)
         add_test(NAME qt.vidchopper_test_export_coordinator COMMAND vidchopper_test_export_coordinator)
         set_tests_properties(qt.vidchopper_test_export_coordinator PROPERTIES LABELS "qt")

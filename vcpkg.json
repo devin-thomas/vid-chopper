@@ -1,7 +1,7 @@
 {
   "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg/master/scripts/vcpkg.schema.json",
   "name": "vidchopper",
-  "version-semver": "1.0.0",
+  "version-semver": "1.1.0",
   "builtin-baseline": "03e366fb91e38b9432ebd5f8cc79f7c8f55e96ab",
   "dependencies": [
     "nlohmann-json",
