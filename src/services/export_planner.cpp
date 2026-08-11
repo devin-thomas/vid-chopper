@@ -19,7 +19,7 @@ struct PlannedOwner {
 };
 
 [[nodiscard]] auto collision_key(const Path& path) -> std::string {
-    return to_lower_copy(path.lexically_normal().generic_string());
+    return to_lower_copy(path_to_utf8(path.lexically_normal()));
 }
 
 [[nodiscard]] auto describe_owner(const PlannedOwner& owner) -> std::string {
