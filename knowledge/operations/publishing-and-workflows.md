@@ -11,12 +11,17 @@ The detailed local-to-release evidence contract is the
 - Release asset: `https://github.com/devin-thomas/vid-chopper/releases/download/v1.1.0/VidChopper-1.1.0-windows-x64.zip`
 - Checksum asset: `https://github.com/devin-thomas/vid-chopper/releases/download/v1.1.0/VidChopper-1.1.0-windows-x64.zip.sha256`
 - Qualified source commit: `62ae6792d011e464f3b5553667c7933036971a4e`
+- Release target commit: `ceb104f9922efd8909a875ae0861d8e878a949fd`
+- Published at: `2026-08-11T23:04:40Z`
+- Release asset size: `49,467,494` bytes
 - Release asset SHA-256: `00efaac3ecd8cb7486f2386e79fff67f8c7110146bbe9923e2e0f7d58d60951d`
 - Checksum-file SHA-256: `bc49b8150e0bf3a19b456205f07250ad4e2b9205272a58db5ee1bc65d67642c9`
 - Canonical docs URL: `https://vidchopper.app/docs`
 - Clean-runner proof: the downloaded public archive started the GUI, kept the CLI Qt-free, retained
   the offline skill integrity tuple, and planned, exported, and duration-verified all 16
   ChapterBuilder chapters.
+- Public verification: the downloaded GitHub ZIP matches the Titan candidate byte-for-byte, and the
+  Windows archive verifier passes against the public asset with Qt 6.9.3 and FFmpeg/ffprobe 8.1.2.
 
 ## CI Workflow
 
