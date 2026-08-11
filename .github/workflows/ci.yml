@@ -14,6 +14,12 @@ concurrency:
   group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
+env:
+  CMAKE_VERSION: 3.31.6
+  NINJA_VERSION: 1.12.1
+  QT_VERSION: 6.9.0
+  VCPKG_COMMIT: 03e366fb91e38b9432ebd5f8cc79f7c8f55e96ab
+
 jobs:
   changes:
     runs-on: ubuntu-24.04
@@ -32,23 +38,21 @@ jobs:
           filters: |
             code:
               - '.clang-*'
-              - '.github/workflows/ci.yml'
-              - '.github/workflows/release.yml'
+              - '.github/workflows/**'
               - 'CMakeLists.txt'
               - 'CMakePresets.json'
+              - 'cmake/**'
               - 'packaging/**'
+              - 'platform/**'
               - 'src/**'
               - 'tests/**'
               - 'tools/**'
-              - 'vcpkg.json'
+              - 'vcpkg*.json'
             docs:
               - '.gitattributes'
               - '.gitignore'
               - '.agents/skills/vidchopper-cli/**'
-              - '.github/workflows/ci.yml'
-              - '.github/workflows/cloudflare.yml'
-              - '.github/workflows/pages.yml'
-              - '.github/workflows/release.yml'
+              - '.github/workflows/**'
               - 'CMakeLists.txt'
               - 'CONTEXT.md'
               - 'README.md'
@@ -157,6 +161,10 @@ jobs:
     needs: changes
     if: needs.changes.outputs.code == 'true'
     runs-on: windows-2022
+    timeout-minutes: 60
+    env:
+      VCPKG_DEFAULT_TRIPLET: x64-windows
+      VCPKG_DEFAULT_HOST_TRIPLET: x64-windows
 
     steps:
       - name: Checkout
@@ -164,13 +172,28 @@ jobs:
 
       - name: Set up CMake
         uses: lukka/get-cmake@v4.3.3
+        with:
+          cmakeVersion: ${{ env.CMAKE_VERSION }}
+          ninjaVersion: ${{ env.NINJA_VERSION }}
 
       - name: Set up cached vcpkg dependencies
         uses: lukka/run-vcpkg@v11
         with:
-          vcpkgDirectory: '${{ runner.workspace }}/b/vcpkg'
+          vcpkgDirectory: '${{ runner.temp }}/vcpkg'
+          vcpkgGitCommitId: ${{ env.VCPKG_COMMIT }}
           vcpkgJsonGlob: '**/vcpkg.json'
           runVcpkgInstall: false
+          binaryCachePath: '${{ runner.temp }}/vcpkg-binary-cache/windows-x64-msvc-${{ env.VCPKG_COMMIT }}'
+
+      - name: Install cached Qt 6.9
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{ env.QT_VERSION }}
+          host: windows
+          target: desktop
+          arch: win64_msvc2022_64
+          cache: true
+          cache-key-prefix: vidchopper-qt-${{ env.QT_VERSION }}-windows-x64-msvc2022
 
       - name: Install FFmpeg 7.1.1
         shell: pwsh
@@ -183,6 +206,34 @@ jobs:
           }
           Write-Error "ffmpeg install failed after $attempts attempts"
           exit 1
+
+      - name: Report selected tool versions
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force artifacts/ci | Out-Null
+          $cmakeVersion = (cmake --version | Select-Object -First 1)
+          $ninjaVersion = (ninja --version | Select-Object -First 1)
+          $compilerVersion = ((cl 2>&1) | Select-Object -First 1)
+          $vcpkgVersion = (& (Join-Path $env:VCPKG_ROOT 'vcpkg.exe') version | Select-Object -First 1)
+          $qtVersion = (& (Join-Path $env:QT_ROOT_DIR 'bin\qmake.exe') -query QT_VERSION).Trim()
+          $ffmpegVersion = (ffmpeg -version | Select-Object -First 1)
+          $ffprobeVersion = (ffprobe -version | Select-Object -First 1)
+          if ($qtVersion -ne $env:QT_VERSION) { throw "Expected Qt $($env:QT_VERSION), got $qtVersion." }
+          if ($ffmpegVersion -notmatch '7\.1\.1' -or $ffprobeVersion -notmatch '7\.1\.1') {
+            throw "Expected FFmpeg/ffprobe 7.1.1, got '$ffmpegVersion' and '$ffprobeVersion'."
+          }
+          @(
+            'platform=windows'
+            'architecture=x64'
+            'compiler=msvc-2022'
+            "compiler_version=$compilerVersion"
+            "cmake=$cmakeVersion"
+            "ninja=$ninjaVersion"
+            "vcpkg=$vcpkgVersion"
+            "qt=$qtVersion"
+            "ffmpeg=$ffmpegVersion"
+            "ffprobe=$ffprobeVersion"
+          ) | Tee-Object -FilePath artifacts/ci/tool-versions.txt
 
       - name: Run repository core lane
         shell: pwsh
@@ -196,10 +247,16 @@ jobs:
         if: failure()
         shell: pwsh
         run: |
+          New-Item -ItemType Directory -Force artifacts/ci | Out-Null
           if (Test-Path artifacts/ci/core.log) {
             Get-Content artifacts/ci/core.log -Tail 250 | Set-Content artifacts/ci/core-failure.log
           } else {
             "Failure occurred before the repository core lane; see the job log." | Set-Content artifacts/ci/core-failure.log
+          }
+          if (Test-Path build/core-release/Testing/Temporary/LastTest.log) {
+            Get-Content build/core-release/Testing/Temporary/LastTest.log -Tail 300 | Set-Content artifacts/ci/core-ctest-last-test.log
+          } else {
+            "CTest LastTest.log was not produced." | Set-Content artifacts/ci/core-ctest-last-test.log
           }
 
       - name: Upload core failure diagnostics
@@ -209,7 +266,7 @@ jobs:
           name: core-diagnostics-${{ github.run_attempt }}
           path: |
             artifacts/ci/core-failure.log
-            build/core-release/Testing/Temporary/LastTest.log
+            artifacts/ci/core-ctest-last-test.log
           if-no-files-found: warn
           retention-days: 7
 
@@ -217,6 +274,10 @@ jobs:
     needs: changes
     if: needs.changes.outputs.code == 'true'
     runs-on: windows-2022
+    timeout-minutes: 60
+    env:
+      VCPKG_DEFAULT_TRIPLET: x64-windows
+      VCPKG_DEFAULT_HOST_TRIPLET: x64-windows
 
     steps:
       - name: Checkout
@@ -224,22 +285,28 @@ jobs:
 
       - name: Set up CMake
         uses: lukka/get-cmake@v4.3.3
+        with:
+          cmakeVersion: ${{ env.CMAKE_VERSION }}
+          ninjaVersion: ${{ env.NINJA_VERSION }}
 
       - name: Set up cached vcpkg dependencies
         uses: lukka/run-vcpkg@v11
         with:
-          vcpkgDirectory: '${{ runner.workspace }}/b/vcpkg'
+          vcpkgDirectory: '${{ runner.temp }}/vcpkg'
+          vcpkgGitCommitId: ${{ env.VCPKG_COMMIT }}
           vcpkgJsonGlob: '**/vcpkg.json'
           runVcpkgInstall: false
+          binaryCachePath: '${{ runner.temp }}/vcpkg-binary-cache/windows-x64-msvc-${{ env.VCPKG_COMMIT }}'
 
       - name: Install cached Qt 6.9
         uses: jurplel/install-qt-action@v4
         with:
-          version: 6.9.0
+          version: ${{ env.QT_VERSION }}
           host: windows
           target: desktop
+          arch: win64_msvc2022_64
           cache: true
-          cache-key-prefix: vidchopper-qt-6.9.0
+          cache-key-prefix: vidchopper-qt-${{ env.QT_VERSION }}-windows-x64-msvc2022
 
       - name: Install FFmpeg 7.1.1
         shell: pwsh
@@ -252,6 +319,34 @@ jobs:
           }
           Write-Error "ffmpeg install failed after $attempts attempts"
           exit 1
+
+      - name: Report selected tool versions
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force artifacts/ci | Out-Null
+          $cmakeVersion = (cmake --version | Select-Object -First 1)
+          $ninjaVersion = (ninja --version | Select-Object -First 1)
+          $compilerVersion = ((cl 2>&1) | Select-Object -First 1)
+          $vcpkgVersion = (& (Join-Path $env:VCPKG_ROOT 'vcpkg.exe') version | Select-Object -First 1)
+          $qtVersion = (& (Join-Path $env:QT_ROOT_DIR 'bin\qmake.exe') -query QT_VERSION).Trim()
+          $ffmpegVersion = (ffmpeg -version | Select-Object -First 1)
+          $ffprobeVersion = (ffprobe -version | Select-Object -First 1)
+          if ($qtVersion -ne $env:QT_VERSION) { throw "Expected Qt $($env:QT_VERSION), got $qtVersion." }
+          if ($ffmpegVersion -notmatch '7\.1\.1' -or $ffprobeVersion -notmatch '7\.1\.1') {
+            throw "Expected FFmpeg/ffprobe 7.1.1, got '$ffmpegVersion' and '$ffprobeVersion'."
+          }
+          @(
+            'platform=windows'
+            'architecture=x64'
+            'compiler=msvc-2022'
+            "compiler_version=$compilerVersion"
+            "cmake=$cmakeVersion"
+            "ninja=$ninjaVersion"
+            "vcpkg=$vcpkgVersion"
+            "qt=$qtVersion"
+            "ffmpeg=$ffmpegVersion"
+            "ffprobe=$ffprobeVersion"
+          ) | Tee-Object -FilePath artifacts/ci/tool-versions.txt
 
       - name: Run repository GUI lane
         shell: pwsh
@@ -271,12 +366,683 @@ jobs:
             "Failure occurred before the repository GUI lane; see the job log." | Set-Content artifacts/ci/gui-failure.log
           }
 
+      - name: Capture Windows GUI ready-marker evidence
+        if: always()
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force artifacts/ci | Out-Null
+          $readyMarker = 'tmp\verify-gui-startup\ready.txt'
+          if (Test-Path -LiteralPath $readyMarker) {
+            Get-Content -Raw -LiteralPath $readyMarker | Set-Content -NoNewline artifacts/ci/gui-ready-marker.txt
+          } else {
+            'ready marker unavailable' | Set-Content artifacts/ci/gui-ready-marker.txt
+          }
+          $lastTest = 'build/windows-gui-release/Testing/Temporary/LastTest.log'
+          if (Test-Path -LiteralPath $lastTest) {
+            Get-Content -LiteralPath $lastTest -Tail 300 | Set-Content artifacts/ci/gui-ctest-last-test.log
+          } else {
+            'CTest LastTest.log was not produced.' | Set-Content artifacts/ci/gui-ctest-last-test.log
+          }
+
+      - name: Upload Windows GUI CI evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-internal-nonrelease-windows-gui-${{ github.run_attempt }}
+          path: |
+            artifacts/ci/tool-versions.txt
+            artifacts/ci/gui-ready-marker.txt
+            artifacts/ci/gui-ctest-last-test.log
+          if-no-files-found: warn
+          retention-days: 7
+
       - name: Upload GUI failure diagnostics
         if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: gui-diagnostics-${{ github.run_attempt }}
           path: artifacts/ci/gui-failure.log
+          if-no-files-found: warn
+          retention-days: 7
+
+  unix-core-tests:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - id: macos-15-arm64
+            os: macos-15
+            platform: macos
+            architecture: arm64
+            compiler: apple-clang
+            cc: clang
+            cxx: clang++
+            vcpkg_triplet: arm64-osx
+            qt_host: mac
+            qt_arch: clang_64
+            ffmpeg_formula: ffmpeg@7
+            ffmpeg_apt_prefix: ''
+            ffmpeg_expected_prefix: 7.1.5
+            core_preset: unix-core-release
+            core_build_dir: build/unix-core-release
+          - id: macos-26-arm64
+            os: macos-26
+            platform: macos
+            architecture: arm64
+            compiler: apple-clang
+            cc: clang
+            cxx: clang++
+            vcpkg_triplet: arm64-osx
+            qt_host: mac
+            qt_arch: clang_64
+            ffmpeg_formula: ffmpeg@7
+            ffmpeg_apt_prefix: ''
+            ffmpeg_expected_prefix: 7.1.5
+            core_preset: unix-core-release
+            core_build_dir: build/unix-core-release
+          - id: ubuntu-24.04-x64
+            os: ubuntu-24.04
+            platform: ubuntu
+            architecture: x64
+            compiler: gcc-13
+            cc: gcc-13
+            cxx: g++-13
+            vcpkg_triplet: x64-linux
+            qt_host: linux
+            qt_arch: gcc_64
+            ffmpeg_formula: ''
+            ffmpeg_apt_prefix: '7:6.1.1-3ubuntu5'
+            ffmpeg_expected_prefix: 6.1.1
+            core_preset: unix-core-release
+            core_build_dir: build/unix-core-release
+          - id: ubuntu-26.04-x64
+            os: ubuntu-26.04
+            platform: ubuntu
+            architecture: x64
+            compiler: gcc-13
+            cc: gcc-13
+            cxx: g++-13
+            vcpkg_triplet: x64-linux
+            qt_host: linux
+            qt_arch: gcc_64
+            ffmpeg_formula: ''
+            ffmpeg_apt_prefix: '7:8.0.1-3ubuntu2'
+            ffmpeg_expected_prefix: 8.0.1
+            core_preset: unix-core-release
+            core_build_dir: build/unix-core-release
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 75
+    env:
+      CC: ${{ matrix.cc }}
+      CXX: ${{ matrix.cxx }}
+      VCPKG_DEFAULT_TRIPLET: ${{ matrix.vcpkg_triplet }}
+      VCPKG_DEFAULT_HOST_TRIPLET: ${{ matrix.vcpkg_triplet }}
+      HOMEBREW_NO_AUTO_UPDATE: '1'
+      HOMEBREW_CACHE: ${{ runner.temp }}/homebrew-cache
+      FFMPEG_FORMULA: ${{ matrix.ffmpeg_formula }}
+      FFMPEG_APT_PREFIX: ${{ matrix.ffmpeg_apt_prefix }}
+      FFMPEG_EXPECTED_PREFIX: ${{ matrix.ffmpeg_expected_prefix }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up pinned CMake and Ninja
+        uses: lukka/get-cmake@v4.3.3
+        with:
+          cmakeVersion: ${{ env.CMAKE_VERSION }}
+          ninjaVersion: ${{ env.NINJA_VERSION }}
+
+      - name: Set up cached vcpkg dependencies
+        uses: lukka/run-vcpkg@v11
+        with:
+          vcpkgDirectory: '${{ runner.temp }}/vcpkg'
+          vcpkgGitCommitId: ${{ env.VCPKG_COMMIT }}
+          vcpkgJsonGlob: '**/vcpkg.json'
+          runVcpkgInstall: false
+          binaryCachePath: '${{ runner.temp }}/vcpkg-binary-cache/${{ matrix.platform }}-${{ matrix.architecture }}-${{ matrix.compiler }}-${{ matrix.vcpkg_triplet }}-${{ env.VCPKG_COMMIT }}'
+
+      - name: Install cached Qt 6.9
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{ env.QT_VERSION }}
+          host: ${{ matrix.qt_host }}
+          target: desktop
+          arch: ${{ matrix.qt_arch }}
+          dir: '${{ runner.temp }}/qt'
+          install-deps: true
+          cache: true
+          cache-key-prefix: vidchopper-qt-${{ env.QT_VERSION }}-${{ matrix.platform }}-${{ matrix.architecture }}-${{ matrix.compiler }}
+
+      - name: Install pinned Ubuntu compiler
+        if: matrix.platform == 'ubuntu'
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y gcc-13 g++-13
+
+      - name: Cache macOS FFmpeg downloads
+        if: matrix.platform == 'macos'
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/homebrew-cache
+          key: vidchopper-ffmpeg-${{ matrix.os }}-${{ matrix.architecture }}-${{ matrix.compiler }}-${{ matrix.ffmpeg_formula }}-${{ matrix.ffmpeg_expected_prefix }}
+
+      - name: Install pinned macOS FFmpeg
+        if: matrix.platform == 'macos'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOMEBREW_CACHE"
+          brew install "$FFMPEG_FORMULA"
+          brew link --overwrite --force "$FFMPEG_FORMULA"
+          brew pin "$FFMPEG_FORMULA"
+          installed_version="$(brew list --versions "$FFMPEG_FORMULA" | awk '{ print $2 }')"
+          if [[ "$installed_version" != "$FFMPEG_EXPECTED_PREFIX" ]]; then
+            echo "Expected $FFMPEG_FORMULA $FFMPEG_EXPECTED_PREFIX, got $installed_version." >&2
+            exit 1
+          fi
+
+      - name: Install pinned Ubuntu FFmpeg
+        if: matrix.platform == 'ubuntu'
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          ffmpeg_package_version="$(apt-cache madison ffmpeg | awk -v prefix="$FFMPEG_APT_PREFIX" '$3 ~ ("^" prefix) { print $3; exit }')"
+          if [[ -z "$ffmpeg_package_version" ]]; then
+            . /etc/os-release
+            echo "Pinned FFmpeg package prefix '$FFMPEG_APT_PREFIX' is unavailable on $PRETTY_NAME." >&2
+            exit 1
+          fi
+          sudo apt-get install -y "ffmpeg=$ffmpeg_package_version"
+          sudo apt-mark hold ffmpeg
+
+      - name: Report selected tool versions
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/ci
+          qt_root="${QT_ROOT_DIR:-}"
+          qt_tool=''
+          for candidate in "$qt_root/bin/qtpaths6" "$qt_root/bin/qtpaths" "$qt_root/bin/qmake"; do
+            if [[ -x "$candidate" ]]; then
+              qt_tool="$candidate"
+              break
+            fi
+          done
+          if [[ -z "$qt_tool" ]]; then
+            echo "Qt tool was not found below QT_ROOT_DIR='$qt_root'." >&2
+            exit 1
+          fi
+          if [[ "$qt_tool" == */qmake ]]; then
+            qt_version="$($qt_tool -query QT_VERSION)"
+          else
+            qt_version="$($qt_tool --qt-version)"
+          fi
+          cmake_version="$(cmake --version | sed -n '1p')"
+          ninja_version="$(ninja --version)"
+          compiler_version="$($CC --version | sed -n '1p')"
+          vcpkg_version="$("$VCPKG_ROOT/vcpkg" version | sed -n '1p')"
+          ffmpeg_version="$(ffmpeg -version | sed -n '1p')"
+          ffprobe_version="$(ffprobe -version | sed -n '1p')"
+          if [[ "$qt_version" != "$QT_VERSION" ]]; then
+            echo "Expected Qt $QT_VERSION, got $qt_version." >&2
+            exit 1
+          fi
+          if [[ "$ffmpeg_version" != *"$FFMPEG_EXPECTED_PREFIX"* || "$ffprobe_version" != *"$FFMPEG_EXPECTED_PREFIX"* ]]; then
+            echo "Selected FFmpeg/ffprobe do not match expected prefix $FFMPEG_EXPECTED_PREFIX." >&2
+            exit 1
+          fi
+          {
+            echo "platform=${{ matrix.platform }}"
+            echo "runner=${{ matrix.os }}"
+            echo "architecture=${{ matrix.architecture }}"
+            echo "compiler=${{ matrix.compiler }}"
+            echo "compiler_version=$compiler_version"
+            echo "cmake=$cmake_version"
+            echo "ninja=$ninja_version"
+            echo "vcpkg=$vcpkg_version"
+            echo "qt=$qt_version"
+            echo "ffmpeg=$ffmpeg_version"
+            echo "ffprobe=$ffprobe_version"
+          } | tee artifacts/ci/tool-versions.txt
+
+      # These preset names are provided by VCU-101 and must stay generator-neutral.
+      - name: Configure Unix core and CLI preset
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/ci
+          cmake --fresh --preset "${{ matrix.core_preset }}" 2>&1 | tee artifacts/ci/configure.log
+
+      - name: Build Unix core and CLI preset
+        shell: bash
+        run: |
+          set -euo pipefail
+          cmake --build --preset "${{ matrix.core_preset }}" --parallel 2 2>&1 | tee artifacts/ci/build.log
+
+      - name: Run Unix core and CLI tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          for label in fast slow; do
+            ctest --test-dir "${{ matrix.core_build_dir }}" -L "$label" --output-on-failure 2>&1 | tee "artifacts/ci/ctest-$label.log"
+          done
+
+      - name: Run Unix CLI contract smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          cli="${{ matrix.core_build_dir }}/VidChopperCLI"
+          if [[ ! -x "$cli" ]]; then
+            echo "CLI executable was not found at $cli." >&2
+            find "${{ matrix.core_build_dir }}" -type f -name 'VidChopperCLI*' -print
+            exit 1
+          fi
+          "$cli" --version 2>&1 | tee artifacts/ci/cli-version.log
+          "$cli" --help 2>&1 | tee artifacts/ci/cli-help.log
+
+      - name: Prepare bounded Unix core failure evidence
+        if: failure()
+        shell: bash
+        run: |
+          set -euo pipefail
+          evidence_dir="artifacts/ci/failure"
+          mkdir -p "$evidence_dir"
+          if [[ -f artifacts/ci/tool-versions.txt ]]; then
+            cp artifacts/ci/tool-versions.txt "$evidence_dir/tool-versions.txt"
+          else
+            echo 'tool version report unavailable' > "$evidence_dir/tool-versions.txt"
+          fi
+          shopt -s nullglob
+          logs=(artifacts/ci/*.log)
+          if (( ${#logs[@]} == 0 )); then
+            echo 'No lane log was created before failure.' > "$evidence_dir/summary.txt"
+          else
+            for log in "${logs[@]}"; do
+              tail -n 300 "$log" > "$evidence_dir/$(basename "$log")"
+            done
+          fi
+          last_test="${{ matrix.core_build_dir }}/Testing/Temporary/LastTest.log"
+          if [[ -f "$last_test" ]]; then
+            tail -n 300 "$last_test" > "$evidence_dir/ctest-last-test.log"
+          else
+            echo 'CTest LastTest.log was not produced.' > "$evidence_dir/ctest-last-test.log"
+          fi
+
+      - name: Upload bounded Unix core failure evidence
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-internal-nonrelease-${{ matrix.id }}-core-failure-${{ github.run_attempt }}
+          path: artifacts/ci/failure/**
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Upload internal Unix core evidence
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-internal-nonrelease-${{ matrix.id }}-core-${{ github.run_attempt }}
+          path: |
+            artifacts/ci/tool-versions.txt
+            artifacts/ci/cli-version.log
+            artifacts/ci/cli-help.log
+          if-no-files-found: warn
+          retention-days: 7
+
+  unix-gui-build:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - id: macos-15-arm64
+            os: macos-15
+            platform: macos
+            architecture: arm64
+            compiler: apple-clang
+            cc: clang
+            cxx: clang++
+            vcpkg_triplet: arm64-osx
+            qt_host: mac
+            qt_arch: clang_64
+            ffmpeg_formula: ffmpeg@7
+            ffmpeg_apt_prefix: ''
+            ffmpeg_expected_prefix: 7.1.5
+            gui_preset: macos-gui-release
+            gui_build_dir: build/macos-gui-release
+          - id: macos-26-arm64
+            os: macos-26
+            platform: macos
+            architecture: arm64
+            compiler: apple-clang
+            cc: clang
+            cxx: clang++
+            vcpkg_triplet: arm64-osx
+            qt_host: mac
+            qt_arch: clang_64
+            ffmpeg_formula: ffmpeg@7
+            ffmpeg_apt_prefix: ''
+            ffmpeg_expected_prefix: 7.1.5
+            gui_preset: macos-gui-release
+            gui_build_dir: build/macos-gui-release
+          - id: ubuntu-24.04-x64
+            os: ubuntu-24.04
+            platform: ubuntu
+            architecture: x64
+            compiler: gcc-13
+            cc: gcc-13
+            cxx: g++-13
+            vcpkg_triplet: x64-linux
+            qt_host: linux
+            qt_arch: gcc_64
+            ffmpeg_formula: ''
+            ffmpeg_apt_prefix: '7:6.1.1-3ubuntu5'
+            ffmpeg_expected_prefix: 6.1.1
+            gui_preset: linux-gui-release
+            gui_build_dir: build/linux-gui-release
+          - id: ubuntu-26.04-x64
+            os: ubuntu-26.04
+            platform: ubuntu
+            architecture: x64
+            compiler: gcc-13
+            cc: gcc-13
+            cxx: g++-13
+            vcpkg_triplet: x64-linux
+            qt_host: linux
+            qt_arch: gcc_64
+            ffmpeg_formula: ''
+            ffmpeg_apt_prefix: '7:8.0.1-3ubuntu2'
+            ffmpeg_expected_prefix: 8.0.1
+            gui_preset: linux-gui-release
+            gui_build_dir: build/linux-gui-release
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 75
+    env:
+      CC: ${{ matrix.cc }}
+      CXX: ${{ matrix.cxx }}
+      VCPKG_DEFAULT_TRIPLET: ${{ matrix.vcpkg_triplet }}
+      VCPKG_DEFAULT_HOST_TRIPLET: ${{ matrix.vcpkg_triplet }}
+      HOMEBREW_NO_AUTO_UPDATE: '1'
+      HOMEBREW_CACHE: ${{ runner.temp }}/homebrew-cache
+      FFMPEG_FORMULA: ${{ matrix.ffmpeg_formula }}
+      FFMPEG_APT_PREFIX: ${{ matrix.ffmpeg_apt_prefix }}
+      FFMPEG_EXPECTED_PREFIX: ${{ matrix.ffmpeg_expected_prefix }}
+      QT_QPA_PLATFORM: offscreen
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up pinned CMake and Ninja
+        uses: lukka/get-cmake@v4.3.3
+        with:
+          cmakeVersion: ${{ env.CMAKE_VERSION }}
+          ninjaVersion: ${{ env.NINJA_VERSION }}
+
+      - name: Set up cached vcpkg dependencies
+        uses: lukka/run-vcpkg@v11
+        with:
+          vcpkgDirectory: '${{ runner.temp }}/vcpkg'
+          vcpkgGitCommitId: ${{ env.VCPKG_COMMIT }}
+          vcpkgJsonGlob: '**/vcpkg.json'
+          runVcpkgInstall: false
+          binaryCachePath: '${{ runner.temp }}/vcpkg-binary-cache/${{ matrix.platform }}-${{ matrix.architecture }}-${{ matrix.compiler }}-${{ matrix.vcpkg_triplet }}-${{ env.VCPKG_COMMIT }}'
+
+      - name: Install cached Qt 6.9
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{ env.QT_VERSION }}
+          host: ${{ matrix.qt_host }}
+          target: desktop
+          arch: ${{ matrix.qt_arch }}
+          dir: '${{ runner.temp }}/qt'
+          install-deps: true
+          cache: true
+          cache-key-prefix: vidchopper-qt-${{ env.QT_VERSION }}-${{ matrix.platform }}-${{ matrix.architecture }}-${{ matrix.compiler }}
+
+      - name: Install pinned Ubuntu compiler
+        if: matrix.platform == 'ubuntu'
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y gcc-13 g++-13
+
+      - name: Cache macOS FFmpeg downloads
+        if: matrix.platform == 'macos'
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/homebrew-cache
+          key: vidchopper-ffmpeg-${{ matrix.os }}-${{ matrix.architecture }}-${{ matrix.compiler }}-${{ matrix.ffmpeg_formula }}-${{ matrix.ffmpeg_expected_prefix }}
+
+      - name: Install pinned macOS FFmpeg
+        if: matrix.platform == 'macos'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOMEBREW_CACHE"
+          brew install "$FFMPEG_FORMULA"
+          brew link --overwrite --force "$FFMPEG_FORMULA"
+          brew pin "$FFMPEG_FORMULA"
+          installed_version="$(brew list --versions "$FFMPEG_FORMULA" | awk '{ print $2 }')"
+          if [[ "$installed_version" != "$FFMPEG_EXPECTED_PREFIX" ]]; then
+            echo "Expected $FFMPEG_FORMULA $FFMPEG_EXPECTED_PREFIX, got $installed_version." >&2
+            exit 1
+          fi
+
+      - name: Install pinned Ubuntu FFmpeg
+        if: matrix.platform == 'ubuntu'
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          ffmpeg_package_version="$(apt-cache madison ffmpeg | awk -v prefix="$FFMPEG_APT_PREFIX" '$3 ~ ("^" prefix) { print $3; exit }')"
+          if [[ -z "$ffmpeg_package_version" ]]; then
+            . /etc/os-release
+            echo "Pinned FFmpeg package prefix '$FFMPEG_APT_PREFIX' is unavailable on $PRETTY_NAME." >&2
+            exit 1
+          fi
+          sudo apt-get install -y "ffmpeg=$ffmpeg_package_version"
+          sudo apt-mark hold ffmpeg
+
+      - name: Report selected tool versions
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/ci
+          qt_root="${QT_ROOT_DIR:-}"
+          qt_tool=''
+          for candidate in "$qt_root/bin/qtpaths6" "$qt_root/bin/qtpaths" "$qt_root/bin/qmake"; do
+            if [[ -x "$candidate" ]]; then
+              qt_tool="$candidate"
+              break
+            fi
+          done
+          if [[ -z "$qt_tool" ]]; then
+            echo "Qt tool was not found below QT_ROOT_DIR='$qt_root'." >&2
+            exit 1
+          fi
+          if [[ "$qt_tool" == */qmake ]]; then
+            qt_version="$($qt_tool -query QT_VERSION)"
+          else
+            qt_version="$($qt_tool --qt-version)"
+          fi
+          cmake_version="$(cmake --version | sed -n '1p')"
+          ninja_version="$(ninja --version)"
+          compiler_version="$($CC --version | sed -n '1p')"
+          vcpkg_version="$("$VCPKG_ROOT/vcpkg" version | sed -n '1p')"
+          ffmpeg_version="$(ffmpeg -version | sed -n '1p')"
+          ffprobe_version="$(ffprobe -version | sed -n '1p')"
+          if [[ "$qt_version" != "$QT_VERSION" ]]; then
+            echo "Expected Qt $QT_VERSION, got $qt_version." >&2
+            exit 1
+          fi
+          if [[ "$ffmpeg_version" != *"$FFMPEG_EXPECTED_PREFIX"* || "$ffprobe_version" != *"$FFMPEG_EXPECTED_PREFIX"* ]]; then
+            echo "Selected FFmpeg/ffprobe do not match expected prefix $FFMPEG_EXPECTED_PREFIX." >&2
+            exit 1
+          fi
+          {
+            echo "platform=${{ matrix.platform }}"
+            echo "runner=${{ matrix.os }}"
+            echo "architecture=${{ matrix.architecture }}"
+            echo "compiler=${{ matrix.compiler }}"
+            echo "compiler_version=$compiler_version"
+            echo "cmake=$cmake_version"
+            echo "ninja=$ninja_version"
+            echo "vcpkg=$vcpkg_version"
+            echo "qt=$qt_version"
+            echo "ffmpeg=$ffmpeg_version"
+            echo "ffprobe=$ffprobe_version"
+          } | tee artifacts/ci/tool-versions.txt
+
+      - name: Configure Unix GUI preset
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/ci
+          cmake --fresh --preset "${{ matrix.gui_preset }}" 2>&1 | tee artifacts/ci/configure.log
+
+      - name: Build Unix GUI preset
+        shell: bash
+        run: |
+          set -euo pipefail
+          cmake --build --preset "${{ matrix.gui_preset }}" --parallel 2 2>&1 | tee artifacts/ci/build.log
+
+      - name: Run Unix Qt tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          ctest --test-dir "${{ matrix.gui_build_dir }}" -L qt --output-on-failure 2>&1 | tee artifacts/ci/ctest-qt.log
+
+      - name: Generate GUI smoke input
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/ci/gui-smoke
+          ffmpeg -hide_banner -loglevel error -y \
+            -f lavfi -i testsrc=size=320x180:rate=24 -t 1 -pix_fmt yuv420p \
+            artifacts/ci/gui-smoke/sample.mp4 2>&1 | tee artifacts/ci/gui-smoke/ffmpeg.log
+
+      - name: Run headless GUI ready-marker smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          build_dir="${{ matrix.gui_build_dir }}"
+          executable=''
+          while IFS= read -r candidate; do
+            if [[ -x "$candidate" ]]; then
+              executable="$candidate"
+              break
+            fi
+          done < <(find "$build_dir" -type f -name VidChopper -print)
+          if [[ -z "$executable" ]]; then
+            echo "GUI executable was not found below $build_dir." >&2
+            find "$build_dir" -type f -name VidChopper -print
+            exit 1
+          fi
+          ready_file="$GITHUB_WORKSPACE/artifacts/ci/gui-smoke/ready.txt"
+          sample_file="$GITHUB_WORKSPACE/artifacts/ci/gui-smoke/sample.mp4"
+          rm -f "$ready_file" artifacts/ci/gui.log artifacts/ci/gui-ready-marker.txt
+          "$executable" \
+            --demo-scene=workspace \
+            --demo-source="$sample_file" \
+            --window-size=800x600 \
+            --demo-ready-file="$ready_file" \
+            > artifacts/ci/gui.log 2>&1 &
+          gui_pid=$!
+          cleanup() {
+            if kill -0 "$gui_pid" 2>/dev/null; then
+              kill "$gui_pid" 2>/dev/null || true
+              for _ in 1 2 3 4 5; do
+                if ! kill -0 "$gui_pid" 2>/dev/null; then
+                  return
+                fi
+                sleep 1
+              done
+              kill -KILL "$gui_pid" 2>/dev/null || true
+            fi
+          }
+          trap cleanup EXIT
+          for _ in $(seq 1 100); do
+            if [[ -f "$ready_file" ]]; then
+              status="$(tr -d '\r\n' < "$ready_file")"
+              printf 'ready-marker=%s\n' "$status" | tee artifacts/ci/gui-ready-marker.txt
+              if [[ "$status" != ready ]]; then
+                echo "GUI ready marker reported '$status'." >&2
+                exit 1
+              fi
+              exit 0
+            fi
+            if ! kill -0 "$gui_pid" 2>/dev/null; then
+              if wait "$gui_pid"; then
+                echo 'GUI exited before writing its ready marker.' >&2
+              else
+                echo 'GUI failed before writing its ready marker.' >&2
+              fi
+              exit 1
+            fi
+            sleep 0.2
+          done
+          echo 'GUI did not write its ready marker within 20 seconds.' >&2
+          exit 1
+
+      - name: Prepare bounded Unix GUI failure evidence
+        if: failure()
+        shell: bash
+        run: |
+          set -euo pipefail
+          evidence_dir="artifacts/ci/failure"
+          mkdir -p "$evidence_dir"
+          if [[ -f artifacts/ci/tool-versions.txt ]]; then
+            cp artifacts/ci/tool-versions.txt "$evidence_dir/tool-versions.txt"
+          else
+            echo 'tool version report unavailable' > "$evidence_dir/tool-versions.txt"
+          fi
+          if [[ -f artifacts/ci/gui-ready-marker.txt ]]; then
+            cp artifacts/ci/gui-ready-marker.txt "$evidence_dir/gui-ready-marker.txt"
+          else
+            echo 'GUI ready marker was not produced.' > "$evidence_dir/gui-ready-marker.txt"
+          fi
+          shopt -s nullglob
+          logs=(artifacts/ci/*.log artifacts/ci/gui-smoke/*.log)
+          if (( ${#logs[@]} == 0 )); then
+            echo 'No lane log was created before failure.' > "$evidence_dir/summary.txt"
+          else
+            for log in "${logs[@]}"; do
+              tail -n 300 "$log" > "$evidence_dir/$(basename "$log")"
+            done
+          fi
+          last_test="${{ matrix.gui_build_dir }}/Testing/Temporary/LastTest.log"
+          if [[ -f "$last_test" ]]; then
+            tail -n 300 "$last_test" > "$evidence_dir/ctest-last-test.log"
+          else
+            echo 'CTest LastTest.log was not produced.' > "$evidence_dir/ctest-last-test.log"
+          fi
+
+      - name: Upload bounded Unix GUI failure evidence
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-internal-nonrelease-${{ matrix.id }}-gui-failure-${{ github.run_attempt }}
+          path: artifacts/ci/failure/**
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Upload internal Unix GUI evidence
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-internal-nonrelease-${{ matrix.id }}-gui-${{ github.run_attempt }}
+          path: |
+            artifacts/ci/tool-versions.txt
+            artifacts/ci/gui-ready-marker.txt
           if-no-files-found: warn
           retention-days: 7
 
