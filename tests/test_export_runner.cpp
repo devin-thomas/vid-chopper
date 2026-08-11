@@ -190,7 +190,7 @@ auto main() -> int {
         missing.jobs.front().segments.size(), size_t {3}, "missing tool failures should remain explicit per chapter");
     test_support::expect_true(
         missing.jobs.front().segments.front().process.error_message.find(
-            path_to_utf8(successful_job.segments.front().command.front()))
+            path_to_utf8(path_from_utf8(successful_job.segments.front().command.front())))
             != std::string::npos,
         "missing-tool failure should identify the executable path");
     test_support::expect_true(
