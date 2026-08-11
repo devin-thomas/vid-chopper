@@ -7,6 +7,9 @@ $ErrorActionPreference = "Stop"
 . (Join-Path $PSScriptRoot "verification-common.ps1")
 
 $repoRoot = Get-RepoRoot
+# The CLI agent skill has its own stable version stream. It is bundled with each
+# application release, but its immutable artifact version does not follow the app.
+$skillVersion = "1.0.0"
 if ([string]::IsNullOrWhiteSpace($OutputDirectory)) {
     $OutputDirectory = Join-Path $repoRoot "artifacts\release"
 }
@@ -82,12 +85,12 @@ if ($LASTEXITCODE -ne 0 -or $versionOutput.Trim() -ne "VidChopperCLI $Version") 
 if ($LASTEXITCODE -ne 0) {
     throw "Agent skill contract validation failed."
 }
-$skillArtifactRoot = Join-Path $repoRoot "packaging\releases\agent-skills\v$Version"
+$skillArtifactRoot = Join-Path $repoRoot "packaging\releases\agent-skills\v$skillVersion"
 $skillArchive = Join-Path $skillArtifactRoot "vidchopper-cli.zip"
 $skillManifest = Join-Path $skillArtifactRoot "manifest.json"
 if (-not (Test-Path -LiteralPath $skillArchive -PathType Leaf) -or
     -not (Test-Path -LiteralPath $skillManifest -PathType Leaf)) {
-    throw "Agent skill artifacts do not match package version $Version."
+    throw "Stable agent skill artifacts do not match skill version $skillVersion."
 }
 $packagedSkillRoot = Join-Path $stageDirectory ".agents\skills\vidchopper-cli"
 New-Item -ItemType Directory -Force -Path $packagedSkillRoot | Out-Null

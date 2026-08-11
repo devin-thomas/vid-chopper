@@ -8,6 +8,9 @@ $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
+# The packaged CLI uses the stable agent skill contract even when the application
+# candidate has advanced to a newer release version.
+$skillVersion = "1.0.0"
 $archive = [IO.Path]::GetFullPath($ArchivePath)
 if (-not (Test-Path -LiteralPath $archive -PathType Leaf)) {
     throw "Release archive was not found: $archive"
@@ -71,16 +74,16 @@ if ($LASTEXITCODE -ne 0) {
 }
 $packagedSkillRoot = Join-Path $packageRoot ".agents\skills\vidchopper-cli"
 $packagedSkillManifestPath = Join-Path $packageRoot ".agents\skills\vidchopper-cli.manifest.json"
-$canonicalSkillManifestPath = Join-Path $repoRoot "packaging\releases\agent-skills\v$Version\manifest.json"
+$canonicalSkillManifestPath = Join-Path $repoRoot "packaging\releases\agent-skills\v$skillVersion\manifest.json"
 $packagedManifestHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $packagedSkillManifestPath).Hash
 $canonicalManifestHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $canonicalSkillManifestPath).Hash
 if ($packagedManifestHash -ne $canonicalManifestHash) {
     throw "Packaged agent skill manifest does not match the canonical release manifest."
 }
 $skillManifest = Get-Content -Raw -LiteralPath $packagedSkillManifestPath | ConvertFrom-Json
-if ($skillManifest.skillContractVersion -ne 1 -or $skillManifest.cliVersion -ne $Version -or
+if ($skillManifest.skillContractVersion -ne 1 -or $skillManifest.cliVersion -ne $skillVersion -or
     $skillManifest.chapterFileSchemaVersion -ne 1 -or $skillManifest.exportManifestSchemaVersion -ne 1) {
-    throw "Packaged agent skill compatibility tuple does not match release $Version."
+    throw "Packaged agent skill compatibility tuple does not match skill version $skillVersion."
 }
 $expectedSkillFiles = @($skillManifest.files.path | Sort-Object)
 $packagedSkillFiles = @(Get-ChildItem -LiteralPath $packagedSkillRoot -Recurse -File | ForEach-Object {
