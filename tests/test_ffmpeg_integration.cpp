@@ -9,7 +9,6 @@
 #include <chrono>
 #include <filesystem>
 #include <fstream>
-#include <nlohmann/json.hpp>
 #include <sstream>
 #include <string>
 #include <string_view>
@@ -57,6 +56,25 @@ private:
     auto output = std::ostringstream {};
     output << stream.rdbuf();
     return output.str();
+}
+
+[[nodiscard]] auto json_string_literal(const std::string_view value) -> std::string {
+    auto escaped = std::string {"\""};
+    for (const char character : value) {
+        switch (character) {
+        case '\\':
+            escaped += "\\\\";
+            break;
+        case '\"':
+            escaped += "\\\"";
+            break;
+        default:
+            escaped.push_back(character);
+            break;
+        }
+    }
+    escaped.push_back('\"');
+    return escaped;
 }
 
 [[nodiscard]] auto probe_duration_ms(const Path& file_path) -> u64 {
@@ -170,15 +188,14 @@ auto main() -> int {
     test_support::expect_true(manifests.ok(), "real export manifests should be written successfully");
     const std::string json_text = read_text(output_directory / "vidchopper-manifest.json");
     const std::string csv_text = read_text(output_directory / "vidchopper-manifest.csv");
-    const nlohmann::json json = nlohmann::json::parse(json_text);
-    test_support::expect_eq(json.at("source").get<std::string>(),
-        path_to_utf8(source_path),
+    test_support::expect_true(json_text.find("\"source\": " + json_string_literal(path_to_utf8(source_path)))
+            != std::string::npos,
         "JSON manifest should preserve the Unicode source path");
-    test_support::expect_eq(json.at("outputDirectory").get<std::string>(),
-        path_to_utf8(output_directory),
+    test_support::expect_true(
+        json_text.find("\"outputDirectory\": " + json_string_literal(path_to_utf8(output_directory)))
+            != std::string::npos,
         "JSON manifest should preserve the spaced output directory");
-    test_support::expect_eq(json.at("segments").at(0).at("name").get<std::string>(),
-        std::string {"序章 Intro"},
+    test_support::expect_true(json_text.find(json_string_literal("序章 Intro")) != std::string::npos,
         "JSON manifest should preserve the Unicode chapter name");
     test_support::expect_true(
         csv_text.find(path_to_utf8(planned.jobs.front().segments.front().output_path)) != std::string::npos,
