@@ -4,12 +4,12 @@ export const siteUrl = "https://vidchopper.app";
 export const docsUrl = `${siteUrl}/docs`;
 export const chapterFileSchemaUrl = `${siteUrl}/schemas/chapter-config/v1/schema.json`;
 export const chapterFileSampleUrl = `${siteUrl}/samples/chapter-config/v1/chapter-config.json`;
-export const releaseMetadataUrl = `${siteUrl}/releases/v0.3.0-beta/manifest.json`;
+export const releaseMetadataUrl = `${siteUrl}/releases/v1.0.0/manifest.json`;
 export const agentSkillUrl = `${siteUrl}/agents/vidchopper-cli/SKILL.md`;
 export const agentOnboardingPrompt = `Follow ${agentSkillUrl}. Inspect my video and chapter inputs, show me a dry-run, and ask before exporting, overwriting, uploading, publishing, or deleting anything.`;
-export const releaseVersion = "v0.3.0-beta";
+export const releaseVersion = "v1.0.0";
 export const releaseZipUrl =
-  "https://github.com/devin-thomas/vid-chopper/releases/download/v0.3.0-beta/VidChopper-0.3.0-beta-windows-x64.zip";
+  "https://github.com/devin-thomas/vid-chopper/releases/download/v1.0.0/VidChopper-1.0.0-windows-x64.zip";
 
 export const docsLinks = [
   {
@@ -33,7 +33,7 @@ export const docsLinks = [
   {
     title: "Release metadata",
     description:
-      "Version, source commit, package URL, size, checksum, and schema compatibility for v0.3.0-beta.",
+      "Version, source commit, package URL, size, checksum, and schema compatibility for v1.0.0.",
     href: releaseMetadataUrl,
   },
   {
@@ -67,11 +67,11 @@ export const workflowSteps = [
 ] as const;
 
 export const releaseHighlights = [
-  "Portable Windows x64 ZIP attached to the GitHub prerelease",
-  "Complete Qt-free VidChopperCLI.exe packaged beside the Qt desktop app",
+  "Stable Windows 10/11 x64 ZIP attached to the GitHub release",
+  "Qt desktop app and VidChopperCLI.exe using one shared probe and export engine",
   "Explicit JSON/YAML ChapterFiles, dry-run planning, exports, and manifests",
   "ChapterBuilder compatibility verified with a public tournament fixture",
-  "Clean Windows archive smoke testing before prerelease publication",
+  "Clean Windows archive smoke testing before stable publication",
 ] as const;
 
 export const releaseChecklist = [
@@ -82,6 +82,11 @@ export const releaseChecklist = [
 ] as const;
 
 export const previousReleases = [
+  {
+    version: "v0.3.0-beta",
+    date: "Portable CLI beta",
+    note: "First portable GUI and Qt-free CLI package.",
+  },
   {
     version: "v0.2.0-alpha",
     date: "Desktop alpha",
@@ -101,22 +106,22 @@ export const previousReleases = [
 
 export const changelogEntries = [
   {
-    title: "Complete Qt-free CLI",
+    title: "One shared engine",
     detail:
-      "Direct and chop modes now support explicit ChapterFiles, dry runs, exports, progress summaries, and manifests.",
+      "The desktop app and CLI now share process execution, probing, planning, export, progress, verification, and manifests.",
     tag: "CLI",
   },
   {
     title: "Proven portable package",
     detail:
-      "A second clean Windows runner extracts and tests the exact ZIP before GitHub publishes the prerelease.",
+      "A second clean Windows runner extracts and tests the exact ZIP before GitHub publishes the stable release.",
     tag: "Release",
   },
   {
-    title: "ChapterBuilder compatibility",
+    title: "Responsive desktop shell",
     detail:
-      "The game-neutral contract is covered by a 16-chapter public tournament fixture and packaged CLI smoke test.",
-    tag: "Contract",
+      "GPU detection no longer blocks startup, logs remain bounded, and the existing visual workflow is preserved.",
+    tag: "Desktop",
   },
 ] as const;
 
@@ -165,7 +170,7 @@ export const roadmap = [
   },
   {
     item: "Converge GUI and CLI on one shared engine for stable v1.0.0",
-    status: "Later",
+    status: "Shipped",
   },
 ] as const;
 
@@ -177,7 +182,7 @@ export const docsGuideposts = [
     summary:
       "Install the portable Windows package and verify the local tools before reading or changing user media.",
     points: [
-      "Use the v0.3.0-beta Windows x64 ZIP from the verified GitHub prerelease.",
+      "Use the v1.0.0 Windows x64 ZIP from the verified stable GitHub release.",
       "VidChopperCLI.exe and the GUI are bundled; ffmpeg and ffprobe are installed or configured separately.",
       "Keep the source video, ChapterFile, manifests, and clips local. The documentation site never receives them.",
     ],
@@ -193,7 +198,7 @@ ffprobe -version`,
       "Pass explicit local paths and select exactly one chapter source. Direct and chop forms share the same released behavior.",
     points: [
       "A ChapterFile path and --embedded are mutually exclusive.",
-      "Use --crf for the released standalone CLI's tested x264 path; do not assume --cq selects NVENC.",
+      "Use --crf unless the effective plan selects NVENC; --cq alone does not select it.",
       "Run --help on the packaged binary when a command or flag is uncertain.",
     ],
     command: `& "C:\\Tools\\VidChopper\\VidChopperCLI.exe" "C:\\Media\\source.mp4" "C:\\Media\\chapters.json" --dry-run`,

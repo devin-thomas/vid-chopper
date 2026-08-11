@@ -86,10 +86,17 @@
       "sha256": "e1bfb8e29c4288b4835cd4e7a958207eee18e0a7ddf79932cecaf8db1269fa45"
     },
     {
-      "source": "packaging/releases/0.3.0-beta.json",
+      "source": "packaging/releases/1.0.0.json",
       "route": "/releases/current.json",
       "contentType": "application/json; charset=utf-8",
       "cache": "stable"
+    },
+    {
+      "source": "packaging/releases/1.0.0.json",
+      "route": "/releases/v1.0.0/manifest.json",
+      "contentType": "application/json; charset=utf-8",
+      "cache": "immutable",
+      "sha256": "87f5197dcc81dc054d9e975e31c451a5854bc6c323586c58c92e1f79ebd8c06f"
     },
     {
       "source": "packaging/releases/0.3.0-beta.json",

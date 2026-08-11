@@ -377,9 +377,8 @@ that path policy with `.gitattributes` (or generates from the Git blob) before h
 checkout conversion cannot make the site and ZIP digests disagree. Digests cover the raw published
 bytes, not a platform-normalized local copy.
 
-Schema version `1` will be bundled with the VID-52 skill and future packages; it is not in the
-published `v0.3.0-beta` ZIP. Until the canonical site route exists, its immutable network fallback is
-the release-commit
+Schema version `1` is bundled with the released skill and `1.0.0` package. The historical
+`v0.3.0-beta` ZIP predates that addition, so its immutable network fallback remains the release-commit
 [`chapter-config.schema.json`](https://raw.githubusercontent.com/devin-thomas/vid-chopper/886815578066c972de7ef400eb0b6de41a5bc33d/docs/schemas/chapter-config.schema.json),
 SHA-256 `e7583c6a9062549059fa224b7adf687096dc940d1fb40a9e39d254805f8299bc`. The
 `$schema` field is a hint; `VidChopperCLI.exe` does not fetch it. A mismatched or unavailable network
