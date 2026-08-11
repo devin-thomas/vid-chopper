@@ -1,4 +1,5 @@
 #include "qt/services/probe_coordinator.hpp"
+#include "qt/ui/export_start_policy.hpp"
 #include "test_support.hpp"
 
 #include <QCoreApplication>
@@ -40,6 +41,11 @@ namespace {
 
 auto main(int argc, char* argv[]) -> int {
     auto application = QCoreApplication {argc, argv};
+    test_support::expect_true(
+        !can_start_export(true, true), "an active source probe should gate export of stale metadata");
+    test_support::expect_true(can_start_export(false, true), "settled metadata should remain exportable");
+    test_support::expect_true(!can_start_export(false, false), "export should require source metadata");
+
     const auto executable = Path {R"(C:\Program Files\ffmpeg\ffprobe.exe)"};
     const auto source = Path {R"(C:\Temp\match clips\set.mkv)"};
     const auto process = ProcessResult {

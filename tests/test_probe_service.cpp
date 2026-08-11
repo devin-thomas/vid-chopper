@@ -79,12 +79,16 @@ auto main() -> int {
     test_support::expect_true(
         !parse_probe_output(executable, source, missing_fields).ok(), "missing required fields should be rejected");
 
-    const auto unsupported = ProcessResult {
+    const auto unknown_frame_rate = ProcessResult {
         .state = ProcessExitState::Success,
         .standard_output = R"({"format":{"duration":"1"},"streams":[{"codec_type":"video","avg_frame_rate":"0/0"}]})",
     };
-    test_support::expect_true(
-        !parse_probe_output(executable, source, unsupported).ok(), "unsupported frame rate should be rejected");
+    const ProbeResult unknown_rate = parse_probe_output(executable, source, unknown_frame_rate);
+    test_support::expect_true(unknown_rate.ok(), "a valid duration should not require a known frame rate");
+    test_support::expect_eq(
+        unknown_rate.metadata.duration_ms, u64 {1000}, "duration should survive an unknown frame rate");
+    test_support::expect_eq(
+        unknown_rate.metadata.frame_rate, FrameRate {}, "an unknown frame rate should use the empty value");
 
     const auto oversized =
         ProcessResult {.state = ProcessExitState::Success, .standard_output = oversized_stream_output()};
@@ -121,6 +125,16 @@ auto main() -> int {
         observed_request.arguments.back(), source.string(), "probe should preserve the source path");
     test_support::expect_true(
         observed_request.stop_token.stop_possible(), "probe should forward cancellation to the runner");
+
+#ifdef _WIN32
+    const auto unicode_source = Path {L"C:\\Temp\\\u89C6\u9891.mkv"};
+    const ProbeResult unicode = ProbeService {fake}.probe(executable, unicode_source);
+    test_support::expect_true(unicode.ok(), "probing should accept a Unicode source path");
+    const auto expected_unicode_argument = std::string {"C:\\Temp\\\xE8\xA7\x86\xE9\xA2\x91.mkv"};
+    test_support::expect_eq(observed_request.arguments.back(),
+        expected_unicode_argument,
+        "the process request should preserve a Windows source path as UTF-8");
+#endif
 
     return 0;
 }

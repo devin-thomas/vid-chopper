@@ -184,6 +184,7 @@ if(VIDCHOPPER_BUILD_GUI)
         src/qt/ui/advanced_settings_dialog.hpp
         src/qt/ui/chapter_table_model.cpp
         src/qt/ui/chapter_table_model.hpp
+        src/qt/ui/export_start_policy.hpp
         src/qt/ui/main_window.cpp
         src/qt/ui/main_window.hpp
         resources/app_icon.qrc

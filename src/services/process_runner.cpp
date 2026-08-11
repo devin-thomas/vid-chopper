@@ -284,13 +284,13 @@ auto run_process(const ProcessRequest& request) -> ProcessResult {
             result.state = ProcessExitState::Crashed;
             result.error_message = windows_error_message(GetLastError());
         } else {
-            result.exit_code = static_cast<i32>(exit_code);
             if (exit_code == 0) {
                 result.state = ProcessExitState::Success;
             } else if (exit_code >= 0xC0000000U) {
                 result.state = ProcessExitState::Crashed;
             } else {
                 result.state = ProcessExitState::NonzeroExit;
+                result.exit_code = static_cast<i32>(exit_code);
             }
         }
     }

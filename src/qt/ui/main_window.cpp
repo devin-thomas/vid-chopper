@@ -10,6 +10,7 @@
 #include "qt/services/probe_coordinator.hpp"
 #include "qt/ui/advanced_settings_dialog.hpp"
 #include "qt/ui/chapter_table_model.hpp"
+#include "qt/ui/export_start_policy.hpp"
 
 #include <QAction>
 #include <QApplication>
@@ -528,8 +529,15 @@ auto MainWindow::start_or_cancel_export() -> void {
         return;
     }
 
-    if (!metadata_.has_value()) {
-        QMessageBox::warning(this, "No source loaded", "Select a source video before exporting chapters.");
+    const bool probe_busy = probe_coordinator_->busy();
+    if (!can_start_export(probe_busy, metadata_.has_value())) {
+        if (probe_busy) {
+            QMessageBox::warning(this,
+                "Source inspection in progress",
+                "Wait for source inspection to finish before exporting chapters.");
+        } else {
+            QMessageBox::warning(this, "No source loaded", "Select a source video before exporting chapters.");
+        }
         return;
     }
 

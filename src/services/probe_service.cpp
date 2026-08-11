@@ -11,6 +11,7 @@
 #include <limits>
 #include <optional>
 #include <ranges>
+#include <string>
 #include <string_view>
 #include <utility>
 
@@ -19,6 +20,15 @@ namespace vidchopper {
 namespace {
 
 using Json = nlohmann::json;
+
+[[nodiscard]] auto path_to_utf8(const Path& path) -> std::string {
+#ifdef _WIN32
+    const std::u8string value = path.u8string();
+    return {value.begin(), value.end()};
+#else
+    return path.string();
+#endif
+}
 
 [[nodiscard]] auto bounded_context(std::string context) -> std::string {
     constexpr auto maximum_bytes = size_t {4096};
@@ -36,8 +46,8 @@ using Json = nlohmann::json;
     const std::string context =
         bounded_context(process.standard_error.empty() ? process.error_message : process.standard_error);
     auto message = std::format("ffprobe executable '{}' failed for source '{}' ({})",
-        executable.string(),
-        source_path.string(),
+        path_to_utf8(executable),
+        path_to_utf8(source_path),
         process_exit_state_name(process.state));
     if (!detail.empty()) {
         message += ": " + std::string {detail};
@@ -157,16 +167,12 @@ using Json = nlohmann::json;
             frame_rate = parse_frame_rate(stream["r_frame_rate"]);
         }
     }
-    if (!frame_rate.has_value()) {
-        return std::nullopt;
-    }
-
     auto metadata = VideoMetadata {
         .source_path = source_path,
         .duration_ms = *duration,
-        .frame_rate = *frame_rate,
+        .frame_rate = frame_rate.value_or(FrameRate {}),
         .streams = std::move(parsed_streams),
-        .source_extension = source_path.extension().empty() ? ".mp4" : source_path.extension().string(),
+        .source_extension = source_path.extension().empty() ? ".mp4" : path_to_utf8(source_path.extension()),
     };
     std::ranges::transform(metadata.source_extension, metadata.source_extension.begin(), [](const unsigned char value) {
         return static_cast<char>(std::tolower(value));
@@ -224,7 +230,7 @@ auto ProbeService::probe(
             "-show_format",
             "-show_streams",
             "-show_chapters",
-            source_path.string()},
+            path_to_utf8(source_path)},
         .stop_token = stop_token,
     };
     return parse_probe_output(executable, source_path, executor_(request));

@@ -25,6 +25,11 @@ will converge on the shared engine recorded in ADR 0001.
   - output planning
   - file naming
   - command construction
+- `src/services/`
+  - synchronous, Qt-free workflow services shared by the GUI and CLI
+  - typed process requests, results, and cancellation
+  - Windows process execution behind the `ProcessExecutor` port
+  - ffprobe invocation and metadata parsing
 - `src/cli/`
   - no-Qt command-line entry point and CLI-specific orchestration
   - command parsing
@@ -36,7 +41,7 @@ will converge on the shared engine recorded in ADR 0001.
   - advanced settings dialog
   - chapter table model
   - app settings persistence
-  - `ffprobe` probing
+  - queued `ProbeCoordinator` adapter
   - GPU detection
   - export coordination
 - `tests/`
@@ -58,8 +63,9 @@ will converge on the shared engine recorded in ADR 0001.
 ## Architecture Boundaries
 
 - `src/core` must remain Qt-free.
-- `src/cli` must remain Qt-free and may depend on `src/core`.
-- `src/qt` may depend on `src/core`; the reverse is forbidden.
+- `src/services` must remain Qt-free and may depend on `src/core`.
+- `src/cli` must remain Qt-free and may depend on `src/services` and `src/core`.
+- `src/qt` may depend on `src/services` and `src/core`; the reverse is forbidden.
 - Core types should remain standard C++ types:
   - `std::string`
   - `std::string_view`
@@ -87,7 +93,8 @@ their final contracts.
 ## Export Flow
 
 1. The user selects a source video in the main window.
-2. `ffprobe_service` probes the file for duration, frame rate, and embedded chapters.
+2. `ProbeCoordinator` runs the shared `ProbeService` off the UI thread to collect duration, frame rate,
+   streams, and embedded chapters.
 3. The UI imports embedded chapters or seeds a default layout.
 4. The chapter table model exposes editable chapter rows plus the synthetic append row.
 5. App settings and advanced settings determine export behavior.
@@ -100,7 +107,7 @@ their final contracts.
 1. The caller runs `VidChopperCLI.exe <video> <chapters.json|chapters.yaml>` or `VidChopperCLI.exe chop <video> <config>`.
 2. The CLI loads `VidChopperCLI.ini` and never reads `VidChopper.ini` unless `--use-gui-config` is passed.
 3. The CLI resolves the selected ChapterSource from a ChapterFile or explicit embedded chapters.
-4. The CLI probes source metadata through a no-Qt probing service.
+4. The CLI probes source metadata directly through the shared Qt-free `ProbeService`.
 5. The CLI validates and plans outputs through `src/core`.
 6. The CLI performs dry-run output or sequential export with human-readable progress.
 
