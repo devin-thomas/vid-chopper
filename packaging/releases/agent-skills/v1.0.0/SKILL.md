@@ -45,6 +45,11 @@ other versions are outside that exact proof and are not silently rejected. Ask b
 installing any missing tool. Use `--crf` in examples unless the effective plan actually selects
 NVENC; `--cq` alone does not select it in the `1.0.0` CLI.
 
+For settings, use the native default location unless the user explicitly chooses a different boundary:
+`--config <path>` and its `--config-path <path>` alias select one CLI settings file, while `--portable`
+uses the deterministic sidecar beside the executable. Do not combine an explicit path with `--portable`.
+An explicit settings file is the sole CLI settings store and does not import GUI settings.
+
 ## Inspect inputs read-only
 
 Confirm that each source and ChapterFile is readable before invoking the CLI. Use `ffprobe` to inspect
@@ -99,7 +104,8 @@ Present one compact review containing:
 - source and chapter-source paths, provenance, and chapter count;
 - exact output directory, every planned file, and all existing destinations;
 - effective overwrite behavior and per-job or aggregate manifest locations;
-- the `VidChopperCLI.ini` path that a normal run may create beside the executable; and
+- the selected CLI settings mode and path (`VidChopperCLI.ini`, `--config`, `--config-path`, or
+  `--portable`); and
 - the exact command that will run without `--dry-run`.
 
 Stop on every `Existing output: yes`. The `1.0.0` CLI has no explicit safe overwrite flag and normally

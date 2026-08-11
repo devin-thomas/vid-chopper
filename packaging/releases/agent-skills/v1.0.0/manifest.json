@@ -3,10 +3,10 @@
   "cliVersion": "1.0.0",
   "chapterFileSchemaVersion": 1,
   "exportManifestSchemaVersion": 1,
-  "skillSha256": "5c4fd82aeec8ab07120567a8f73840848ea5fa19ac3ff3efa8b58f48d45b4c87",
-  "skillArchiveSha256": "28226f79825a3d9b93ddbbc30dbe70ed79b998d65bdc07915d09231c711a0a3c",
+  "skillSha256": "4791d8443d10a05f9f1f26d5e5dcb1355cd843f85826db5ac6ac45a6bf5467c2",
+  "skillArchiveSha256": "48743e5e02d342ddbc7ece308862b3132cb576ddebb65b0f976520f0f8c815df",
   "chapterFileSchemaSha256": "dcfd06dc667f66a41916eb83e9b6db9d7aa5225266a44e6f662d5f9fff6379f2",
-  "sourceCommit": "3ae74f6f8eeecfd3a00feaef29f8d0ee43119889",
+  "sourceCommit": "c0d0930c4d4b5ea021ebdd012567bef7bb603b51",
   "repositoryPath": ".agents/skills/vidchopper-cli/SKILL.md",
   "stableUrl": "https://vidchopper.app/agents/vidchopper-cli/SKILL.md",
   "versionedUrl": "https://vidchopper.app/agents/vidchopper-cli/v1.0.0/SKILL.md",
@@ -14,11 +14,14 @@
   "cliFlags": [
     "--aggregate-csv",
     "--aggregate-json",
+    "--config",
+    "--config-path",
     "--cq",
     "--crf",
     "--dry-run",
     "--embedded",
     "--help",
+    "--portable",
     "--preset",
     "--stop-on-first-error",
     "--threads",
@@ -52,7 +55,7 @@
     },
     {
       "path": "references/cli.md",
-      "sha256": "3de3f26e2377e001b93806d1379f34d4d3ce8e488a5c1dff33d3b0fb488b4101"
+      "sha256": "58fdf28a7734e71a423738fe88e7714fec05fb132e0542aad97065e1da7adfce"
     },
     {
       "path": "references/manifests.md",
@@ -60,7 +63,7 @@
     },
     {
       "path": "SKILL.md",
-      "sha256": "5c4fd82aeec8ab07120567a8f73840848ea5fa19ac3ff3efa8b58f48d45b4c87"
+      "sha256": "4791d8443d10a05f9f1f26d5e5dcb1355cd843f85826db5ac6ac45a6bf5467c2"
     }
   ]
 }
