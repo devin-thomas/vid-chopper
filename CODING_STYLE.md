@@ -11,6 +11,11 @@ If a change would violate a rule below, either follow the rule or change this do
 For connector-based work, automated code edits, or future AI-agent handoffs, read
 `AGENTS.md` alongside this guide before changing code.
 
+Engineering managers and reviewers can use the
+[C++20 clarity and safety guide](docs/cpp20-clarity-and-safety.md) for the decision frame,
+codebase examples, adoption sequence, and review checklist. This document remains normative for
+code form.
+
 ---
 
 ## 1. Philosophy & priorities
