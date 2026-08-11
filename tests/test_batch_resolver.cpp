@@ -1,4 +1,5 @@
 #include "cli/batch_resolver.hpp"
+#include "core/path_utils.hpp"
 #include "test_support.hpp"
 
 #include <filesystem>
@@ -153,9 +154,9 @@ auto main() -> int {
     });
     test_support::expect_true(
         !unicode_duplicate_result.ok(), "Windows ordinal duplicate detection should fold non-ASCII case variants");
-    test_support::expect_true(contains(joined_errors(unicode_duplicate_result), unicode_duplicate_upper.string()),
+    test_support::expect_true(contains(joined_errors(unicode_duplicate_result), path_to_utf8(unicode_duplicate_upper)),
         "non-ASCII duplicate diagnostics should preserve uppercase source spelling");
-    test_support::expect_true(contains(joined_errors(unicode_duplicate_result), unicode_duplicate_lower.string()),
+    test_support::expect_true(contains(joined_errors(unicode_duplicate_result), path_to_utf8(unicode_duplicate_lower)),
         "non-ASCII duplicate diagnostics should preserve lowercase source spelling");
 #endif
 
@@ -180,9 +181,9 @@ auto main() -> int {
     });
     const std::string duplicate_source_errors = joined_errors(duplicate_source_result);
     test_support::expect_true(!duplicate_source_result.ok(), "duplicate source stems should fail");
-    test_support::expect_true(contains(duplicate_source_errors, duplicate_source_lower.string()),
+    test_support::expect_true(contains(duplicate_source_errors, path_to_utf8(duplicate_source_lower)),
         "duplicate source error should include the first conflicting path");
-    test_support::expect_true(contains(duplicate_source_errors, duplicate_source_upper.string()),
+    test_support::expect_true(contains(duplicate_source_errors, path_to_utf8(duplicate_source_upper)),
         "duplicate source error should include the second conflicting path");
 
     const Path duplicate_config_sources = root.path() / "duplicate-configs" / "videos";
@@ -198,9 +199,9 @@ auto main() -> int {
     });
     const std::string duplicate_config_errors = joined_errors(duplicate_config_result);
     test_support::expect_true(!duplicate_config_result.ok(), "duplicate config stems should fail");
-    test_support::expect_true(contains(duplicate_config_errors, duplicate_config_json.string()),
+    test_support::expect_true(contains(duplicate_config_errors, path_to_utf8(duplicate_config_json)),
         "duplicate config error should include the first conflicting path");
-    test_support::expect_true(contains(duplicate_config_errors, duplicate_config_yaml.string()),
+    test_support::expect_true(contains(duplicate_config_errors, path_to_utf8(duplicate_config_yaml)),
         "duplicate config error should include the second conflicting path");
 
     const Path mismatched_sources = root.path() / "mismatch" / "videos";
@@ -215,8 +216,8 @@ auto main() -> int {
     });
     const std::string mismatch_errors = joined_errors(mismatch);
     const auto expected_mismatch_errors = std::vector<std::string> {
-        "Missing ChapterFile for Source: " + (mismatched_sources / "beta.mkv").string() + ".",
-        "Orphan ChapterFile: " + (mismatched_configs / "gamma.yaml").string() + ".",
+        "Missing ChapterFile for Source: " + path_to_utf8(mismatched_sources / "beta.mkv") + ".",
+        "Orphan ChapterFile: " + path_to_utf8(mismatched_configs / "gamma.yaml") + ".",
     };
     test_support::expect_true(!mismatch.ok(), "missing and orphan configs should fail");
     test_support::expect_eq(
@@ -266,9 +267,9 @@ auto main() -> int {
         .chapter_source_path = unsupported_config,
     });
     const auto expected_unsupported_errors = std::vector<std::string> {
-        "Unsupported Source extension: " + unsupported_source_path.string()
+        "Unsupported Source extension: " + path_to_utf8(unsupported_source_path)
             + ". Supported extensions: .mp4, .mkv, .mov.",
-        "Unsupported ChapterFile extension: " + unsupported_config.string()
+        "Unsupported ChapterFile extension: " + path_to_utf8(unsupported_config)
             + ". Supported extensions: .json, .yaml, .yml.",
     };
     test_support::expect_eq(both_unsupported.errors,

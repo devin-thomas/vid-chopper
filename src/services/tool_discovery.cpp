@@ -124,12 +124,15 @@ auto add_tool_candidate(std::vector<Candidate>& candidates,
     std::vector<std::string>& seen,
     const Path& path,
     const ToolDiscoverySource source) -> void {
-    add_candidate(candidates, seen, path, source);
 #ifdef _WIN32
     if (path.extension().empty()) {
-        add_candidate(candidates, seen, Path {path.string() + ".exe"}, source);
+        auto executable_path = path;
+        executable_path += ".exe";
+        add_candidate(candidates, seen, executable_path, source);
+        return;
     }
 #endif
+    add_candidate(candidates, seen, path, source);
 }
 
 [[nodiscard]] auto default_homebrew_paths() -> std::vector<Path> {

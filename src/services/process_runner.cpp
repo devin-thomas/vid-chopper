@@ -412,7 +412,10 @@ auto run_process(const ProcessRequest& request) -> ProcessResult {
         &process_info);
     if (created == FALSE) {
         const DWORD error_code = GetLastError();
-        return ProcessResult {.error_message = windows_error_message(error_code)};
+        return ProcessResult {
+            .state = ProcessExitState::FailedStart,
+            .error_message = std::format("execute process: {}", windows_error_message(error_code)),
+        };
     }
 
     auto process_handle = Handle {process_info.hProcess};

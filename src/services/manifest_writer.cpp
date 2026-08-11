@@ -248,7 +248,7 @@ auto write_manifests(const std::vector<ResolvedExportJob>& planned_jobs,
         }
         if (job.settings.write_json_manifest) {
             const Path target = job.output_directory / "vidchopper-manifest.json";
-            if (atomic_write(target, job_json(job, export_job).dump(2), manifest_job.errors)) {
+            if (atomic_write(target, job_json(job, export_job).dump(2, ' ', false), manifest_job.errors)) {
                 manifest_job.written_paths.push_back(target);
                 result.written_paths.push_back(target);
             }
@@ -278,7 +278,7 @@ auto write_manifests(const std::vector<ResolvedExportJob>& planned_jobs,
             const ExportJobResult* job_result = index < run_result.jobs.size() ? &run_result.jobs[index] : nullptr;
             aggregate["jobs"].push_back(job_json(planned_jobs[index], job_result));
         }
-        if (atomic_write(*aggregate_json_path, aggregate.dump(2), result.errors)) {
+        if (atomic_write(*aggregate_json_path, aggregate.dump(2, ' ', false), result.errors)) {
             result.written_paths.push_back(*aggregate_json_path);
         }
     }

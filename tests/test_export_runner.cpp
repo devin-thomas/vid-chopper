@@ -150,7 +150,7 @@ auto main() -> int {
         continued.jobs.front().segments[1].process.error_message.find("exit code 7") != std::string::npos,
         "nonzero ffmpeg failure should include its exit code");
     test_support::expect_true(
-        continued.jobs.front().segments[1].process.error_message.find(successful_job.metadata.source_path.string())
+        continued.jobs.front().segments[1].process.error_message.find(path_to_utf8(successful_job.metadata.source_path))
             != std::string::npos,
         "nonzero ffmpeg failure should include the source path");
 

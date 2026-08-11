@@ -1,4 +1,5 @@
 #include "services/tool_discovery.hpp"
+#include "core/path_utils.hpp"
 #include "test_support.hpp"
 
 #include <filesystem>
@@ -175,7 +176,7 @@ auto main(const int argument_count, char** arguments) -> int {
     const Path unsupported_old = copy_fixture(self, root, "unsupported-old-ffmpeg");
     const ToolResolution old_result = discover_tool(ToolKind::Ffmpeg, unsupported_old, deterministic_options);
     test_support::expect_true(!old_result.ok(), "6.0 should be blocked");
-    test_support::expect_true(contains(old_result.failure_reason, unsupported_old.string()),
+    test_support::expect_true(contains(old_result.failure_reason, path_to_utf8(unsupported_old)),
         "unsupported diagnostics should identify the exact path");
     test_support::expect_true(contains(old_result.failure_reason, "6.1 through 8.x"),
         "unsupported diagnostics should state the supported range");
