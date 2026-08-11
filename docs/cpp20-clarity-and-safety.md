@@ -4,10 +4,9 @@
 |---|---|
 | Linear issue | VID-45 |
 | Audience | Engineering managers, maintainers, reviewers, and AI agents |
-| Authority | This Markdown file is the source for the matching generated PDF. `CODING_STYLE.md` remains normative for code form. |
-| Code baseline | `395c52b` (VID-40 shared process, probing, and queued Qt adapter integration) |
-| Last verified | 2026-08-01 |
-| Artifact pair | `docs/cpp20-clarity-and-safety.md` and `output/pdf/vidchopper-cpp20-clarity-and-safety-guide.pdf` |
+| Authority | This repository Markdown file is the authoritative internal guide. `CODING_STYLE.md` remains normative for code form. |
+| Code baseline | Current `main`; compiled excerpts are checked against their source files by `npm test` in `docs/`. |
+| Last verified | 2026-08-10 |
 
 ## Purpose and authority
 
@@ -46,10 +45,10 @@ into shared contracts, hides failure, or replaces an established contract withou
 ## Toolchain contract
 
 `CMakeLists.txt` sets `CMAKE_CXX_STANDARD` to `20`, requires it, disables compiler extensions, and
-requests `cxx_std_20` on the core and CLI targets. Supported verification uses MSVC 17 (Visual Studio
-2022) and GCC 13. CMake 3.28 or newer is required. The GUI accepts Qt 6.7 or newer at configure time;
-the repository verification baseline is Qt 6.9. Formatting and core static analysis use pinned
-clang-format and clang-tidy 18.1.8.
+requests `cxx_std_20` on the core, services, and CLI targets. Supported verification uses MSVC 17
+(Visual Studio 2022) and GCC 13. CMake 3.28 or newer is required. The GUI accepts Qt 6.7 or newer at
+configure time; the repository verification baseline is Qt 6.9. Formatting and core static analysis
+use pinned clang-format and clang-tidy 18.1.8.
 
 Do not use C++23 library features such as:
 
@@ -105,20 +104,20 @@ delete parented objects. Use `QPointer` when an observed Qt object can be delete
 Every `QObject` subclass must use `Q_DISABLE_COPY_MOVE`. Qt identity, signals, parentage, and moc
 state must never be duplicated or moved.
 
-**Compiled source excerpt - `src/qt/ui/main_window.cpp`:**
+**Compiled source excerpt - `src/qt/ui/chapter_table_model.hpp`:**
 
 ```cpp
-MainWindow::MainWindow(DemoLaunchOptions demo_options, QWidget* parent)
-    : QMainWindow(parent)
-    , demo_options_(std::move(demo_options))
-    , chapter_model_(new ChapterTableModel {this})
-    , probe_coordinator_(new ProbeCoordinator {this})
-    , export_coordinator_(new ExportCoordinator {this}) {
+class ChapterTableModel final : public QAbstractTableModel {
+    Q_OBJECT
+    Q_DISABLE_COPY_MOVE(ChapterTableModel)
+
+public:
+    explicit ChapterTableModel(QObject* parent = nullptr);
 ```
 
-`MainWindow` follows the lifetime policy by constructing `ChapterTableModel`, `ProbeCoordinator`,
-and `ExportCoordinator` with `this`, parenting widgets to their containing widgets, and observing
-its transient settings dialog through `QPointer`.
+`ChapterTableModel` passes that parent to `QAbstractTableModel`; `MainWindow` constructs the model
+and its coordinators with `this`. Widgets are parented to their containing widgets, and the transient
+settings dialog is observed through `QPointer`.
 
 **Schematic ownership anti-pattern - not part of a compiled target:**
 
@@ -139,6 +138,10 @@ Use a named result struct when the caller needs state, diagnostics, or partial o
 `ValidationResult`, `ProcessResult`, `SettingsLoadResult`, and `ManifestWriteResult`. Give result
 types an `ok() const noexcept` query when success has a stable meaning. Preserve specific errors at
 the boundary instead of catching broadly or returning success-shaped defaults.
+
+Streaming callbacks on `ProcessRequest` are for live presentation while a process runs.
+`ProcessResult` remains the completed outcome and retains the bounded captured output and diagnostic
+state needed by callers.
 
 **Compiled source excerpt - `src/services/process_runner.hpp`:**
 
@@ -260,9 +263,11 @@ The dependency direction is `src/qt -> shared Qt-free code`; shared code never i
 plain values, `std::string`, containers, and filesystem paths through shared interfaces. Convert
 `QString`, `QStringList`, Qt model indexes, signals, and widgets inside `src/qt`.
 
-The CLI must remain usable without a Qt runtime. Windows-specific process and path behavior stays
-behind CLI or platform adapters and must not enter shared contracts. This implements ADR 0001 and
-ADR 0003 while the shared engine migration proceeds.
+The CLI must remain usable without a Qt runtime. Windows-specific process behavior stays inside
+`src/services/process_runner.cpp` behind the portable `ProcessRequest` and `ProcessResult`
+contracts. Platform-specific path and batch details likewise stay inside implementation files and
+must not enter shared contracts. This implements ADR 0001 and ADR 0003. The shared-engine migration
+is complete; future work preserves this boundary.
 
 Production use of nlohmann-json and yaml-cpp is quarantined behind implementation adapters.
 nlohmann-json is used by the shared probe service and CLI JSON adapters; yaml-cpp remains in the CLI
@@ -310,8 +315,8 @@ left to CI. An assertion that code "looks safe" is not evidence.
 1. **New code:** apply every rule immediately; do not add new debt.
 2. **Touched code:** improve the local ownership, error, arithmetic, and boundary contract within the
    issue scope, protected by existing or new tests.
-3. **Shared-engine migration:** move workflow behavior behind portable interfaces in the sequence
-   established by ADR 0001; preserve GUI and CLI behavior with golden coverage.
+3. **Boundary preservation:** extend shared workflow behavior through portable interfaces; keep GUI
+   and CLI adapters thin and protect their common behavior with focused coverage.
 4. **Legacy cleanup:** schedule broad consistency work as focused Linear issues. Do not mix a
    whole-tree modernization into an unrelated feature or release fix.
 
@@ -327,5 +332,5 @@ A C++ change is done only when:
 - code examples and documentation references match the current tree; and
 - the PR reports the exact verification evidence and any remaining external gate.
 
-This guide's publication is complete when its Markdown/PDF pair is freshness-checked by the shared
-documentation tooling and every rendered page passes visual inspection.
+This guide's publication is complete when its local links, required policy sections, and compiled
+source excerpts pass `npm test` from `docs/`.
