@@ -1,6 +1,6 @@
 #include "qt/services/session_controller.hpp"
 
-#include "core/command_builder.hpp"
+#include "core/chapter_plan.hpp"
 #include "qt/services/probe_coordinator.hpp"
 
 #include <system_error>
