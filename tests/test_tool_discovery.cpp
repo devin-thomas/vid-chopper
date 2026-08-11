@@ -45,7 +45,7 @@ namespace {
 }
 
 [[nodiscard]] auto version_output(const Path& executable) -> std::string {
-    const std::string name = executable.filename().string();
+    const std::string name = path_to_utf8(executable.filename());
     const std::string tool = contains(name, "ffprobe") ? "ffprobe" : "ffmpeg";
     if (contains(name, "unsupported-old")) {
         return std::format("{} version 6.0.0", tool);
@@ -129,7 +129,8 @@ auto main(const int argument_count, char** arguments) -> int {
 
     const ToolDiscoveryOptions deterministic_options {
         .executor = fake_executor(),
-        .path_environment = path_directory.string() + std::string {path_separator()} + path_directory.string(),
+        .path_environment = path_to_utf8(path_directory) + std::string {path_separator()}
+            + path_to_utf8(path_directory),
         .additional_homebrew_paths = {homebrew_directory},
         .additional_standard_paths = {standard_directory},
         .use_platform_defaults = false,
@@ -172,6 +173,21 @@ auto main(const int argument_count, char** arguments) -> int {
         std::filesystem::equivalent(from_standard.selected_path, standard_ffmpeg), "standard path should be searched");
     test_support::expect_eq(
         from_standard.source, ToolDiscoverySource::StandardLocation, "standard source should be reported");
+
+#ifdef _WIN32
+    const Path unicode_directory = root / path_from_utf8("tool paths/工具 🎬");
+    static_cast<void>(std::filesystem::create_directories(unicode_directory));
+    const Path unicode_ffmpeg = copy_fixture(self, unicode_directory, "ffmpeg");
+    const ToolDiscoveryOptions unicode_options {
+        .executor = fake_executor(),
+        .path_environment = path_to_utf8(unicode_directory),
+        .use_platform_defaults = false,
+    };
+    const ToolResolution from_unicode_path = discover_tool(ToolKind::Ffmpeg, {}, unicode_options);
+    test_support::expect_true(from_unicode_path.ok(), "UTF-8 Windows PATH entries should resolve");
+    test_support::expect_true(std::filesystem::equivalent(from_unicode_path.selected_path, unicode_ffmpeg),
+        "UTF-8 Windows PATH entries should preserve the native path");
+#endif
 
     const Path unsupported_old = copy_fixture(self, root, "unsupported-old-ffmpeg");
     const ToolResolution old_result = discover_tool(ToolKind::Ffmpeg, unsupported_old, deterministic_options);

@@ -3,11 +3,13 @@
 #include "core/types.hpp"
 
 #include <cstdlib>
+#include <cwchar>
 #include <filesystem>
 #include <optional>
 #include <string>
 #include <string_view>
 #include <system_error>
+#include <utility>
 
 namespace vidchopper {
 
@@ -81,25 +83,58 @@ struct ConfigResolutionResult {
     return error ? Path {"."} : path;
 }
 
+#ifdef _WIN32
+[[nodiscard]] inline auto windows_environment_path(const wchar_t* name) -> std::optional<Path> {
+    size_t required_size = 0;
+    if (_wgetenv_s(&required_size, nullptr, 0, name) != 0 || required_size == 0) {
+        return std::nullopt;
+    }
+
+    auto value = std::wstring(required_size, L'\0');
+    size_t value_size = 0;
+    if (_wgetenv_s(&value_size, value.data(), value.size(), name) != 0 || value_size == 0) {
+        return std::nullopt;
+    }
+    value.resize(std::wcslen(value.c_str()));
+    return value.empty() ? std::nullopt : std::optional<Path> {Path {std::move(value)}};
+}
+#endif
+
 [[nodiscard]] inline auto environment_path(const char* name) -> std::optional<Path> {
+#ifdef _WIN32
+    char* value = nullptr;
+    size_t value_size = 0;
+    if (_dupenv_s(&value, &value_size, name) != 0 || value == nullptr || *value == '\0') {
+        std::free(value);
+        return std::nullopt;
+    }
+    auto result = std::optional<Path> {Path {std::string {value}}};
+    std::free(value);
+    return result;
+#else
     const char* const value = std::getenv(name);
     if (value == nullptr || *value == '\0') {
         return std::nullopt;
     }
     return Path {std::string {value}};
+#endif
 }
 
 [[nodiscard]] inline auto current_config_environment() -> ConfigEnvironment {
     return ConfigEnvironment {
 #if defined(_WIN32)
         .platform = ConfigPlatform::Windows,
+        .home_directory = windows_environment_path(L"USERPROFILE"),
+        .xdg_config_home = std::nullopt,
 #elif defined(__APPLE__)
         .platform = ConfigPlatform::MacOS,
-#else
-        .platform = ConfigPlatform::Linux,
-#endif
         .home_directory = environment_path("HOME"),
         .xdg_config_home = environment_path("XDG_CONFIG_HOME"),
+#else
+        .platform = ConfigPlatform::Linux,
+        .home_directory = environment_path("HOME"),
+        .xdg_config_home = environment_path("XDG_CONFIG_HOME"),
+#endif
     };
 }
 

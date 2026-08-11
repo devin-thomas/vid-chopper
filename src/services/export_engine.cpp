@@ -61,7 +61,7 @@ auto add_failure_context(ProcessResult& process,
     const std::string detail = bounded_detail(process, detail_limit);
     process.error_message = std::format("ffmpeg executable '{}' failed for source '{}', chapter {}, output '{}' ({}, "
                                         "exit code {})",
-        segment.command.front(),
+        path_to_utf8(path_from_utf8(segment.command.front())),
         path_to_utf8(job.metadata.source_path),
         segment.chapter_index + 1,
         path_to_utf8(segment.output_path),

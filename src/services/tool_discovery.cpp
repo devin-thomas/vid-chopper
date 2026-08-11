@@ -1,5 +1,7 @@
 #include "services/tool_discovery.hpp"
 
+#include "core/path_utils.hpp"
+
 #ifdef _WIN32
 #include <io.h>
 #else
@@ -10,8 +12,10 @@
 #include <charconv>
 #include <cctype>
 #include <cstdlib>
+#include <cwchar>
 #include <filesystem>
 #include <format>
+#include <string>
 #include <string_view>
 #include <system_error>
 #include <utility>
@@ -21,12 +25,7 @@ namespace vidchopper {
 namespace {
 
 [[nodiscard]] auto path_to_text(const Path& path) -> std::string {
-#ifdef _WIN32
-    const std::u8string value = path.u8string();
-    return {value.begin(), value.end()};
-#else
-    return path.string();
-#endif
+    return path_to_utf8(path);
 }
 
 [[nodiscard]] auto normalized_path(const Path& candidate) -> Path {
@@ -45,7 +44,16 @@ namespace {
 }
 
 [[nodiscard]] auto path_key(const Path& path) -> std::string {
+#ifdef _WIN32
+    const std::u8string encoded = normalized_path(path).generic_u8string();
+    auto key = std::string {};
+    key.reserve(encoded.size());
+    for (const char8_t character : encoded) {
+        key.push_back(static_cast<char>(character));
+    }
+#else
     std::string key = normalized_path(path).generic_string();
+#endif
 #ifdef _WIN32
     std::ranges::transform(
         key, key.begin(), [](const unsigned char value) { return static_cast<char>(std::tolower(value)); });
@@ -75,7 +83,7 @@ namespace {
     while (begin <= value.size()) {
         const size_t end = value.find(path_delimiter(), begin);
         const size_t length = end == std::string_view::npos ? value.size() - begin : end - begin;
-        entries.emplace_back(length == 0 ? Path {"."} : Path {std::string {value.substr(begin, length)}});
+        entries.emplace_back(length == 0 ? Path {"."} : path_from_utf8(value.substr(begin, length)));
         if (end == std::string_view::npos) {
             break;
         }
@@ -88,8 +96,22 @@ namespace {
     if (options.path_environment.has_value()) {
         return *options.path_environment;
     }
+#ifdef _WIN32
+    size_t required_size = 0;
+    if (_wgetenv_s(&required_size, nullptr, 0, L"PATH") != 0 || required_size == 0) {
+        return {};
+    }
+    auto value = std::wstring(required_size, L'\0');
+    size_t value_size = 0;
+    if (_wgetenv_s(&value_size, value.data(), value.size(), L"PATH") != 0 || value_size == 0) {
+        return {};
+    }
+    value.resize(std::wcslen(value.c_str()));
+    return path_to_utf8(Path {std::move(value)});
+#else
     const char* const environment = std::getenv("PATH");
     return environment == nullptr ? std::string {} : std::string {environment};
+#endif
 }
 
 [[nodiscard]] auto executable_name(const ToolKind kind) -> Path {

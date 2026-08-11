@@ -7,12 +7,32 @@
 #include <fstream>
 #include <iterator>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
 using namespace vidchopper;
 
 namespace {
+
+[[nodiscard]] auto json_string_literal(const std::string_view value) -> std::string {
+    auto escaped = std::string {"\""};
+    for (const char character : value) {
+        switch (character) {
+        case '\\':
+            escaped += "\\\\";
+            break;
+        case '\"':
+            escaped += "\\\"";
+            break;
+        default:
+            escaped.push_back(character);
+            break;
+        }
+    }
+    escaped.push_back('\"');
+    return escaped;
+}
 
 [[nodiscard]] auto make_job(const Path& root) -> ResolvedExportJob {
     auto settings = ExportSettings {};
@@ -71,10 +91,12 @@ auto main() -> int {
 
     auto json_stream = std::ifstream {job.output_directory / "vidchopper-manifest.json", std::ios::binary};
     const std::string json_text {std::istreambuf_iterator<char> {json_stream}, std::istreambuf_iterator<char> {}};
-    test_support::expect_true(json_text.find(path_to_utf8(job.metadata.source_path)) != std::string::npos,
+    test_support::expect_true(json_text.find("\"source\": " + json_string_literal(path_to_utf8(job.metadata.source_path)))
+            != std::string::npos,
         "JSON manifest paths should be serialized as UTF-8");
-    test_support::expect_true(json_text.find("序章 🎬") != std::string::npos,
+    test_support::expect_true(json_text.find(json_string_literal("序章 🎬")) != std::string::npos,
         "JSON manifest chapter text should preserve UTF-8");
+    json_stream.close();
 
     ResolvedExportJob blocked_job = make_job(root / "blocked");
     std::filesystem::create_directories(blocked_job.output_directory / "vidchopper-manifest.json.tmp");

@@ -223,10 +223,10 @@ auto main() -> int {
     test_support::expect_eq(
         mismatch.errors, expected_mismatch_errors, "N:N diagnostics should be complete and deterministic");
     test_support::expect_true(contains(mismatch_errors, "Missing ChapterFile"), "mismatch should list missing configs");
-    test_support::expect_true(contains(mismatch_errors, (mismatched_sources / "beta.mkv").string()),
+    test_support::expect_true(contains(mismatch_errors, path_to_utf8(mismatched_sources / "beta.mkv")),
         "missing config diagnostic should include the source path");
     test_support::expect_true(contains(mismatch_errors, "Orphan ChapterFile"), "mismatch should list orphan configs");
-    test_support::expect_true(contains(mismatch_errors, (mismatched_configs / "gamma.yaml").string()),
+    test_support::expect_true(contains(mismatch_errors, path_to_utf8(mismatched_configs / "gamma.yaml")),
         "orphan diagnostic should include the config path");
     test_support::expect_true(mismatch.jobs.empty(), "invalid N:N should not return partial jobs");
 
@@ -286,7 +286,7 @@ auto main() -> int {
         .chapter_source_path = shared_config,
     });
     test_support::expect_true(!empty_source_result.ok(), "empty source directories should fail");
-    test_support::expect_true(contains(joined_errors(empty_source_result), empty_sources.string()),
+    test_support::expect_true(contains(joined_errors(empty_source_result), path_to_utf8(empty_sources)),
         "empty source error should include the directory");
 
     const BatchResolution empty_config_result = resolve_batch(BatchResolveRequest {
@@ -294,7 +294,7 @@ auto main() -> int {
         .chapter_source_path = empty_configs,
     });
     test_support::expect_true(!empty_config_result.ok(), "empty config directories should fail");
-    test_support::expect_true(contains(joined_errors(empty_config_result), empty_configs.string()),
+    test_support::expect_true(contains(joined_errors(empty_config_result), path_to_utf8(empty_configs)),
         "empty config error should include the directory");
 
     const Path incomplete_sources = root.path() / "incomplete" / "videos";
