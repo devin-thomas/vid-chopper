@@ -180,15 +180,25 @@ if(VIDCHOPPER_BUILD_GUI)
         src/qt/services/export_coordinator.hpp
         src/qt/services/probe_coordinator.cpp
         src/qt/services/probe_coordinator.hpp
+        src/qt/services/session_controller.cpp
+        src/qt/services/session_controller.hpp
         src/qt/services/gpu_detector.cpp
         src/qt/services/gpu_detector.hpp
         src/qt/ui/advanced_settings_dialog.cpp
         src/qt/ui/advanced_settings_dialog.hpp
         src/qt/ui/chapter_table_model.cpp
         src/qt/ui/chapter_table_model.hpp
+        src/qt/ui/demo_automation_controller.cpp
+        src/qt/ui/demo_automation_controller.hpp
         src/qt/ui/export_start_policy.hpp
+        src/qt/ui/log_view_controller.cpp
+        src/qt/ui/log_view_controller.hpp
         src/qt/ui/main_window.cpp
         src/qt/ui/main_window.hpp
+        src/qt/ui/presentation_controller.cpp
+        src/qt/ui/presentation_controller.hpp
+        src/qt/ui/zoom_policy.cpp
+        src/qt/ui/zoom_policy.hpp
         resources/app_icon.qrc
         ${VIDCHOPPER_WIN_RESOURCE}
     )
@@ -206,6 +216,8 @@ if(VIDCHOPPER_BUILD_GUI)
             tests/test_app_settings.cpp
             src/qt/app_settings.cpp
             src/qt/app_settings.hpp
+            src/qt/ui/zoom_policy.cpp
+            src/qt/ui/zoom_policy.hpp
         )
         target_include_directories(vidchopper_test_app_settings PRIVATE "${PROJECT_SOURCE_DIR}/tests")
         target_link_libraries(vidchopper_test_app_settings PRIVATE Qt6::Core vidchopper_core)
@@ -231,6 +243,24 @@ if(VIDCHOPPER_BUILD_GUI)
         apply_vidchopper_warnings(vidchopper_test_chapter_table_model)
         add_test(NAME qt.vidchopper_test_chapter_table_model COMMAND vidchopper_test_chapter_table_model)
         set_tests_properties(qt.vidchopper_test_chapter_table_model PROPERTIES LABELS "qt")
+
+        add_executable(vidchopper_test_log_view_controller
+            tests/test_log_view_controller.cpp
+            src/qt/ui/log_view_controller.cpp
+            src/qt/ui/log_view_controller.hpp
+        )
+        target_include_directories(vidchopper_test_log_view_controller PRIVATE
+            "${PROJECT_SOURCE_DIR}/src"
+            "${PROJECT_SOURCE_DIR}/tests"
+        )
+        target_link_libraries(vidchopper_test_log_view_controller PRIVATE
+            Qt6::Core
+            Qt6::Gui
+            Qt6::Widgets
+        )
+        apply_vidchopper_warnings(vidchopper_test_log_view_controller)
+        add_test(NAME qt.vidchopper_test_log_view_controller COMMAND vidchopper_test_log_view_controller)
+        set_tests_properties(qt.vidchopper_test_log_view_controller PROPERTIES LABELS "qt")
 
         add_executable(vidchopper_test_probe_coordinator
             tests/test_probe_coordinator.cpp

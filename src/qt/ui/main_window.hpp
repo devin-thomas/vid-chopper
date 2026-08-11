@@ -3,36 +3,31 @@
 #include "core/models.hpp"
 #include "qt/app_settings.hpp"
 #include "qt/demo_launch_options.hpp"
-#include "qt/logging.hpp"
 
 #include <QMainWindow>
 #include <QPointer>
 
 #include <functional>
-#include <optional>
-#include <vector>
 
-class QCheckBox;
 class QCloseEvent;
-class QEvent;
 class QLabel;
 class QLineEdit;
-class QPlainTextEdit;
 class QProgressBar;
 class QPushButton;
-class QSize;
 class QSettings;
 class QSpinBox;
 class QTableView;
-class QToolButton;
 
 namespace vidchopper {
 
 class ChapterTableModel;
-class ExportCoordinator;
 class AdvancedSettingsDialog;
-class ProbeCoordinator;
-struct ProbeResult;
+class DemoAutomationController;
+class ExportCoordinator;
+class GpuDetector;
+class LogViewController;
+class PresentationController;
+class SessionController;
 
 class MainWindow final : public QMainWindow {
     Q_OBJECT
@@ -43,7 +38,6 @@ public:
 
 protected:
     auto closeEvent(QCloseEvent* event) -> void override;
-    auto eventFilter(QObject* watched, QEvent* event) -> bool override;
 
 private slots:
     void open_video();
@@ -61,39 +55,36 @@ private slots:
 private:
     auto create_menus() -> void;
     auto build_ui() -> void;
-    [[nodiscard]] auto load_video(const QString& source_path, std::function<void(bool)> completion = {}) -> bool;
-    auto handle_probe_finished(const ProbeResult& result) -> void;
+    [[nodiscard]] auto request_video_load(const Path& source_path, std::function<void(bool)> completion = {}) -> bool;
+    auto handle_video_loaded() -> void;
+    auto handle_video_load_failed(const QString& error_message) -> void;
     auto apply_settings_to_ui() -> void;
-    auto apply_zoom_percent(int zoom_percent, bool persist) -> void;
     auto refresh_summary() -> void;
     auto update_chapter_table_columns() -> void;
     auto update_export_button_style() -> void;
-    auto update_log_disclosure(bool expanded) -> void;
-    auto refresh_log_view() -> void;
-    auto append_log_message(LogCategory category, const QString& message) -> void;
     [[nodiscard]] auto persist_app_settings() -> bool;
     auto set_output_directory_path(const std::filesystem::path& path, bool overridden) -> void;
-    auto activate_demo_scene() -> void;
-    auto finish_demo_scene(bool success) -> void;
+    [[nodiscard]] auto seed_demo_scene(DemoScene scene) -> bool;
     auto seed_workspace_demo(bool show_logs) -> bool;
     auto seed_settings_precision_demo() -> bool;
     auto select_demo_chapter_row(int row) -> void;
-    [[nodiscard]] auto write_demo_ready_file(const QString& status) -> bool;
     [[nodiscard]] auto confirm_exit() -> bool;
-    [[nodiscard]] auto current_screen_size() const -> QSize;
+    [[nodiscard]] auto current_metadata() const -> const VideoMetadata*;
     [[nodiscard]] auto current_output_directory() const -> std::filesystem::path;
     [[nodiscard]] auto resolve_encoder_summary() const -> QString;
 
-    std::optional<VideoMetadata> metadata_;
     QString config_path_;
     QSettings* settings_store_ {nullptr};
     ExportSettings settings_;
     EncoderEnvironment environment_;
 
     ChapterTableModel* chapter_model_ {nullptr};
-    ProbeCoordinator* probe_coordinator_ {nullptr};
+    SessionController* session_controller_ {nullptr};
     ExportCoordinator* export_coordinator_ {nullptr};
-    std::function<void(bool)> probe_completion_;
+    GpuDetector* gpu_detector_ {nullptr};
+    PresentationController* presentation_controller_ {nullptr};
+    DemoAutomationController* demo_controller_ {nullptr};
+    LogViewController* log_controller_ {nullptr};
 
     QLineEdit* source_path_edit_ {nullptr};
     QLineEdit* output_directory_edit_ {nullptr};
@@ -103,20 +94,9 @@ private:
     QLabel* encoder_value_label_ {nullptr};
     QSpinBox* chapter_count_spin_ {nullptr};
     QTableView* chapter_table_ {nullptr};
-    QToolButton* log_toggle_button_ {nullptr};
-    QWidget* log_panel_ {nullptr};
-    QCheckBox* advanced_logs_checkbox_ {nullptr};
-    QPlainTextEdit* log_output_ {nullptr};
     QProgressBar* progress_bar_ {nullptr};
     QPushButton* export_button_ {nullptr};
 
-    std::filesystem::path output_directory_path_;
-    std::vector<LogEntry> log_entries_;
-    int base_font_point_size_ {10};
-    int zoom_percent_ {default_zoom_percent};
-    bool output_directory_overridden_ {false};
-    bool demo_scene_applied_ {false};
-    DemoLaunchOptions demo_options_;
     QPointer<AdvancedSettingsDialog> demo_settings_dialog_;
 };
 

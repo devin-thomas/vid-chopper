@@ -9,8 +9,6 @@
 #include <QSettings>
 #include <QStandardPaths>
 
-#include <algorithm>
-#include <cmath>
 #include <limits>
 
 namespace vidchopper {
@@ -73,13 +71,6 @@ auto settings_status_message(const QSettings& settings) -> QString {
     }
     return QStringLiteral("Settings file '%1' reported an unknown error.")
         .arg(QDir::toNativeSeparators(settings.fileName()));
-}
-
-auto snap_zoom_percent(const int zoom_percent) -> int {
-    const auto clamped = std::clamp(zoom_percent, minimum_zoom_percent, maximum_zoom_percent);
-    const auto snapped_steps =
-        static_cast<int>(std::lround(static_cast<double>(clamped - minimum_zoom_percent) / zoom_step_percent));
-    return minimum_zoom_percent + (snapped_steps * zoom_step_percent);
 }
 
 auto ensure_parent_directory(const QString& file_path) -> void {
@@ -205,11 +196,11 @@ auto load_app_settings(QSettings& settings) -> SettingsLoadResult {
         settings, "confirmations/confirmRemoveChapters", values.confirm_remove_chapters, result.diagnostics);
     values.confirm_exit = load_boolean(settings, "confirmations/confirmExit", values.confirm_exit, result.diagnostics);
 
-    result.values.zoom_percent = clamp_zoom_percent(load_integer<int>(settings,
+    result.values.zoom_percent = ZoomPolicy::clamp(load_integer<int>(settings,
         "ui/zoomPercent",
-        default_zoom_percent,
-        minimum_zoom_percent,
-        maximum_zoom_percent,
+        ZoomPolicy::default_percent,
+        ZoomPolicy::minimum_percent,
+        ZoomPolicy::maximum_percent,
         result.diagnostics));
     result.values.last_screen_size = QSize {
         load_integer<int>(settings, "ui/lastScreenWidth", 0, 0, std::numeric_limits<int>::max(), result.diagnostics),
@@ -261,7 +252,7 @@ auto save_app_settings(QSettings& settings, const AppSettingsSnapshot& snapshot)
     settings.setValue("confirmations/confirmRemoveChapters", values.confirm_remove_chapters);
     settings.setValue("confirmations/confirmExit", values.confirm_exit);
 
-    settings.setValue("ui/zoomPercent", clamp_zoom_percent(snapshot.zoom_percent));
+    settings.setValue("ui/zoomPercent", ZoomPolicy::clamp(snapshot.zoom_percent));
     settings.setValue("ui/lastScreenWidth", snapshot.last_screen_size.width());
     settings.setValue("ui/lastScreenHeight", snapshot.last_screen_size.height());
     settings.sync();
@@ -271,20 +262,6 @@ auto save_app_settings(QSettings& settings, const AppSettingsSnapshot& snapshot)
         .success = error_message.isEmpty(),
         .error_message = error_message,
     };
-}
-
-auto clamp_zoom_percent(const int zoom_percent) -> int {
-    return snap_zoom_percent(zoom_percent);
-}
-
-auto auto_zoom_percent_for_screen_height(const int logical_height) -> int {
-    if (logical_height <= 0) {
-        return default_zoom_percent;
-    }
-
-    const auto scale = static_cast<double>(logical_height) / 1080.0;
-    const auto proposed_zoom = static_cast<int>(std::lround(scale * 100.0));
-    return clamp_zoom_percent(proposed_zoom);
 }
 
 } // namespace vidchopper

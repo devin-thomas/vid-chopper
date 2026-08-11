@@ -3,8 +3,6 @@
 #include <QMetaType>
 #include <QString>
 
-#include <vector>
-
 namespace vidchopper {
 
 enum class LogCategory {
