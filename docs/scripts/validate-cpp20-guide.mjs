@@ -17,6 +17,10 @@ function escapeRegExp(value) {
   return value.replace(/[.*+?^$()|[\]{}\\]/g, "\\$&");
 }
 
+function normalizeLineEndings(value) {
+  return value.replace(/\r\n?/g, "\n");
+}
+
 async function checkLocalLinks(source) {
   const pattern = /!?\[[^\]]*\]\(([^)\s]+)(?:\s+["'][^"']*["'])?\)/g;
   for (const match of source.matchAll(pattern)) {
@@ -40,7 +44,7 @@ async function checkLocalLinks(source) {
   }
 }
 
-const source = await readFile(guidePath, "utf8");
+const source = normalizeLineEndings(await readFile(guidePath, "utf8"));
 
 for (const heading of [
   "Purpose and authority",
@@ -112,7 +116,9 @@ for (const match of compiledExcerpts) {
   const [, sourcePath, excerpt] = match;
   let sourceText = "";
   try {
-    sourceText = await readFile(path.join(repositoryRoot, sourcePath), "utf8");
+    sourceText = normalizeLineEndings(
+      await readFile(path.join(repositoryRoot, sourcePath), "utf8"),
+    );
   } catch (error) {
     failures.push(`${sourcePath}: could not read compiled excerpt source (${error.message})`);
     continue;
