@@ -45,8 +45,21 @@ target_include_directories(vidchopper_core PUBLIC "${PROJECT_SOURCE_DIR}/src")
 target_compile_features(vidchopper_core PUBLIC cxx_std_20)
 apply_vidchopper_warnings(vidchopper_core)
 
+find_package(nlohmann_json CONFIG REQUIRED)
+
+add_library(vidchopper_services
+    src/services/probe_service.cpp
+    src/services/probe_service.hpp
+    src/services/process_runner.cpp
+    src/services/process_runner.hpp
+)
+
+target_include_directories(vidchopper_services PUBLIC "${PROJECT_SOURCE_DIR}/src")
+target_link_libraries(vidchopper_services PUBLIC vidchopper_core PRIVATE nlohmann_json::nlohmann_json)
+target_compile_features(vidchopper_services PUBLIC cxx_std_20)
+apply_vidchopper_warnings(vidchopper_services)
+
 if(VIDCHOPPER_BUILD_CLI)
-    find_package(nlohmann_json CONFIG REQUIRED)
     find_package(yaml-cpp CONFIG REQUIRED)
 
     add_library(vidchopper_cli
@@ -68,20 +81,16 @@ if(VIDCHOPPER_BUILD_CLI)
         src/cli/dry_run_renderer.hpp
         src/cli/export_runner.cpp
         src/cli/export_runner.hpp
-        src/cli/ffprobe_client.cpp
-        src/cli/ffprobe_client.hpp
         src/cli/manifest_writer.cpp
         src/cli/manifest_writer.hpp
         src/cli/output_planner.cpp
         src/cli/output_planner.hpp
-        src/cli/process_runner.cpp
-        src/cli/process_runner.hpp
     )
 
     target_include_directories(vidchopper_cli PUBLIC "${PROJECT_SOURCE_DIR}/src")
     target_link_libraries(vidchopper_cli PUBLIC
         vidchopper_core
-        nlohmann_json::nlohmann_json
+        vidchopper_services
         yaml-cpp::yaml-cpp
     )
     target_compile_definitions(vidchopper_cli PUBLIC VIDCHOPPER_DISPLAY_VERSION="${VIDCHOPPER_DISPLAY_VERSION}")
@@ -126,6 +135,8 @@ if(VIDCHOPPER_BUILD_TESTS)
     add_vidchopper_test(vidchopper_test_ready_marker tests/test_ready_marker.cpp fast)
     add_vidchopper_test(vidchopper_test_enum_clamp tests/test_enum_clamp.cpp fast)
     add_vidchopper_test(vidchopper_test_demo_launch_options tests/test_demo_launch_options.cpp fast)
+    add_vidchopper_test(vidchopper_test_process_runner tests/test_process_runner.cpp fast vidchopper_services)
+    add_vidchopper_test(vidchopper_test_probe_service tests/test_probe_service.cpp fast vidchopper_services)
     if(TARGET vidchopper_cli)
         add_vidchopper_test(vidchopper_test_cli_arguments tests/test_cli_arguments.cpp fast vidchopper_cli)
         add_vidchopper_test(vidchopper_test_cli_settings tests/test_cli_settings.cpp fast vidchopper_cli)
@@ -135,8 +146,6 @@ if(VIDCHOPPER_BUILD_TESTS)
         add_vidchopper_test(
             vidchopper_test_chapter_source_policy tests/test_chapter_source_policy.cpp fast vidchopper_cli
         )
-        add_vidchopper_test(vidchopper_test_process_runner tests/test_process_runner.cpp fast vidchopper_cli)
-        add_vidchopper_test(vidchopper_test_ffprobe_client tests/test_ffprobe_client.cpp fast vidchopper_cli)
         add_vidchopper_test(vidchopper_test_output_planner_golden tests/test_output_planner_golden.cpp fast vidchopper_cli)
         add_vidchopper_test(vidchopper_test_export_runner tests/test_export_runner.cpp fast vidchopper_cli)
         add_vidchopper_test(vidchopper_test_manifest_writer tests/test_manifest_writer.cpp fast vidchopper_cli)
@@ -167,21 +176,22 @@ if(VIDCHOPPER_BUILD_GUI)
         src/qt/dark_palette.hpp
         src/qt/services/export_coordinator.cpp
         src/qt/services/export_coordinator.hpp
-        src/qt/services/ffprobe_service.cpp
-        src/qt/services/ffprobe_service.hpp
+        src/qt/services/probe_coordinator.cpp
+        src/qt/services/probe_coordinator.hpp
         src/qt/services/gpu_detector.cpp
         src/qt/services/gpu_detector.hpp
         src/qt/ui/advanced_settings_dialog.cpp
         src/qt/ui/advanced_settings_dialog.hpp
         src/qt/ui/chapter_table_model.cpp
         src/qt/ui/chapter_table_model.hpp
+        src/qt/ui/export_start_policy.hpp
         src/qt/ui/main_window.cpp
         src/qt/ui/main_window.hpp
         resources/app_icon.qrc
         ${VIDCHOPPER_WIN_RESOURCE}
     )
 
-    target_link_libraries(VidChopper PRIVATE Qt6::Core Qt6::Gui Qt6::Widgets vidchopper_core)
+    target_link_libraries(VidChopper PRIVATE Qt6::Core Qt6::Gui Qt6::Widgets vidchopper_core vidchopper_services)
     target_compile_definitions(VidChopper PRIVATE VIDCHOPPER_DISPLAY_VERSION="${VIDCHOPPER_DISPLAY_VERSION}")
     apply_vidchopper_warnings(VidChopper)
 
@@ -219,5 +229,23 @@ if(VIDCHOPPER_BUILD_GUI)
         apply_vidchopper_warnings(vidchopper_test_chapter_table_model)
         add_test(NAME qt.vidchopper_test_chapter_table_model COMMAND vidchopper_test_chapter_table_model)
         set_tests_properties(qt.vidchopper_test_chapter_table_model PROPERTIES LABELS "qt")
+
+        add_executable(vidchopper_test_probe_coordinator
+            tests/test_probe_coordinator.cpp
+            src/qt/services/probe_coordinator.cpp
+            src/qt/services/probe_coordinator.hpp
+        )
+        target_include_directories(vidchopper_test_probe_coordinator PRIVATE
+            "${PROJECT_SOURCE_DIR}/src"
+            "${PROJECT_SOURCE_DIR}/tests"
+        )
+        target_link_libraries(vidchopper_test_probe_coordinator PRIVATE
+            Qt6::Core
+            Qt6::Test
+            vidchopper_services
+        )
+        apply_vidchopper_warnings(vidchopper_test_probe_coordinator)
+        add_test(NAME qt.vidchopper_test_probe_coordinator COMMAND vidchopper_test_probe_coordinator)
+        set_tests_properties(qt.vidchopper_test_probe_coordinator PROPERTIES LABELS "qt")
     endif()
 endif()

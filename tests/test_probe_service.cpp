@@ -1,9 +1,10 @@
-#include "cli/ffprobe_client.hpp"
+#include "services/probe_service.hpp"
 #include "test_support.hpp"
 
 #include <filesystem>
 #include <fstream>
 #include <sstream>
+#include <stop_token>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -28,6 +29,19 @@ namespace {
     return text.find(needle) != std::string_view::npos;
 }
 
+[[nodiscard]] auto oversized_stream_output() -> std::string {
+    auto output = std::string {R"({"format":{"duration":"1"},"streams":[)"};
+    for (auto index = size_t {0}; index <= maximum_probe_streams; ++index) {
+        if (index != 0) {
+            output += ',';
+        }
+        output += index == 0 ? R"({"index":0,"codec_type":"video","codec_name":"h264","avg_frame_rate":"30/1"})"
+                             : R"({"index":1,"codec_type":"audio","codec_name":"aac"})";
+    }
+    output += "]}";
+    return output;
+}
+
 } // namespace
 
 auto main() -> int {
@@ -37,7 +51,7 @@ auto main() -> int {
         .state = ProcessExitState::Success,
         .standard_output = fixture_text(),
     };
-    const FfprobeResult valid = parse_ffprobe_output(executable, source, success_process);
+    const ProbeResult valid = parse_probe_output(executable, source, success_process);
     test_support::expect_true(valid.ok(), "valid ffprobe fixture should parse");
     test_support::expect_eq(valid.metadata.duration_ms, u64 {180000}, "duration should parse in milliseconds");
     test_support::expect_eq(valid.metadata.frame_rate,
@@ -45,31 +59,48 @@ auto main() -> int {
         "average frame rate should parse as a rational");
     test_support::expect_eq(valid.metadata.source_path, source, "source path identity should be preserved");
     test_support::expect_eq(valid.metadata.source_extension, std::string {".mkv"}, "extension should be normalized");
+    test_support::expect_eq(valid.metadata.streams.size(), size_t {2}, "ordered stream metadata should parse");
+    test_support::expect_eq(valid.metadata.streams[0],
+        StreamMetadata {.index = 0, .codec_type = "video", .codec_name = "h264"},
+        "video stream identity should be preserved");
+    test_support::expect_eq(valid.metadata.streams[1],
+        StreamMetadata {.index = 1, .codec_type = "audio", .codec_name = "aac"},
+        "audio stream identity should be preserved");
     test_support::expect_eq(valid.metadata.embedded_chapters.size(), size_t {3}, "ordered chapters should parse");
     test_support::expect_eq(
         valid.metadata.embedded_chapters[1].name, std::string {"Main Segment"}, "chapter order should be preserved");
 
     const auto malformed = ProcessResult {.state = ProcessExitState::Success, .standard_output = "{"};
     test_support::expect_true(
-        !parse_ffprobe_output(executable, source, malformed).ok(), "malformed JSON should be rejected");
+        !parse_probe_output(executable, source, malformed).ok(), "malformed JSON should be rejected");
 
     const auto missing_fields =
         ProcessResult {.state = ProcessExitState::Success, .standard_output = R"({"format":{}})"};
     test_support::expect_true(
-        !parse_ffprobe_output(executable, source, missing_fields).ok(), "missing required fields should be rejected");
+        !parse_probe_output(executable, source, missing_fields).ok(), "missing required fields should be rejected");
 
-    const auto unsupported = ProcessResult {
+    const auto unknown_frame_rate = ProcessResult {
         .state = ProcessExitState::Success,
         .standard_output = R"({"format":{"duration":"1"},"streams":[{"codec_type":"video","avg_frame_rate":"0/0"}]})",
     };
+    const ProbeResult unknown_rate = parse_probe_output(executable, source, unknown_frame_rate);
+    test_support::expect_true(unknown_rate.ok(), "a valid duration should not require a known frame rate");
+    test_support::expect_eq(
+        unknown_rate.metadata.duration_ms, u64 {1000}, "duration should survive an unknown frame rate");
+    test_support::expect_eq(
+        unknown_rate.metadata.frame_rate, FrameRate {}, "an unknown frame rate should use the empty value");
+
+    const auto oversized =
+        ProcessResult {.state = ProcessExitState::Success, .standard_output = oversized_stream_output()};
     test_support::expect_true(
-        !parse_ffprobe_output(executable, source, unsupported).ok(), "unsupported frame rate should be rejected");
+        !parse_probe_output(executable, source, oversized).ok(), "unbounded stream metadata should be rejected");
 
     for (const ProcessExitState state : {ProcessExitState::FailedStart,
              ProcessExitState::TimedOut,
              ProcessExitState::Crashed,
-             ProcessExitState::NonzeroExit}) {
-        const FfprobeResult failure = parse_ffprobe_output(executable, source, failed(state, "bounded stderr"));
+             ProcessExitState::NonzeroExit,
+             ProcessExitState::Cancelled}) {
+        const ProbeResult failure = parse_probe_output(executable, source, failed(state, "bounded stderr"));
         test_support::expect_true(!failure.ok(), "process failure should reject probing");
         test_support::expect_true(
             contains(failure.error_message, executable.string()), "probe error should include the executable path");
@@ -86,11 +117,24 @@ auto main() -> int {
         observed_request = request;
         return success_process;
     };
-    const FfprobeResult injected = FfprobeClient {fake}.probe(executable, source);
+    auto stop_source = std::stop_source {};
+    const ProbeResult injected = ProbeService {fake}.probe(executable, source, stop_source.get_token());
     test_support::expect_true(injected.ok(), "injected process executor should support deterministic probing");
     test_support::expect_eq(observed_request.executable, executable, "probe should preserve the executable path");
     test_support::expect_eq(
         observed_request.arguments.back(), source.string(), "probe should preserve the source path");
+    test_support::expect_true(
+        observed_request.stop_token.stop_possible(), "probe should forward cancellation to the runner");
+
+#ifdef _WIN32
+    const auto unicode_source = Path {L"C:\\Temp\\\u89C6\u9891.mkv"};
+    const ProbeResult unicode = ProbeService {fake}.probe(executable, unicode_source);
+    test_support::expect_true(unicode.ok(), "probing should accept a Unicode source path");
+    const auto expected_unicode_argument = std::string {"C:\\Temp\\\xE8\xA7\x86\xE9\xA2\x91.mkv"};
+    test_support::expect_eq(observed_request.arguments.back(),
+        expected_unicode_argument,
+        "the process request should preserve a Windows source path as UTF-8");
+#endif
 
     return 0;
 }

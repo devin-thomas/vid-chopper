@@ -1,4 +1,4 @@
-#include "cli/ffprobe_client.hpp"
+#include "services/probe_service.hpp"
 
 #include <nlohmann/json.hpp>
 
@@ -8,8 +8,10 @@
 #include <cmath>
 #include <cstdlib>
 #include <format>
+#include <limits>
 #include <optional>
 #include <ranges>
+#include <string>
 #include <string_view>
 #include <utility>
 
@@ -18,6 +20,15 @@ namespace vidchopper {
 namespace {
 
 using Json = nlohmann::json;
+
+[[nodiscard]] auto path_to_utf8(const Path& path) -> std::string {
+#ifdef _WIN32
+    const std::u8string value = path.u8string();
+    return {value.begin(), value.end()};
+#else
+    return path.string();
+#endif
+}
 
 [[nodiscard]] auto bounded_context(std::string context) -> std::string {
     constexpr auto maximum_bytes = size_t {4096};
@@ -31,12 +42,12 @@ using Json = nlohmann::json;
 [[nodiscard]] auto failure(const Path& executable,
     const Path& source_path,
     ProcessResult process,
-    const std::string_view detail) -> FfprobeResult {
+    const std::string_view detail) -> ProbeResult {
     const std::string context =
         bounded_context(process.standard_error.empty() ? process.error_message : process.standard_error);
     auto message = std::format("ffprobe executable '{}' failed for source '{}' ({})",
-        executable.string(),
-        source_path.string(),
+        path_to_utf8(executable),
+        path_to_utf8(source_path),
         process_exit_state_name(process.state));
     if (!detail.empty()) {
         message += ": " + std::string {detail};
@@ -44,7 +55,7 @@ using Json = nlohmann::json;
     if (!context.empty()) {
         message += ": " + context;
     }
-    return FfprobeResult {.process = std::move(process), .error_message = std::move(message)};
+    return ProbeResult {.process = std::move(process), .error_message = std::move(message)};
 }
 
 [[nodiscard]] auto parse_seconds(const Json& value) -> std::optional<u64> {
@@ -86,6 +97,41 @@ using Json = nlohmann::json;
                  : std::nullopt;
 }
 
+[[nodiscard]] auto parse_stream(const Json& value, const size_t fallback_index) -> std::optional<StreamMetadata> {
+    constexpr auto maximum_text_bytes = size_t {128};
+    if (!value.is_object()) {
+        return std::nullopt;
+    }
+
+    auto metadata = StreamMetadata {.index = static_cast<i32>(fallback_index)};
+    if (value.contains("index")) {
+        if (!value["index"].is_number_integer()) {
+            return std::nullopt;
+        }
+        const i64 index = value["index"].get<i64>();
+        if (index < 0 || index > std::numeric_limits<i32>::max()) {
+            return std::nullopt;
+        }
+        metadata.index = static_cast<i32>(index);
+    }
+    if (value.contains("codec_type")) {
+        if (!value["codec_type"].is_string()) {
+            return std::nullopt;
+        }
+        metadata.codec_type = value["codec_type"].get<std::string>();
+    }
+    if (value.contains("codec_name")) {
+        if (!value["codec_name"].is_string()) {
+            return std::nullopt;
+        }
+        metadata.codec_name = value["codec_name"].get<std::string>();
+    }
+    if (metadata.codec_type.size() > maximum_text_bytes || metadata.codec_name.size() > maximum_text_bytes) {
+        return std::nullopt;
+    }
+    return metadata;
+}
+
 [[nodiscard]] auto parse_metadata(const Json& root, const Path& source_path) -> std::optional<VideoMetadata> {
     if (!root.is_object() || !root.contains("format") || !root["format"].is_object()
         || !root["format"].contains("duration") || !root.contains("streams") || !root["streams"].is_array()) {
@@ -96,9 +142,22 @@ using Json = nlohmann::json;
         return std::nullopt;
     }
 
+    const Json& streams = root["streams"];
+    if (streams.size() > maximum_probe_streams) {
+        return std::nullopt;
+    }
+
+    auto parsed_streams = std::vector<StreamMetadata> {};
+    parsed_streams.reserve(streams.size());
     auto frame_rate = std::optional<FrameRate> {};
-    for (const Json& stream : root["streams"]) {
-        if (!stream.is_object() || stream.value("codec_type", std::string {}) != "video") {
+    for (auto index = size_t {0}; index < streams.size(); ++index) {
+        const Json& stream = streams[index];
+        const std::optional<StreamMetadata> parsed = parse_stream(stream, index);
+        if (!parsed.has_value()) {
+            return std::nullopt;
+        }
+        parsed_streams.push_back(*parsed);
+        if (frame_rate.has_value() || parsed->codec_type != "video") {
             continue;
         }
         if (stream.contains("avg_frame_rate")) {
@@ -107,17 +166,13 @@ using Json = nlohmann::json;
         if (!frame_rate.has_value() && stream.contains("r_frame_rate")) {
             frame_rate = parse_frame_rate(stream["r_frame_rate"]);
         }
-        break;
     }
-    if (!frame_rate.has_value()) {
-        return std::nullopt;
-    }
-
     auto metadata = VideoMetadata {
         .source_path = source_path,
         .duration_ms = *duration,
-        .frame_rate = *frame_rate,
-        .source_extension = source_path.extension().empty() ? ".mp4" : source_path.extension().string(),
+        .frame_rate = frame_rate.value_or(FrameRate {}),
+        .streams = std::move(parsed_streams),
+        .source_extension = source_path.extension().empty() ? ".mp4" : path_to_utf8(source_path.extension()),
     };
     std::ranges::transform(metadata.source_extension, metadata.source_extension.begin(), [](const unsigned char value) {
         return static_cast<char>(std::tolower(value));
@@ -156,15 +211,16 @@ using Json = nlohmann::json;
 
 } // namespace
 
-auto FfprobeResult::ok() const noexcept -> bool {
+auto ProbeResult::ok() const noexcept -> bool {
     return success;
 }
 
-FfprobeClient::FfprobeClient(ProcessExecutor executor)
+ProbeService::ProbeService(ProcessExecutor executor)
     : executor_ {std::move(executor)} {
 }
 
-auto FfprobeClient::probe(const Path& executable, const Path& source_path) const -> FfprobeResult {
+auto ProbeService::probe(
+    const Path& executable, const Path& source_path, const std::stop_token stop_token) const -> ProbeResult {
     const auto request = ProcessRequest {
         .executable = executable,
         .arguments = {"-v",
@@ -174,12 +230,13 @@ auto FfprobeClient::probe(const Path& executable, const Path& source_path) const
             "-show_format",
             "-show_streams",
             "-show_chapters",
-            source_path.string()},
+            path_to_utf8(source_path)},
+        .stop_token = stop_token,
     };
-    return parse_ffprobe_output(executable, source_path, executor_(request));
+    return parse_probe_output(executable, source_path, executor_(request));
 }
 
-auto parse_ffprobe_output(const Path& executable, const Path& source_path, ProcessResult process) -> FfprobeResult {
+auto parse_probe_output(const Path& executable, const Path& source_path, ProcessResult process) -> ProbeResult {
     if (!process.ok()) {
         return failure(executable, source_path, std::move(process), "process execution failed");
     }
@@ -194,7 +251,7 @@ auto parse_ffprobe_output(const Path& executable, const Path& source_path, Proce
     if (!metadata.has_value()) {
         return failure(executable, source_path, std::move(process), "unsupported or missing ffprobe metadata");
     }
-    return FfprobeResult {.success = true, .metadata = *metadata, .process = std::move(process)};
+    return ProbeResult {.success = true, .metadata = *metadata, .process = std::move(process)};
 }
 
 } // namespace vidchopper

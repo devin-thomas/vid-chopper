@@ -174,8 +174,9 @@ Chapter boundaries can fall between keyframes. Re-encoding with x264 or HEVC NVE
 ## Repository Structure
 
 - `src/core/`: domain logic, timestamp handling, chapter planning, naming, and `ffmpeg` command construction
+- `src/services/`: shared Qt-free process execution and `ffprobe` metadata parsing
 - `src/cli/`: Qt-free command parsing, settings, ChapterFile loading, dry-run planning, and export execution
-- `src/qt/`: Qt application shell, settings persistence, chapter table model, ffprobe integration, GPU detection, and export coordination
+- `src/qt/`: Qt application shell, settings persistence, chapter table model, queued probe adapter, GPU detection, and export coordination
 - `tests/`: staged native tests
 - `docs/`: canonical Vite + React + TypeScript + Tailwind product/docs site and legacy Pages build
 - `packaging/windows/`: bundled release notes and third-party runtime notices for the portable zip

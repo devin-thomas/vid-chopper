@@ -27,7 +27,7 @@ function Invoke-TextPolicyChecks {
         throw "Unqualified size_t policy violations:`n$($violations -join "`n")"
     }
 
-    $qtMatches = @(& git -C $repoRoot grep -n -E '#include[[:space:]]*[<"]Q[^>"]*[>"]' -- "src/core" "src/cli")
+    $qtMatches = @(& git -C $repoRoot grep -n -E '#include[[:space:]]*[<"]Q[^>"]*[>"]' -- "src/core" "src/services" "src/cli")
     if ($LASTEXITCODE -gt 1) {
         throw "git grep failed while checking the Qt-free boundary."
     }

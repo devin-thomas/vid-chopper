@@ -8,8 +8,9 @@
 #include <QMainWindow>
 #include <QPointer>
 
-#include <vector>
+#include <functional>
 #include <optional>
+#include <vector>
 
 class QCheckBox;
 class QCloseEvent;
@@ -30,6 +31,8 @@ namespace vidchopper {
 class ChapterTableModel;
 class ExportCoordinator;
 class AdvancedSettingsDialog;
+class ProbeCoordinator;
+struct ProbeResult;
 
 class MainWindow final : public QMainWindow {
     Q_OBJECT
@@ -58,7 +61,8 @@ private slots:
 private:
     auto create_menus() -> void;
     auto build_ui() -> void;
-    auto load_video(const QString& source_path) -> bool;
+    [[nodiscard]] auto load_video(const QString& source_path, std::function<void(bool)> completion = {}) -> bool;
+    auto handle_probe_finished(const ProbeResult& result) -> void;
     auto apply_settings_to_ui() -> void;
     auto apply_zoom_percent(int zoom_percent, bool persist) -> void;
     auto refresh_summary() -> void;
@@ -70,6 +74,7 @@ private:
     [[nodiscard]] auto persist_app_settings() -> bool;
     auto set_output_directory_path(const std::filesystem::path& path, bool overridden) -> void;
     auto activate_demo_scene() -> void;
+    auto finish_demo_scene(bool success) -> void;
     auto seed_workspace_demo(bool show_logs) -> bool;
     auto seed_settings_precision_demo() -> bool;
     auto select_demo_chapter_row(int row) -> void;
@@ -86,7 +91,9 @@ private:
     EncoderEnvironment environment_;
 
     ChapterTableModel* chapter_model_ {nullptr};
+    ProbeCoordinator* probe_coordinator_ {nullptr};
     ExportCoordinator* export_coordinator_ {nullptr};
+    std::function<void(bool)> probe_completion_;
 
     QLineEdit* source_path_edit_ {nullptr};
     QLineEdit* output_directory_edit_ {nullptr};

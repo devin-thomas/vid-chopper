@@ -60,10 +60,19 @@ struct ChapterSegment {
     [[nodiscard]] auto operator<=>(const ChapterSegment&) const = default;
 };
 
+struct StreamMetadata {
+    i32 index {-1};
+    std::string codec_type;
+    std::string codec_name;
+
+    [[nodiscard]] auto operator==(const StreamMetadata&) const -> bool = default;
+};
+
 struct VideoMetadata {
     Path source_path;
     u64 duration_ms {0};
     FrameRate frame_rate {};
+    std::vector<StreamMetadata> streams;
     std::vector<ChapterSegment> embedded_chapters;
     std::string source_extension;
 

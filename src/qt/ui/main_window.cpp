@@ -6,10 +6,11 @@
 #include "core/timecode.hpp"
 #include "qt/app_settings.hpp"
 #include "qt/services/export_coordinator.hpp"
-#include "qt/services/ffprobe_service.hpp"
 #include "qt/services/gpu_detector.hpp"
+#include "qt/services/probe_coordinator.hpp"
 #include "qt/ui/advanced_settings_dialog.hpp"
 #include "qt/ui/chapter_table_model.hpp"
+#include "qt/ui/export_start_policy.hpp"
 
 #include <QAction>
 #include <QApplication>
@@ -131,6 +132,7 @@ MainWindow::MainWindow(DemoLaunchOptions demo_options, QWidget* parent)
     : QMainWindow(parent)
     , demo_options_(std::move(demo_options))
     , chapter_model_(new ChapterTableModel {this})
+    , probe_coordinator_(new ProbeCoordinator {this})
     , export_coordinator_(new ExportCoordinator {this}) {
     setWindowTitle(demo_window_title());
     resize(1280, 860);
@@ -186,6 +188,7 @@ MainWindow::MainWindow(DemoLaunchOptions demo_options, QWidget* parent)
             append_log_message(LogCategory::ExportProgress, QStringLiteral("Writing %1").arg(output_file));
         });
     connect(export_coordinator_, &ExportCoordinator::finished, this, &MainWindow::handle_export_finished);
+    connect(probe_coordinator_, &ProbeCoordinator::finished, this, &MainWindow::handle_probe_finished);
 
     append_log_message(LogCategory::Config, QStringLiteral("Config file: %1").arg(config_path_));
     for (const auto& diagnostic : loaded_settings.diagnostics) {
@@ -526,8 +529,15 @@ auto MainWindow::start_or_cancel_export() -> void {
         return;
     }
 
-    if (!metadata_.has_value()) {
-        QMessageBox::warning(this, "No source loaded", "Select a source video before exporting chapters.");
+    const bool probe_busy = probe_coordinator_->busy();
+    if (!can_start_export(probe_busy, metadata_.has_value())) {
+        if (probe_busy) {
+            QMessageBox::warning(this,
+                "Source inspection in progress",
+                "Wait for source inspection to finish before exporting chapters.");
+        } else {
+            QMessageBox::warning(this, "No source loaded", "Select a source video before exporting chapters.");
+        }
         return;
     }
 
@@ -566,15 +576,37 @@ auto MainWindow::handle_export_finished(const bool success, const QStringList& e
     }
 }
 
-auto MainWindow::load_video(const QString& source_path) -> bool {
-    const auto probe_result = FfprobeService::probe_video(QString::fromStdString(settings_.ffprobe_path), source_path);
-    if (!probe_result.success) {
-        QMessageBox::critical(this, "ffprobe error", probe_result.error_message);
-        append_log_message(LogCategory::Error, probe_result.error_message);
+auto MainWindow::load_video(const QString& source_path, std::function<void(bool)> completion) -> bool {
+    if (probe_coordinator_->busy()) {
+        QMessageBox::warning(this, "ffprobe busy", "VidChopper is already inspecting a source video.");
         return false;
     }
 
-    metadata_ = probe_result.metadata;
+    probe_completion_ = std::move(completion);
+    const Path normalized_source = normalize_path_for_storage(Path {source_path.toStdWString()});
+    statusBar()->showMessage("Inspecting source video...");
+    if (!probe_coordinator_->start_probe(Path {settings_.ffprobe_path}, normalized_source)) {
+        probe_completion_ = {};
+        statusBar()->showMessage("Source inspection could not start");
+        return false;
+    }
+    return true;
+}
+
+auto MainWindow::handle_probe_finished(const ProbeResult& result) -> void {
+    std::function<void(bool)> completion = std::move(probe_completion_);
+    if (!result.ok()) {
+        const QString error_message = QString::fromStdString(result.error_message);
+        QMessageBox::critical(this, "ffprobe error", error_message);
+        append_log_message(LogCategory::Error, error_message);
+        statusBar()->showMessage("Source inspection failed");
+        if (completion) {
+            completion(false);
+        }
+        return;
+    }
+
+    metadata_ = result.metadata;
     source_path_edit_->setText(display_path(metadata_->source_path));
 
     if (settings_.prefer_embedded_chapters && !metadata_->embedded_chapters.empty()) {
@@ -594,7 +626,10 @@ auto MainWindow::load_video(const QString& source_path) -> bool {
 
     refresh_summary();
     append_log_message(LogCategory::Probe, QStringLiteral("Loaded %1").arg(display_path(metadata_->source_path)));
-    return true;
+    statusBar()->showMessage("Source video loaded");
+    if (completion) {
+        completion(true);
+    }
 }
 
 auto MainWindow::apply_settings_to_ui() -> void {
@@ -740,22 +775,38 @@ auto MainWindow::activate_demo_scene() -> void {
 
     demo_scene_applied_ = true;
 
-    auto success = false;
-    switch (demo_options_.scene) {
-    case DemoScene::Workspace:
-        success = seed_workspace_demo(false);
-        break;
-    case DemoScene::WorkspaceLogs:
-        success = seed_workspace_demo(true);
-        break;
-    case DemoScene::SettingsPrecision:
-        success = seed_settings_precision_demo();
-        break;
-    case DemoScene::None:
-        success = true;
-        break;
+    if (demo_options_.scene == DemoScene::None) {
+        finish_demo_scene(true);
+        return;
     }
 
+    const bool started =
+        load_video(QString::fromStdWString(demo_options_.demo_source.wstring()), [this](const bool loaded) {
+            auto success = false;
+            if (loaded) {
+                switch (demo_options_.scene) {
+                case DemoScene::Workspace:
+                    success = seed_workspace_demo(false);
+                    break;
+                case DemoScene::WorkspaceLogs:
+                    success = seed_workspace_demo(true);
+                    break;
+                case DemoScene::SettingsPrecision:
+                    success = seed_settings_precision_demo();
+                    break;
+                case DemoScene::None:
+                    success = true;
+                    break;
+                }
+            }
+            finish_demo_scene(success);
+        });
+    if (!started) {
+        finish_demo_scene(false);
+    }
+}
+
+auto MainWindow::finish_demo_scene(const bool success) -> void {
     const auto status = success ? QStringLiteral("ready") : QStringLiteral("error");
     QTimer::singleShot(0, this, [this, status]() {
         if (!write_demo_ready_file(status)) {
@@ -765,7 +816,7 @@ auto MainWindow::activate_demo_scene() -> void {
 }
 
 auto MainWindow::seed_workspace_demo(const bool show_logs) -> bool {
-    if (!load_video(QString::fromStdWString(demo_options_.demo_source.wstring()))) {
+    if (!metadata_.has_value()) {
         return false;
     }
 

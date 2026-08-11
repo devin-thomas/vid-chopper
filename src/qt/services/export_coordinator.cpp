@@ -1,7 +1,7 @@
 #include "qt/services/export_coordinator.hpp"
 
 #include "core/command_builder.hpp"
-#include "qt/services/ffprobe_service.hpp"
+#include "qt/services/probe_coordinator.hpp"
 
 #include <QDir>
 #include <QJsonArray>
@@ -24,11 +24,13 @@ auto display_path(const std::filesystem::path& path) -> QString {
 } // namespace
 
 ExportCoordinator::ExportCoordinator(QObject* parent)
-    : QObject(parent) {
+    : QObject(parent)
+    , probe_coordinator_(new ProbeCoordinator {this}) {
     connect(&process_, &QProcess::readyReadStandardOutput, this, &ExportCoordinator::handle_ready_read_stdout);
     connect(&process_, &QProcess::readyReadStandardError, this, &ExportCoordinator::handle_ready_read_stderr);
     connect(&process_, &QProcess::finished, this, &ExportCoordinator::handle_process_finished);
     connect(&process_, &QProcess::errorOccurred, this, &ExportCoordinator::handle_process_error);
+    connect(probe_coordinator_, &ProbeCoordinator::finished, this, &ExportCoordinator::handle_probe_finished);
 }
 
 auto ExportCoordinator::busy() const -> bool {
@@ -105,6 +107,7 @@ auto ExportCoordinator::cancel() -> void {
     cancel_requested_ = true;
     emit log_message(LogCategory::ExportLifecycle, "Cancellation requested. Waiting for ffmpeg to stop.");
     process_.kill();
+    probe_coordinator_->cancel();
 }
 
 auto ExportCoordinator::start_next() -> void {
@@ -187,25 +190,44 @@ auto ExportCoordinator::handle_process_finished(const int exit_code, const QProc
     }
 
     if (settings_.verify_output_durations) {
-        const DurationProbeResult duration_probe = FfprobeService::probe_duration_ms(
-            QString::fromStdString(settings_.ffprobe_path), exports_[current_index_].output_file);
-
-        if (!duration_probe.ok()) {
-            handle_failure(duration_probe.error_message);
+        const bool started = probe_coordinator_->start_probe(
+            Path {settings_.ffprobe_path}, Path {exports_[current_index_].output_file.toStdWString()});
+        if (!started) {
+            handle_failure("Could not start output duration verification because ffprobe is already busy.");
             return;
         }
-
-        const auto expected_duration = exports_[current_index_].duration_ms;
-        const auto actual_duration = *duration_probe.duration_ms;
-        const auto delta = expected_duration > actual_duration ? expected_duration - actual_duration
-                                                               : actual_duration - expected_duration;
-        if (delta > 1000) {
-            handle_failure(
-                QStringLiteral("Duration verification failed for %1.").arg(exports_[current_index_].output_file));
-            return;
-        }
+        return;
     }
 
+    complete_current_export();
+}
+
+auto ExportCoordinator::handle_probe_finished(const ProbeResult& result) -> void {
+    if (cancel_requested_) {
+        busy_ = false;
+        errors_.push_back("Export cancelled.");
+        emit log_message(LogCategory::Warning, "Export cancelled.");
+        emit finished(false, errors_);
+        return;
+    }
+    if (!result.ok()) {
+        handle_failure(QString::fromStdString(result.error_message));
+        return;
+    }
+
+    const auto expected_duration = exports_[current_index_].duration_ms;
+    const auto actual_duration = result.metadata.duration_ms;
+    const auto delta =
+        expected_duration > actual_duration ? expected_duration - actual_duration : actual_duration - expected_duration;
+    if (delta > 1000) {
+        handle_failure(
+            QStringLiteral("Duration verification failed for %1.").arg(exports_[current_index_].output_file));
+        return;
+    }
+    complete_current_export();
+}
+
+auto ExportCoordinator::complete_current_export() -> void {
     completed_duration_ms_ += exports_[current_index_].duration_ms;
     emit progress_changed(
         total_duration_ms_ == 0 ? 100 : static_cast<int>((completed_duration_ms_ * 100) / total_duration_ms_));
