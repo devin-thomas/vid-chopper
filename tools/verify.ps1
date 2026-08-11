@@ -126,7 +126,85 @@ function Invoke-FastTests {
     }
 }
 
+function Invoke-VersionChecks {
+    $cmakeText = Get-Content -Raw -LiteralPath (Join-Path $repoRoot "CMakeLists.txt")
+    $docsPackage = Get-Content -Raw -LiteralPath (Join-Path $repoRoot "docs\package.json") | ConvertFrom-Json
+    $vcpkgManifest = Get-Content -Raw -LiteralPath (Join-Path $repoRoot "vcpkg.json") | ConvertFrom-Json
+    if ($cmakeText -notmatch 'VIDCHOPPER_DISPLAY_VERSION "([^"]+)"') {
+        throw "VIDCHOPPER_DISPLAY_VERSION was not found in CMakeLists.txt."
+    }
+    $displayVersion = $Matches[1]
+    if (-not $displayVersion.StartsWith([string]$vcpkgManifest.'version-semver', [System.StringComparison]::Ordinal)) {
+        throw "vcpkg version '$($vcpkgManifest.'version-semver')' does not match display version '$displayVersion'."
+    }
+
+    $releaseManifestPath = Join-Path $repoRoot "packaging\releases\$displayVersion.json"
+    if (-not (Test-Path -LiteralPath $releaseManifestPath -PathType Leaf)) {
+        throw "Release manifest is missing: $releaseManifestPath"
+    }
+    $releaseManifest = Get-Content -Raw -LiteralPath $releaseManifestPath | ConvertFrom-Json
+    if ([string]$releaseManifest.version -ne $displayVersion -or
+        [string]$releaseManifest.cliVersion -ne $displayVersion) {
+        throw "Release manifest version tuple does not match display version '$displayVersion'."
+    }
+    $expectedTag = "v$displayVersion"
+    if ([string]$releaseManifest.tag -ne $expectedTag) {
+        throw "Release manifest tag '$($releaseManifest.tag)' does not match '$expectedTag'."
+    }
+    $expectedAsset = "VidChopper-$displayVersion-windows-x64.zip"
+    $expectedChecksum = "${expectedAsset}.sha256"
+    $expectedAssets = @($expectedAsset, $expectedChecksum)
+    $assets = @($releaseManifest.assets)
+    $assetNames = @($releaseManifest.assets | ForEach-Object { [string]$_.name })
+    if ($assets.Count -ne $expectedAssets.Count -or
+        (($assetNames | Sort-Object) -join "|") -ne (($expectedAssets | Sort-Object) -join "|")) {
+        throw "Release manifest is missing the Windows ZIP/checksum asset pair for '$displayVersion'."
+    }
+    $expectedUrls = @(
+        "https://github.com/devin-thomas/vid-chopper/releases/download/$expectedTag/$expectedAsset",
+        "https://github.com/devin-thomas/vid-chopper/releases/download/$expectedTag/$expectedChecksum"
+    )
+    for ($index = 0; $index -lt $assets.Count; $index++) {
+        if ([string]$assets[$index].url -ne $expectedUrls[$index]) {
+            throw "Release manifest asset URL drifted for '$($assets[$index].name)'."
+        }
+    }
+
+    $hasPublicationStatus = $null -ne $releaseManifest.PSObject.Properties["publicationStatus"]
+    $publicationStatus = if ($hasPublicationStatus) {
+        [string]$releaseManifest.publicationStatus
+    } else {
+        ""
+    }
+    if ($hasPublicationStatus -and $publicationStatus -ne "candidate-pending") {
+        throw "Unsupported release publicationStatus '$publicationStatus'."
+    }
+    $candidatePending = $publicationStatus -eq "candidate-pending"
+    if ($candidatePending) {
+        if ($null -ne $releaseManifest.publishedAt -or $null -ne $releaseManifest.sourceCommit) {
+            throw "Pending release candidate must not contain publication time or source commit metadata."
+        }
+        foreach ($asset in $assets) {
+            if ($null -ne $asset.size -or $null -ne $asset.sha256 -or
+                [string]$asset.status -ne "pending-windows-qualification") {
+                throw "Pending release candidate assets must remain unqualified and unhashed."
+            }
+        }
+        Write-Host "Windows release metadata remains candidate-pending; no Windows qualification is claimed."
+    }
+
+    if ([string]$docsPackage.version -ne $displayVersion) {
+        if (-not $candidatePending) {
+            throw "docs/package.json version '$($docsPackage.version)' does not match display version '$displayVersion'."
+        }
+        Write-Host "Docs remain on stable version '$($docsPackage.version)' during candidate qualification for '$displayVersion'."
+    }
+}
+
 function Invoke-DocsChecks {
+    Invoke-VerificationStage -Name "Release metadata consistency" -Action {
+        Invoke-VersionChecks
+    }
     Invoke-VerificationStage -Name "Agent skill contract" -Action {
         & (Join-Path $repoRoot "tools\agent-skill-artifacts.ps1") -Mode Check
         if ($LASTEXITCODE -ne 0) {
@@ -255,44 +333,15 @@ function Invoke-FullTier {
     Invoke-GuiStartup
 }
 
-function Invoke-VersionChecks {
-    $cmakeText = Get-Content -Raw -LiteralPath (Join-Path $repoRoot "CMakeLists.txt")
-    $docsPackage = Get-Content -Raw -LiteralPath (Join-Path $repoRoot "docs\package.json") | ConvertFrom-Json
-    $vcpkgManifest = Get-Content -Raw -LiteralPath (Join-Path $repoRoot "vcpkg.json") | ConvertFrom-Json
-    if ($cmakeText -notmatch 'VIDCHOPPER_DISPLAY_VERSION "([^"]+)"') {
-        throw "VIDCHOPPER_DISPLAY_VERSION was not found in CMakeLists.txt."
-    }
-    $displayVersion = $Matches[1]
-    if ([string]$docsPackage.version -ne $displayVersion) {
-        throw "docs/package.json version '$($docsPackage.version)' does not match display version '$displayVersion'."
-    }
-    if (-not $displayVersion.StartsWith([string]$vcpkgManifest.'version-semver', [System.StringComparison]::Ordinal)) {
-        throw "vcpkg version '$($vcpkgManifest.'version-semver')' does not match display version '$displayVersion'."
-    }
-
-    $releaseManifestPath = Join-Path $repoRoot "packaging\releases\$displayVersion.json"
-    if (-not (Test-Path -LiteralPath $releaseManifestPath -PathType Leaf)) {
-        throw "Release manifest is missing: $releaseManifestPath"
-    }
-    $releaseManifest = Get-Content -Raw -LiteralPath $releaseManifestPath | ConvertFrom-Json
-    if ([string]$releaseManifest.version -ne $displayVersion -or
-        [string]$releaseManifest.cliVersion -ne $displayVersion) {
-        throw "Release manifest version tuple does not match display version '$displayVersion'."
-    }
-    $expectedAsset = "VidChopper-$displayVersion-windows-x64.zip"
-    $assetNames = @($releaseManifest.assets | ForEach-Object { [string]$_.name })
-    $expectedChecksum = "$($expectedAsset).sha256"
-    if ($expectedAsset -notin $assetNames -or $expectedChecksum -notin $assetNames) {
-        throw "Release manifest is missing the Windows ZIP/checksum asset pair for '$displayVersion'."
-    }
-}
-
 function Invoke-ReleaseTier {
     Invoke-FullTier
 
     Invoke-VerificationStage -Name "Demo capture validation" -Action {
         $output = Join-Path $repoRoot "tmp\verify-demo-assets-$PID"
         & (Join-Path $repoRoot "tools\capture-demo-assets.ps1") -OutputDir $output
+        if ($LASTEXITCODE -ne 0) {
+            throw "Demo capture script failed with exit code $LASTEXITCODE."
+        }
         $manifest = Get-Content -Raw -LiteralPath (Join-Path $repoRoot "tools\demo-capture-manifest.json") | ConvertFrom-Json
         foreach ($capture in $manifest.captures) {
             $asset = Join-Path $output $capture.asset
@@ -322,10 +371,25 @@ function Invoke-ReleaseTier {
         $cmakeText = Get-Content -Raw -LiteralPath (Join-Path $repoRoot "CMakeLists.txt")
         [void]($cmakeText -match 'VIDCHOPPER_DISPLAY_VERSION "([^"]+)"')
         $version = $Matches[1]
-        & (Join-Path $repoRoot "tools\package-windows.ps1") -Version $version
+        $packageOutput = @(& (Join-Path $repoRoot "tools\package-windows.ps1") -Version $version)
+        if ($LASTEXITCODE -ne 0) {
+            throw "Windows package assembly script failed with exit code $LASTEXITCODE."
+        }
         $zipPath = Join-Path $repoRoot "artifacts\release\VidChopper-$version-windows-x64.zip"
         if (-not (Test-Path -LiteralPath $zipPath)) {
             throw "Windows package assembly failed."
+        }
+        if ($packageOutput.Count -eq 0 -or
+            [IO.Path]::GetFullPath([string]$packageOutput[-1]) -ne [IO.Path]::GetFullPath($zipPath)) {
+            throw "Windows package assembly returned an unexpected archive path."
+        }
+        $assetName = Split-Path -Leaf $zipPath
+        $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $zipPath).Hash.ToLowerInvariant()
+        $checksumPath = "${zipPath}.sha256"
+        "$hash *$assetName" | Set-Content -LiteralPath $checksumPath -Encoding ascii
+        $checksumLine = (Get-Content -Raw -LiteralPath $checksumPath).Trim()
+        if ($checksumLine -ne "$hash *$assetName") {
+            throw "Windows package checksum did not round-trip."
         }
         & (Join-Path $repoRoot "tools\verify-release-archive.ps1") `
             -Version $version `

@@ -9,17 +9,23 @@ on:
         default: 1.1.0
         type: string
       publish:
-        description: Publish the stable release after the clean archive smoke test passes
+        description: Publish only a finalized stable release after the clean archive smoke test passes
         required: true
         default: false
         type: boolean
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: release-${{ inputs.version }}
   cancel-in-progress: false
+
+env:
+  CMAKE_VERSION: 3.31.6
+  NINJA_VERSION: 1.12.1
+  QT_VERSION: 6.9.0
+  VCPKG_COMMIT: 03e366fb91e38b9432ebd5f8cc79f7c8f55e96ab
 
 jobs:
   package-candidate:
@@ -28,7 +34,8 @@ jobs:
     env:
       VERSION: ${{ inputs.version }}
       PUBLISH: ${{ inputs.publish }}
-      RELEASE_OUTPUT: artifacts\release
+      VCPKG_DEFAULT_TRIPLET: x64-windows
+      VCPKG_DEFAULT_HOST_TRIPLET: x64-windows
 
     steps:
       - name: Checkout candidate source
@@ -40,50 +47,106 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
+          $publishRequested = [string]::Equals($env:PUBLISH, "true", [StringComparison]::OrdinalIgnoreCase)
           if ($env:GITHUB_REF_NAME -ne "main") {
             throw "Release candidates must run from main, not $env:GITHUB_REF_NAME."
           }
-          $cmake = Get-Content -Raw CMakeLists.txt
+          $cmake = Get-Content -Raw -LiteralPath "CMakeLists.txt"
           if ($cmake -notmatch 'VIDCHOPPER_DISPLAY_VERSION "([^"]+)"') {
             throw "VIDCHOPPER_DISPLAY_VERSION is missing."
           }
           if ($Matches[1] -ne $env:VERSION) {
             throw "CMake version '$($Matches[1])' does not match '$env:VERSION'."
           }
-          $docsVersion = (Get-Content -Raw docs/package.json | ConvertFrom-Json).version
-          if ($docsVersion -ne $env:VERSION -and $env:PUBLISH -eq "true") {
-            throw "Docs version '$docsVersion' does not match '$env:VERSION'."
-          }
-          if ($docsVersion -ne $env:VERSION) {
-            Write-Host "Docs remain on stable version '$docsVersion' during candidate qualification for '$env:VERSION'."
-          }
-          $releaseManifestPath = Join-Path "packaging/releases" "$($env:VERSION).json"
+          $docsVersion = (Get-Content -Raw -LiteralPath "docs/package.json" | ConvertFrom-Json).version
+          $releaseManifestPath = Join-Path "packaging/releases" "${env:VERSION}.json"
           if (-not (Test-Path -LiteralPath $releaseManifestPath -PathType Leaf)) {
             throw "Release manifest is missing: $releaseManifestPath"
           }
-          $releaseManifest = Get-Content -Raw $releaseManifestPath | ConvertFrom-Json
-          if ($releaseManifest.version -ne $env:VERSION -or $releaseManifest.cliVersion -ne $env:VERSION) {
+          $releaseManifest = Get-Content -Raw -LiteralPath $releaseManifestPath | ConvertFrom-Json
+          if ([string]$releaseManifest.version -ne $env:VERSION -or
+              [string]$releaseManifest.cliVersion -ne $env:VERSION -or
+              [string]$releaseManifest.tag -ne "v$($env:VERSION)" -or
+              [string]$releaseManifest.channel -ne "stable") {
             throw "Release manifest version tuple does not match '$env:VERSION'."
+          }
+          $expectedAsset = "VidChopper-$($env:VERSION)-windows-x64.zip"
+          $expectedChecksum = "${expectedAsset}.sha256"
+          $assets = @($releaseManifest.assets)
+          $assetNames = @($assets | ForEach-Object { [string]$_.name })
+          if ($assets.Count -ne 2 -or
+              (($assetNames | Sort-Object) -join "|") -ne ((@($expectedAsset, $expectedChecksum) | Sort-Object) -join "|")) {
+            throw "Release manifest must contain exactly the Windows ZIP/checksum asset pair."
+          }
+          $expectedUrls = @(
+            "https://github.com/devin-thomas/vid-chopper/releases/download/v$($env:VERSION)/$expectedAsset",
+            "https://github.com/devin-thomas/vid-chopper/releases/download/v$($env:VERSION)/$expectedChecksum"
+          )
+          for ($index = 0; $index -lt $assets.Count; $index++) {
+            if ([string]$assets[$index].url -ne $expectedUrls[$index]) {
+              throw "Release manifest asset URL drifted for '$($assets[$index].name)'."
+            }
+          }
+          $publicationStatus = [string]$releaseManifest.publicationStatus
+          $candidatePending = $publicationStatus -eq "candidate-pending"
+          if ($candidatePending) {
+            if ($publishRequested) {
+              throw "Refusing to publish '$($env:VERSION)': the manifest is still candidate-pending Windows qualification."
+            }
+            if ($null -ne $releaseManifest.publishedAt -or $null -ne $releaseManifest.sourceCommit) {
+              throw "Pending release candidates must not contain publication time or source commit metadata."
+            }
+            foreach ($asset in $assets) {
+              if ($null -ne $asset.size -or $null -ne $asset.sha256 -or
+                  [string]$asset.status -ne "pending-windows-qualification") {
+                throw "Pending release candidate assets must remain unqualified and unhashed."
+              }
+            }
+            Write-Host "Windows release metadata remains candidate-pending; no Windows qualification is claimed."
+          } elseif ($publishRequested) {
+            if ($null -eq $releaseManifest.publishedAt -or
+                [string]$releaseManifest.sourceCommit -notmatch '^[a-f0-9]{40}$') {
+              throw "Publishing requires finalized release timestamp and source commit metadata."
+            }
+            foreach ($asset in $assets) {
+              if ([int64]$asset.size -le 0 -or [string]$asset.sha256 -notmatch '^[a-f0-9]{64}$') {
+                throw "Publishing requires finalized ZIP and checksum asset metadata."
+              }
+            }
+          } elseif ($publicationStatus -ne "") {
+            throw "Unsupported release publicationStatus '$publicationStatus'."
+          }
+          if ([string]$docsVersion -ne $env:VERSION) {
+            if (-not $candidatePending) {
+              throw "Docs version '$docsVersion' does not match '$env:VERSION'."
+            }
+            Write-Host "Docs remain on stable version '$docsVersion' during candidate qualification for '$env:VERSION'."
           }
 
       - name: Set up CMake
         uses: lukka/get-cmake@v4.3.3
+        with:
+          cmakeVersion: ${{ env.CMAKE_VERSION }}
+          ninjaVersion: ${{ env.NINJA_VERSION }}
 
       - name: Set up cached vcpkg dependencies
         uses: lukka/run-vcpkg@v11
         with:
-          vcpkgDirectory: '${{ github.workspace }}/../b/vcpkg'
+          vcpkgDirectory: '${{ runner.temp }}/vcpkg'
+          vcpkgGitCommitId: ${{ env.VCPKG_COMMIT }}
           vcpkgJsonGlob: '**/vcpkg.json'
           runVcpkgInstall: false
+          binaryCachePath: '${{ runner.temp }}/vcpkg-binary-cache/windows-x64-msvc-${{ env.VCPKG_COMMIT }}'
 
       - name: Install cached Qt 6.9
         uses: jurplel/install-qt-action@v4
         with:
-          version: 6.9.0
+          version: ${{ env.QT_VERSION }}
           host: windows
           target: desktop
+          arch: win64_msvc2022_64
           cache: true
-          cache-key-prefix: vidchopper-qt-6.9.0
+          cache-key-prefix: vidchopper-qt-${{ env.QT_VERSION }}-windows-x64-msvc2022
 
       - name: Install FFmpeg 7.1.1
         shell: pwsh
@@ -97,33 +160,30 @@ jobs:
           Write-Error "ffmpeg install failed after $attempts attempts"
           exit 1
 
-      - name: Configure and build GUI package inputs
-        run: |
-          cmake --preset windows-gui-release
-          cmake --build --preset windows-gui-release
+      - name: Set up pinned source-quality tools
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
 
-      - name: Configure and build core package inputs
-        run: |
-          cmake --preset core-release
-          cmake --build --preset core-release
+      - name: Install pinned source-quality tools
+        shell: pwsh
+        run: python -m pip install --disable-pip-version-check -r tools/verification-requirements.txt
 
-      - name: Run release tests
-        run: |
-          ctest --test-dir build/core-release -C Release -L fast --output-on-failure
-          ctest --test-dir build/core-release -C Release -L slow --output-on-failure
-          ctest --test-dir build/windows-gui-release -C Release -L qt --output-on-failure
+      - name: Set up Node.js for documentation contracts
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: docs/package-lock.json
 
-      - name: Package portable Windows candidate
+      - name: Run canonical Windows release qualification lane
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
-          $packageOutput = @(pwsh -NoProfile -File tools/package-windows.ps1 `
-            -Version $env:VERSION `
-            -OutputDirectory $env:RELEASE_OUTPUT)
-          $zip = $packageOutput[-1]
-          $assetName = Split-Path -Leaf $zip
-          $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $zip).Hash.ToLowerInvariant()
-          "$hash *$assetName" | Set-Content -LiteralPath "$zip.sha256" -Encoding ascii
+          New-Item -ItemType Directory -Force artifacts | Out-Null
+          pwsh -NoProfile -File tools/verify.ps1 -Tier Release 2>&1 |
+            Tee-Object -FilePath artifacts/release-qualification.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Upload release candidate
         uses: actions/upload-artifact@v4
@@ -166,6 +226,18 @@ jobs:
           Write-Error "ffmpeg install failed after $attempts attempts"
           exit 1
 
+      - name: Verify candidate checksum
+        shell: pwsh
+        run: |
+          $zip = "artifacts/candidate/VidChopper-$($env:VERSION)-windows-x64.zip"
+          $checksum = "${zip}.sha256"
+          $checksumLine = (Get-Content -Raw -LiteralPath $checksum).Trim()
+          $actual = (Get-FileHash -Algorithm SHA256 -LiteralPath $zip).Hash.ToLowerInvariant()
+          $expectedLine = "$actual *$(Split-Path -Leaf $zip)"
+          if ($checksumLine -ne $expectedLine) {
+            throw "Candidate checksum line mismatch: expected '$expectedLine', got '$checksumLine'."
+          }
+
       - name: Verify extracted archive on clean Windows
         shell: pwsh
         run: |
@@ -185,6 +257,8 @@ jobs:
   publish-release:
     needs: smoke-clean-archive
     if: ${{ inputs.publish }}
+    permissions:
+      contents: write
     runs-on: ubuntu-latest
     timeout-minutes: 15
     environment: release-environment
@@ -203,6 +277,20 @@ jobs:
         with:
           name: vidchopper-windows-x64-${{ inputs.version }}
           path: artifacts/candidate
+
+      - name: Confirm finalized release metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          jq -e --arg version "$VERSION" '
+            .version == $version and
+            .cliVersion == $version and
+            .publicationStatus != "candidate-pending" and
+            (.publishedAt | type == "string") and
+            (.sourceCommit | type == "string" and test("^[a-f0-9]{40}$")) and
+            (.assets | length == 2) and
+            all(.assets[]; (.size | type == "number" and . > 0) and (.sha256 | test("^[a-f0-9]{64}$")))
+          ' "packaging/releases/${VERSION}.json" >/dev/null
 
       - name: Publish proven stable release
         shell: bash
