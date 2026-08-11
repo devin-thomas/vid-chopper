@@ -5,7 +5,9 @@
 #define NOMINMAX
 #include <Windows.h>
 #else
+#include <cerrno>
 #include <csignal>
+#include <fcntl.h>
 #include <unistd.h>
 #ifdef __APPLE__
 #include <mach-o/dyld.h>
@@ -20,6 +22,7 @@
 #include <iostream>
 #include <stop_token>
 #include <string>
+#include <string_view>
 #include <thread>
 #include <vector>
 
@@ -52,6 +55,35 @@ namespace {
 [[nodiscard]] auto contains(const std::string_view text, const std::string_view needle) -> bool {
     return text.find(needle) != std::string_view::npos;
 }
+
+#ifndef _WIN32
+[[nodiscard]] auto open_descriptor_count() -> size_t {
+    size_t count = 0;
+    for (int descriptor = 0; descriptor < ::getdtablesize(); ++descriptor) {
+        if (::fcntl(descriptor, F_GETFD) >= 0) {
+            ++count;
+        }
+    }
+    return count;
+}
+
+[[nodiscard]] auto read_pid(const Path& path) -> pid_t {
+    auto stream = std::ifstream {path};
+    auto process_id = pid_t {0};
+    stream >> process_id;
+    return process_id;
+}
+
+[[nodiscard]] auto wait_for_process_exit(const pid_t process_id) -> bool {
+    for (auto attempt = 0; attempt < 100; ++attempt) {
+        if (::kill(process_id, 0) != 0 && errno == ESRCH) {
+            return true;
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds {10});
+    }
+    return false;
+}
+#endif
 
 } // namespace
 
@@ -206,6 +238,7 @@ auto main(const int argument_count, char** arguments) -> int {
     test_support::expect_eq(bounded.standard_error.size(), size_t {32}, "captured stderr should honor its bound");
 
 #ifndef _WIN32
+    const size_t descriptor_count_before = open_descriptor_count();
     const ProcessResult both_large = run_process(ProcessRequest {
         .executable = self,
         .arguments = {"--both-large"},
@@ -224,6 +257,18 @@ auto main(const int argument_count, char** arguments) -> int {
     test_support::expect_eq(
         early_close.standard_error, std::string {"stderr after stdout close"}, "stderr should survive stdout close");
 
+    for (auto attempt = 0; attempt < 4; ++attempt) {
+        const ProcessResult descriptor_check = run_process(ProcessRequest {
+            .executable = self,
+            .arguments = {"--emit"},
+        });
+        test_support::expect_eq(
+            descriptor_check.state, ProcessExitState::Success, "descriptor cleanup fixture should complete");
+    }
+    test_support::expect_eq(open_descriptor_count(),
+        descriptor_count_before,
+        "repeated process runs should close all parent-side descriptors");
+
     const Path descendant_pid_file = copied_directory / "descendant.pid";
     const ProcessResult descendant = run_process(ProcessRequest {
         .executable = self,
@@ -233,22 +278,43 @@ auto main(const int argument_count, char** arguments) -> int {
     test_support::expect_eq(descendant.state, ProcessExitState::TimedOut, "timeout should terminate the process group");
     auto descendant_pid = pid_t {0};
     for (auto attempt = 0; attempt < 50 && descendant_pid == 0; ++attempt) {
-        auto pid_file = std::ifstream {descendant_pid_file};
-        pid_file >> descendant_pid;
+        descendant_pid = read_pid(descendant_pid_file);
         if (descendant_pid == 0) {
             std::this_thread::sleep_for(std::chrono::milliseconds {10});
         }
     }
     test_support::expect_true(descendant_pid > 0, "descendant fixture should report its pid");
-    auto descendant_gone = false;
-    for (auto attempt = 0; attempt < 50; ++attempt) {
-        if (::kill(descendant_pid, 0) != 0) {
-            descendant_gone = true;
-            break;
+    test_support::expect_true(
+        wait_for_process_exit(descendant_pid), "timeout should not leave a process-group descendant running");
+
+    const Path cancellation_pid_file = copied_directory / "cancellation-descendant.pid";
+    auto descendant_stop_source = std::stop_source {};
+    auto cancelled_descendant = ProcessResult {};
+    auto descendant_cancellation_thread =
+        std::thread {[&cancelled_descendant, &descendant_stop_source, &self, &cancellation_pid_file]() {
+            cancelled_descendant = run_process(ProcessRequest {
+                .executable = self,
+                .arguments = {"--spawn-descendant", cancellation_pid_file.string()},
+                .timeout = std::chrono::seconds {5},
+                .stop_token = descendant_stop_source.get_token(),
+            });
+        }};
+    std::this_thread::sleep_for(std::chrono::milliseconds {50});
+    descendant_stop_source.request_stop();
+    descendant_cancellation_thread.join();
+    test_support::expect_eq(cancelled_descendant.state,
+        ProcessExitState::Cancelled,
+        "cancellation should terminate the complete process group");
+    auto cancellation_pid = pid_t {0};
+    for (auto attempt = 0; attempt < 50 && cancellation_pid == 0; ++attempt) {
+        cancellation_pid = read_pid(cancellation_pid_file);
+        if (cancellation_pid == 0) {
+            std::this_thread::sleep_for(std::chrono::milliseconds {10});
         }
-        std::this_thread::sleep_for(std::chrono::milliseconds {10});
     }
-    test_support::expect_true(descendant_gone, "timeout should not leave a process-group descendant running");
+    test_support::expect_true(cancellation_pid > 0, "cancelled descendant fixture should report its pid");
+    test_support::expect_true(
+        wait_for_process_exit(cancellation_pid), "cancellation should not leave a process-group descendant running");
 #endif
 
     auto stop_source = std::stop_source {};

@@ -24,7 +24,7 @@ auto write_text(const Path& path, const std::string& text) -> void {
 } // namespace
 
 auto main() -> int {
-    const auto root = Path {std::filesystem::temp_directory_path() / "vidchopper-cli-settings"};
+    const auto root = Path {std::filesystem::temp_directory_path() / path_from_utf8("vidchopper CLI settings - 测试")};
     std::filesystem::remove_all(root);
 
     const auto executable_path = Path {root / "bin" / "VidChopperCLI.exe"};
@@ -137,7 +137,7 @@ auto main() -> int {
         path_to_utf8(bundle.paths.settings_path).find("Contents") == std::string::npos,
         "macOS portable settings must not be placed inside Contents");
 
-    const Path explicit_path = root / "chosen" / "settings.ini";
+    const Path explicit_path = root / path_from_utf8("chosen config/设置 🎬.ini");
     const ConfigResolutionResult explicit_result = resolve_config_paths(
         executable_path, ConfigStore::Cli, ConfigPathOptions {.explicit_path = explicit_path}, linux_environment);
     test_support::expect_true(explicit_result.ok(), "explicit config resolution should succeed");

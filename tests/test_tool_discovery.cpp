@@ -49,8 +49,14 @@ namespace {
     if (contains(name, "unsupported-old")) {
         return std::format("{} version 6.0.0", tool);
     }
+    if (contains(name, "supported-old")) {
+        return std::format("{} version 6.1.0", tool);
+    }
     if (contains(name, "unsupported-new")) {
         return std::format("{} version 9.0.0", tool);
+    }
+    if (contains(name, "supported-new")) {
+        return std::format("{} version 8.9.0", tool);
     }
     if (contains(name, "unparseable")) {
         return std::format("{} version development-build", tool);
@@ -174,9 +180,23 @@ auto main(const int argument_count, char** arguments) -> int {
     test_support::expect_true(contains(old_result.failure_reason, "6.1 through 8.x"),
         "unsupported diagnostics should state the supported range");
 
+    const Path supported_old = copy_fixture(self, root, "supported-old-ffmpeg");
+    const ToolResolution oldest_supported = discover_tool(ToolKind::Ffmpeg, supported_old, deterministic_options);
+    test_support::expect_true(oldest_supported.ok(), "6.1 should remain an accepted fixture version");
+    test_support::expect_eq(oldest_supported.version,
+        ToolVersion {.major = 6, .minor = 1, .patch = 0},
+        "the oldest supported fixture version should be retained");
+
     const Path unsupported_new = copy_fixture(self, root, "unsupported-new-ffmpeg");
     const ToolResolution new_result = discover_tool(ToolKind::Ffmpeg, unsupported_new, deterministic_options);
     test_support::expect_true(!new_result.ok(), "9.x should be blocked");
+
+    const Path supported_new = copy_fixture(self, root, "supported-new-ffprobe");
+    const ToolResolution newest_supported = discover_tool(ToolKind::Ffprobe, supported_new, deterministic_options);
+    test_support::expect_true(newest_supported.ok(), "8.x should remain an accepted fixture version");
+    test_support::expect_eq(newest_supported.version,
+        ToolVersion {.major = 8, .minor = 9, .patch = 0},
+        "the newest supported fixture version should be retained");
 
     const Path unparseable = copy_fixture(self, root, "unparseable-ffmpeg");
     const ToolResolution unparseable_result = discover_tool(ToolKind::Ffmpeg, unparseable, deterministic_options);

@@ -2,6 +2,8 @@
 #include "test_support.hpp"
 
 #include <array>
+#include <filesystem>
+#include <string>
 
 using namespace vidchopper;
 
@@ -18,12 +20,19 @@ auto expect_parse_failure(const DemoLaunchOptionsParseResult& result) -> void {
 } // namespace
 
 auto main() -> int {
+    const Path demo_source =
+        std::filesystem::temp_directory_path() / path_from_utf8("vidchopper demo fixtures/媒体 source 🎬.mp4");
+    const Path demo_ready_file =
+        std::filesystem::temp_directory_path() / path_from_utf8("vidchopper demo fixtures/ready marker.txt");
+    const std::string demo_source_argument = "--demo-source=" + path_to_utf8(demo_source);
+    const std::string demo_ready_file_argument = "--demo-ready-file=" + path_to_utf8(demo_ready_file);
+
     {
-        auto first = std::string {"vidchopper.exe"};
+        auto first = std::string {"vidchopper"};
         auto second = std::string {"--demo-scene=workspace-logs"};
-        auto third = std::string {"--demo-source=C:\\capture\\sample.mp4"};
+        auto third = demo_source_argument;
         auto fourth = std::string {"--window-size=1280x900"};
-        auto fifth = std::string {"--demo-ready-file=C:\\capture\\ready.txt"};
+        auto fifth = demo_ready_file_argument;
         auto argv = std::array<char*, 5> {
             first.data(),
             second.data(),
@@ -42,10 +51,10 @@ auto main() -> int {
     }
 
     {
-        auto first = std::string {"vidchopper.exe"};
+        auto first = std::string {"vidchopper"};
         auto second = std::string {"--demo-scene=settings-precision"};
         auto third = std::string {"--demo-source=sample.mp4"};
-        auto fourth = std::string {"--demo-ready-file=C:\\capture\\ready.txt"};
+        auto fourth = demo_ready_file_argument;
         auto argv = std::array<char*, 4> {
             first.data(),
             second.data(),
@@ -58,11 +67,11 @@ auto main() -> int {
     }
 
     {
-        auto first = std::string {"vidchopper.exe"};
+        auto first = std::string {"vidchopper"};
         auto second = std::string {"--window-size=wide"};
         auto third = std::string {"--demo-scene=workspace"};
-        auto fourth = std::string {"--demo-source=C:\\capture\\sample.mp4"};
-        auto fifth = std::string {"--demo-ready-file=C:\\capture\\ready.txt"};
+        auto fourth = demo_source_argument;
+        auto fifth = demo_ready_file_argument;
         auto argv = std::array<char*, 5> {
             first.data(),
             second.data(),
@@ -76,11 +85,11 @@ auto main() -> int {
     }
 
     {
-        auto first = std::string {"vidchopper.exe"};
+        auto first = std::string {"vidchopper"};
         auto second = std::string {"--demo-scene=workspace"};
-        auto third = std::string {"--demo-source=C:\\capture\\sample.mp4"};
+        auto third = demo_source_argument;
         auto fourth = std::string {"--window-size=1440X960"};
-        auto fifth = std::string {"--demo-ready-file=C:\\capture\\ready.txt"};
+        auto fifth = demo_ready_file_argument;
         auto argv = std::array<char*, 5> {
             first.data(),
             second.data(),
@@ -97,7 +106,7 @@ auto main() -> int {
     }
 
     {
-        auto first = std::string {"vidchopper.exe"};
+        auto first = std::string {"vidchopper"};
         auto second = std::string {"--style=fusion"};
         auto argv = std::array<char*, 2> {
             first.data(),

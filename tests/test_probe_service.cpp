@@ -1,3 +1,4 @@
+#include "core/path_utils.hpp"
 #include "services/probe_service.hpp"
 #include "test_support.hpp"
 
@@ -45,8 +46,9 @@ namespace {
 } // namespace
 
 auto main() -> int {
-    const auto executable = Path {R"(C:\Program Files\ffmpeg\ffprobe.exe)"};
-    const auto source = Path {R"(C:\Users\RUNNER~1\AppData\Local\Temp\match clips\set.mkv)"};
+    const Path fixture_root = std::filesystem::temp_directory_path() / path_from_utf8("vidchopper probe fixtures");
+    const Path executable = fixture_root / path_from_utf8("tool dir/ffprobe fixture");
+    const Path source = fixture_root / path_from_utf8("match clips/源 视频 🎬.mkv");
     const auto success_process = ProcessResult {
         .state = ProcessExitState::Success,
         .standard_output = fixture_text(),
@@ -103,9 +105,9 @@ auto main() -> int {
         const ProbeResult failure = parse_probe_output(executable, source, failed(state, "bounded stderr"));
         test_support::expect_true(!failure.ok(), "process failure should reject probing");
         test_support::expect_true(
-            contains(failure.error_message, executable.string()), "probe error should include the executable path");
+            contains(failure.error_message, path_to_utf8(executable)), "probe error should include the executable path");
         test_support::expect_true(
-            contains(failure.error_message, source.string()), "probe error should include the source path");
+            contains(failure.error_message, path_to_utf8(source)), "probe error should include the source path");
         test_support::expect_true(contains(failure.error_message, process_exit_state_name(state)),
             "probe error should identify the exit state");
         test_support::expect_true(
@@ -122,19 +124,20 @@ auto main() -> int {
     test_support::expect_true(injected.ok(), "injected process executor should support deterministic probing");
     test_support::expect_eq(observed_request.executable, executable, "probe should preserve the executable path");
     test_support::expect_eq(
-        observed_request.arguments.back(), source.string(), "probe should preserve the source path");
+        observed_request.arguments.back(), path_to_utf8(source), "probe should preserve the source path");
     test_support::expect_true(
         observed_request.stop_token.stop_possible(), "probe should forward cancellation to the runner");
 
-#ifdef _WIN32
-    const auto unicode_source = Path {L"C:\\Temp\\\u89C6\u9891.mkv"};
-    const ProbeResult unicode = ProbeService {fake}.probe(executable, unicode_source);
-    test_support::expect_true(unicode.ok(), "probing should accept a Unicode source path");
-    const auto expected_unicode_argument = std::string {"C:\\Temp\\\xE8\xA7\x86\xE9\xA2\x91.mkv"};
+    const Path unicode_source = fixture_root / path_from_utf8("match clips/视频 source 🎬.mkv");
+    const Path unicode_executable = fixture_root / path_from_utf8("tool dir/ffprobe 工具");
+    const ProbeResult unicode = ProbeService {fake}.probe(unicode_executable, unicode_source);
+    test_support::expect_true(unicode.ok(), "probing should accept a native Unicode source path");
+    test_support::expect_eq(observed_request.executable,
+        unicode_executable,
+        "the process request should preserve a native executable path");
     test_support::expect_eq(observed_request.arguments.back(),
-        expected_unicode_argument,
-        "the process request should preserve a Windows source path as UTF-8");
-#endif
+        path_to_utf8(unicode_source),
+        "the process request should preserve a native Unicode source path as UTF-8");
 
     return 0;
 }
