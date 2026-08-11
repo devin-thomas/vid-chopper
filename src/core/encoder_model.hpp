@@ -29,8 +29,8 @@ struct EncoderDescriptor {
 [[nodiscard]] auto encoder_kind_name(EncoderKind kind) -> std::string_view;
 [[nodiscard]] auto encoder_platform_name(EncoderPlatform platform) -> std::string_view;
 [[nodiscard]] auto current_encoder_platform() noexcept -> EncoderPlatform;
-[[nodiscard]] auto encoder_platform_eligible(const EncoderDescriptor& descriptor, EncoderPlatform platform) noexcept
-    -> bool;
+[[nodiscard]] auto encoder_platform_eligible(
+    const EncoderDescriptor& descriptor, EncoderPlatform platform) noexcept -> bool;
 [[nodiscard]] auto encoder_kind_is_known(EncoderKind kind) noexcept -> bool;
 [[nodiscard]] auto encoder_kind_from_name(std::string_view name) -> std::optional<EncoderKind>;
 [[nodiscard]] auto encoder_kind_from_persisted_value(

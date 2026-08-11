@@ -173,9 +173,10 @@ auto add_tool_candidate(std::vector<Candidate>& candidates,
 #endif
 }
 
-[[nodiscard]] auto candidates_for(
-    const ToolKind kind, const Path& configured_path, const ToolDiscoveryOptions& options, bool& strict_configured_path)
-    -> std::vector<Candidate> {
+[[nodiscard]] auto candidates_for(const ToolKind kind,
+    const Path& configured_path,
+    const ToolDiscoveryOptions& options,
+    bool& strict_configured_path) -> std::vector<Candidate> {
     auto candidates = std::vector<Candidate> {};
     auto seen = std::vector<std::string> {};
     const bool has_configured_path = !configured_path.empty();
@@ -434,8 +435,8 @@ auto MediaToolResolver::resolve(const ToolKind kind, const Path& configured_path
     return result;
 }
 
-auto MediaToolResolver::resolve_pair(const Path& configured_ffmpeg, const Path& configured_ffprobe) const
-    -> ToolDiscoveryResult {
+auto MediaToolResolver::resolve_pair(
+    const Path& configured_ffmpeg, const Path& configured_ffprobe) const -> ToolDiscoveryResult {
     auto result = ToolDiscoveryResult {};
     result.ffmpeg = resolve(ToolKind::Ffmpeg, configured_ffmpeg);
     result.ffprobe = resolve(ToolKind::Ffprobe, configured_ffprobe);
@@ -472,14 +473,14 @@ auto MediaToolResolver::resolve_pair(const Path& configured_ffmpeg, const Path& 
     return result;
 }
 
-auto discover_tool(const ToolKind kind, const Path& configured_path, const ToolDiscoveryOptions& options)
-    -> ToolResolution {
+auto discover_tool(
+    const ToolKind kind, const Path& configured_path, const ToolDiscoveryOptions& options) -> ToolResolution {
     return MediaToolResolver {options}.resolve(kind, configured_path);
 }
 
-auto discover_media_tools(
-    const Path& configured_ffmpeg, const Path& configured_ffprobe, const ToolDiscoveryOptions& options)
-    -> ToolDiscoveryResult {
+auto discover_media_tools(const Path& configured_ffmpeg,
+    const Path& configured_ffprobe,
+    const ToolDiscoveryOptions& options) -> ToolDiscoveryResult {
     return MediaToolResolver {options}.resolve_pair(configured_ffmpeg, configured_ffprobe);
 }
 

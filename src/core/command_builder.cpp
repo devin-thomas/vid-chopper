@@ -105,9 +105,8 @@ auto resolve_encoder(const ExportSettings& settings,
         selected_kind = EncoderKind::X264;
         used_fallback = true;
         if (selection_reason.empty()) {
-            selection_reason = std::string {encoder_kind_name(requested_kind)}
-                + " is not an enabled encoder on " + std::string {encoder_platform_name(environment.platform)}
-                + "; using x264.";
+            selection_reason = std::string {encoder_kind_name(requested_kind)} + " is not an enabled encoder on "
+                + std::string {encoder_platform_name(environment.platform)} + "; using x264.";
         }
     }
 

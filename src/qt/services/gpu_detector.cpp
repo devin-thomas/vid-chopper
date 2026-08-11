@@ -112,8 +112,8 @@ auto GpuDetector::detect(const QString& ffmpeg_path) -> bool {
     return true;
 }
 
-auto GpuDetector::complete(const std::shared_ptr<TaskState>& state, EncoderEnvironment environment, QString diagnostic)
-    -> void {
+auto GpuDetector::complete(
+    const std::shared_ptr<TaskState>& state, EncoderEnvironment environment, QString diagnostic) -> void {
     if (state_ != state) {
         return;
     }

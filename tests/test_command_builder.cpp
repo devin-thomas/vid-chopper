@@ -64,8 +64,8 @@ auto main() -> int {
         build_ffmpeg_command(unicode_metadata, chapter, unicode_output, settings, EncoderEnvironment {});
     const auto input_flag = std::ranges::find(unicode_command, "-i");
     test_support::expect_true(input_flag != unicode_command.end(), "Unicode command should include the input flag");
-    test_support::expect_eq(*(input_flag + 1), path_to_utf8(unicode_source),
-        "external process arguments should receive UTF-8 path text");
+    test_support::expect_eq(
+        *(input_flag + 1), path_to_utf8(unicode_source), "external process arguments should receive UTF-8 path text");
 
     return 0;
 }

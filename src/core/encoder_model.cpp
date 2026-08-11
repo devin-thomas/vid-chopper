@@ -174,8 +174,7 @@ auto encoder_kind_from_name(const std::string_view name) -> std::optional<Encode
     if (normalized == "hevc_nvenc" || normalized == "nvenc") {
         return EncoderKind::HevcNvenc;
     }
-    if (normalized == "hevc_videotoolbox" || normalized == "video_toolbox"
-        || normalized == "videotoolbox") {
+    if (normalized == "hevc_videotoolbox" || normalized == "video_toolbox" || normalized == "videotoolbox") {
         return EncoderKind::HevcVideoToolbox;
     }
     return std::nullopt;
@@ -183,8 +182,7 @@ auto encoder_kind_from_name(const std::string_view name) -> std::optional<Encode
 
 auto encoder_kind_from_persisted_value(
     const i64 raw_value, const EncoderKind fallback, std::string& diagnostic) -> EncoderKind {
-    if (raw_value >= static_cast<i64>(EncoderKind::Auto)
-        && raw_value <= static_cast<i64>(EncoderKind::HevcNvenc)) {
+    if (raw_value >= static_cast<i64>(EncoderKind::Auto) && raw_value <= static_cast<i64>(EncoderKind::HevcNvenc)) {
         return static_cast<EncoderKind>(raw_value);
     }
 
@@ -194,8 +192,7 @@ auto encoder_kind_from_persisted_value(
     return fallback;
 }
 
-auto encoder_arguments_for(const ExportSettings& settings, const EncoderKind kind)
-    -> std::vector<std::string> {
+auto encoder_arguments_for(const ExportSettings& settings, const EncoderKind kind) -> std::vector<std::string> {
     const EncoderDescriptor descriptor = encoder_descriptor(kind);
     if (!descriptor.enabled_in_release || kind == EncoderKind::Auto) {
         return {};
@@ -207,8 +204,7 @@ auto encoder_arguments_for(const ExportSettings& settings, const EncoderKind kin
         return {std::string {descriptor.quality_argument}, quality};
     }
 
-    auto arguments = std::vector<std::string> {
-        "-preset", preset, std::string {descriptor.quality_argument}, quality};
+    auto arguments = std::vector<std::string> {"-preset", preset, std::string {descriptor.quality_argument}, quality};
     if (kind == EncoderKind::HevcNvenc) {
         arguments.insert(arguments.end(), {"-rc", "vbr_hq"});
     }

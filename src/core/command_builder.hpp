@@ -7,8 +7,7 @@
 
 namespace vidchopper {
 
-[[nodiscard]] auto resolve_encoder(
-    const ExportSettings& settings,
+[[nodiscard]] auto resolve_encoder(const ExportSettings& settings,
     const EncoderEnvironment& environment,
     const std::optional<EncoderSelection>& selection = std::nullopt) -> ResolvedEncoder;
 [[nodiscard]] auto output_extension_for(const VideoMetadata& metadata, const ExportSettings& settings) -> std::string;

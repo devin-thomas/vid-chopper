@@ -73,8 +73,7 @@ struct ConfigResolutionResult {
 };
 
 [[nodiscard]] inline auto config_file_name(const ConfigStore store) -> std::string_view {
-    return store == ConfigStore::Gui ? std::string_view {"VidChopper.ini"}
-                                     : std::string_view {"VidChopperCLI.ini"};
+    return store == ConfigStore::Gui ? std::string_view {"VidChopper.ini"} : std::string_view {"VidChopperCLI.ini"};
 }
 
 [[nodiscard]] inline auto config_current_directory() -> Path {
@@ -217,19 +216,17 @@ struct ConfigResolutionResult {
         config_root = settings_path.has_parent_path() ? settings_path.parent_path() : config_current_directory();
     } else if (options.portable) {
         mode = ConfigMode::Portable;
-        config_root = environment.platform == ConfigPlatform::MacOS
-                          ? macos_bundle_sidecar_directory(executable_path)
-                          : application_directory;
+        config_root = environment.platform == ConfigPlatform::MacOS ? macos_bundle_sidecar_directory(executable_path)
+                                                                    : application_directory;
     } else if (environment.platform == ConfigPlatform::Windows) {
         config_root = application_directory;
     } else {
         const std::optional<Path> root = native_config_root(environment);
         if (!root.has_value()) {
             const std::string reason = environment.platform == ConfigPlatform::Linux
-                                           && environment.xdg_config_home.has_value()
-                                           && !environment.xdg_config_home->is_absolute()
-                                         ? "XDG_CONFIG_HOME must be an absolute path."
-                                         : "HOME is required to resolve the native config directory.";
+                    && environment.xdg_config_home.has_value() && !environment.xdg_config_home->is_absolute()
+                ? "XDG_CONFIG_HOME must be an absolute path."
+                : "HOME is required to resolve the native config directory.";
             return ConfigResolutionResult {.error_message = reason};
         }
         config_root = *root;
@@ -243,14 +240,15 @@ struct ConfigResolutionResult {
 
     return ConfigResolutionResult {
         .success = true,
-        .paths = ConfigPaths {
-            .application_directory = application_directory,
-            .config_root = config_root,
-            .settings_path = settings_path,
-            .gui_settings_path = gui_settings_path,
-            .cli_settings_path = cli_settings_path,
-            .mode = mode,
-        },
+        .paths =
+            ConfigPaths {
+                .application_directory = application_directory,
+                .config_root = config_root,
+                .settings_path = settings_path,
+                .gui_settings_path = gui_settings_path,
+                .cli_settings_path = cli_settings_path,
+                .mode = mode,
+            },
     };
 }
 

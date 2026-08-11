@@ -14,8 +14,7 @@
 
 namespace {
 
-[[nodiscard]] auto parse_demo_arguments(const QStringList& arguments)
-    -> vidchopper::DemoLaunchOptionsParseResult {
+[[nodiscard]] auto parse_demo_arguments(const QStringList& arguments) -> vidchopper::DemoLaunchOptionsParseResult {
     auto utf8_arguments = std::vector<std::string> {};
     utf8_arguments.reserve(static_cast<size_t>(arguments.size()));
     for (const auto& argument : arguments) {

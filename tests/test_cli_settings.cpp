@@ -133,29 +133,27 @@ auto main() -> int {
     test_support::expect_eq(bundle.paths.settings_path,
         root / "Applications" / "VidChopper.ini",
         "macOS portable settings should live beside the outer app bundle");
-    test_support::expect_true(
-        path_to_utf8(bundle.paths.settings_path).find("Contents") == std::string::npos,
+    test_support::expect_true(path_to_utf8(bundle.paths.settings_path).find("Contents") == std::string::npos,
         "macOS portable settings must not be placed inside Contents");
 
     const Path explicit_path = root / path_from_utf8("chosen config/设置 🎬.ini");
     const ConfigResolutionResult explicit_result = resolve_config_paths(
         executable_path, ConfigStore::Cli, ConfigPathOptions {.explicit_path = explicit_path}, linux_environment);
     test_support::expect_true(explicit_result.ok(), "explicit config resolution should succeed");
-    test_support::expect_eq(explicit_result.paths.settings_path, explicit_path,
-        "explicit config path should be authoritative");
-    const CliSettingsPaths explicit_cli_paths = resolve_cli_settings_paths(
-        executable_path, true, ConfigPathOptions {.explicit_path = explicit_path});
+    test_support::expect_eq(
+        explicit_result.paths.settings_path, explicit_path, "explicit config path should be authoritative");
+    const CliSettingsPaths explicit_cli_paths =
+        resolve_cli_settings_paths(executable_path, true, ConfigPathOptions {.explicit_path = explicit_path});
     test_support::expect_eq(explicit_cli_paths.mode, ConfigMode::Explicit, "explicit CLI settings should retain mode");
-    test_support::expect_true(ensure_cli_settings_file(explicit_cli_paths.cli_settings_path),
-        "explicit CLI settings should be writable");
+    test_support::expect_true(
+        ensure_cli_settings_file(explicit_cli_paths.cli_settings_path), "explicit CLI settings should be writable");
     write_text(explicit_cli_paths.cli_settings_path, "x264_crf=33\n");
     const CliResolvedSettings explicit_loaded = load_cli_settings(explicit_cli_paths);
     test_support::expect_true(explicit_loaded.loaded_cli_settings, "explicit CLI settings should load");
-    test_support::expect_true(!explicit_loaded.loaded_gui_settings,
-        "explicit CLI settings should not merge the GUI store");
-    test_support::expect_eq(explicit_loaded.export_settings.x264_crf,
-        u8 {33},
-        "explicit CLI settings should retain their values");
+    test_support::expect_true(
+        !explicit_loaded.loaded_gui_settings, "explicit CLI settings should not merge the GUI store");
+    test_support::expect_eq(
+        explicit_loaded.export_settings.x264_crf, u8 {33}, "explicit CLI settings should retain their values");
 
     const Path blocked_parent = root / "blocked-parent";
     write_text(blocked_parent, "not a directory");

@@ -76,8 +76,8 @@ public:
     explicit MediaToolResolver(ToolDiscoveryOptions options = {});
 
     [[nodiscard]] auto resolve(ToolKind kind, const Path& configured_path = {}) const -> ToolResolution;
-    [[nodiscard]] auto resolve_pair(const Path& configured_ffmpeg, const Path& configured_ffprobe) const
-        -> ToolDiscoveryResult;
+    [[nodiscard]] auto resolve_pair(
+        const Path& configured_ffmpeg, const Path& configured_ffprobe) const -> ToolDiscoveryResult;
 
 private:
     ToolDiscoveryOptions options_;
@@ -91,8 +91,8 @@ private:
 
 [[nodiscard]] auto discover_tool(
     ToolKind kind, const Path& configured_path = {}, const ToolDiscoveryOptions& options = {}) -> ToolResolution;
-[[nodiscard]] auto discover_media_tools(
-    const Path& configured_ffmpeg, const Path& configured_ffprobe, const ToolDiscoveryOptions& options = {})
-    -> ToolDiscoveryResult;
+[[nodiscard]] auto discover_media_tools(const Path& configured_ffmpeg,
+    const Path& configured_ffprobe,
+    const ToolDiscoveryOptions& options = {}) -> ToolDiscoveryResult;
 
 } // namespace vidchopper

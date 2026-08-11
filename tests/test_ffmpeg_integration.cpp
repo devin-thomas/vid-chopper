@@ -188,8 +188,8 @@ auto main() -> int {
     test_support::expect_true(manifests.ok(), "real export manifests should be written successfully");
     const std::string json_text = read_text(output_directory / "vidchopper-manifest.json");
     const std::string csv_text = read_text(output_directory / "vidchopper-manifest.csv");
-    test_support::expect_true(json_text.find("\"source\": " + json_string_literal(path_to_utf8(source_path)))
-            != std::string::npos,
+    test_support::expect_true(
+        json_text.find("\"source\": " + json_string_literal(path_to_utf8(source_path))) != std::string::npos,
         "JSON manifest should preserve the Unicode source path");
     test_support::expect_true(
         json_text.find("\"outputDirectory\": " + json_string_literal(path_to_utf8(output_directory)))

@@ -45,7 +45,8 @@ auto write_ready_marker(const Path& target, const std::string_view status) -> Re
         stream.close();
         std::filesystem::remove(temporary, error);
         return ReadyMarkerWriteResult {
-            .error_message = "Could not completely write ready-marker temporary file '" + path_to_utf8(temporary) + "'.",
+            .error_message =
+                "Could not completely write ready-marker temporary file '" + path_to_utf8(temporary) + "'.",
         };
     }
     stream.close();

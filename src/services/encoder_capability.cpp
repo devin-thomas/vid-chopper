@@ -41,8 +41,8 @@ namespace {
     return summary;
 }
 
-[[nodiscard]] auto make_process_request(const std::vector<std::string>& command,
-    const EncoderCapabilityOptions& options) -> ProcessRequest {
+[[nodiscard]] auto make_process_request(
+    const std::vector<std::string>& command, const EncoderCapabilityOptions& options) -> ProcessRequest {
     return ProcessRequest {
         .executable = command.front(),
         .arguments = {command.begin() + 1, command.end()},
@@ -75,8 +75,8 @@ namespace {
     return summary;
 }
 
-[[nodiscard]] auto minimal_encode_command(const ExportSettings& settings, const EncoderKind backend)
-    -> std::vector<std::string> {
+[[nodiscard]] auto minimal_encode_command(
+    const ExportSettings& settings, const EncoderKind backend) -> std::vector<std::string> {
     const EncoderDescriptor descriptor = encoder_descriptor(backend);
     auto command = std::vector<std::string> {
         settings.ffmpeg_path,
@@ -174,9 +174,8 @@ auto EncoderCapabilityService::test(const ExportSettings& settings,
     const EncoderPlatform platform = selection_platform(environment);
     if (!encoder_platform_eligible(descriptor, platform)) {
         result.status = EncoderCapabilityStatus::Unsupported;
-        result.rejection_reason = std::format("{} is not eligible on {}.",
-            descriptor.display_name,
-            encoder_platform_name(platform));
+        result.rejection_reason =
+            std::format("{} is not eligible on {}.", descriptor.display_name, encoder_platform_name(platform));
         return result;
     }
 
@@ -205,9 +204,8 @@ auto EncoderCapabilityService::test(const ExportSettings& settings,
         return result;
     }
 
-    result.rejection_reason = std::format("{} minimal encode failed ({}).",
-        descriptor.display_name,
-        result.process_summary);
+    result.rejection_reason =
+        std::format("{} minimal encode failed ({}).", descriptor.display_name, result.process_summary);
     return result;
 }
 
@@ -216,10 +214,11 @@ auto EncoderCapabilityService::select(const ExportSettings& settings,
     const EncoderCapabilityOptions& options) const -> EncoderSelectionResult {
     const EncoderKind requested_kind = settings.encoder_kind;
     auto result = EncoderSelectionResult {
-        .selection = EncoderSelection {
-            .requested_kind = requested_kind,
-            .resolved_kind = EncoderKind::X264,
-        },
+        .selection =
+            EncoderSelection {
+                .requested_kind = requested_kind,
+                .resolved_kind = EncoderKind::X264,
+            },
     };
 
     if (requested_kind != EncoderKind::Auto) {
@@ -243,8 +242,8 @@ auto EncoderCapabilityService::select(const ExportSettings& settings,
     if (candidate_result.ok()) {
         result.success = true;
         result.selection.resolved_kind = candidate;
-        result.summary = std::format("Auto resolved to {} after a successful capability test.",
-            candidate_result.backend_display_name);
+        result.summary = std::format(
+            "Auto resolved to {} after a successful capability test.", candidate_result.backend_display_name);
         return result;
     }
 

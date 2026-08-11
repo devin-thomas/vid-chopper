@@ -135,7 +135,8 @@ auto atomic_write(const Path& target, const std::string& text, std::vector<std::
     if (error || written_size != text.size()) {
         const std::string detail = error ? error.message() : "written size did not match the requested content";
         std::filesystem::remove(temporary, error);
-        errors.push_back("Could not verify complete manifest temporary file '" + path_to_utf8(temporary) + "': " + detail);
+        errors.push_back(
+            "Could not verify complete manifest temporary file '" + path_to_utf8(temporary) + "': " + detail);
         return false;
     }
 
@@ -203,12 +204,11 @@ auto write_aggregate_csv(const Path& target,
                 ? ""
                 : (!rendered->verification_error.empty() ? rendered->verification_error
                                                          : rendered->process.error_message);
-            text += csv_escape(path_to_utf8(job.metadata.source_path)) + ","
-                    + std::to_string(planned.chapter_index + 1) + "," + csv_escape(planned.chapter.name) + ","
-                    + std::to_string(planned.chapter.start_ms) + "," + std::to_string(planned.chapter.end_ms) + ","
-                    + csv_escape(path_to_utf8(planned.output_path)) + "," + csv_escape(state) + ","
-                    + (rendered != nullptr && rendered->skipped ? "true" : "false") + "," + csv_escape(error)
-                    + "\n";
+            text += csv_escape(path_to_utf8(job.metadata.source_path)) + "," + std::to_string(planned.chapter_index + 1)
+                + "," + csv_escape(planned.chapter.name) + "," + std::to_string(planned.chapter.start_ms) + ","
+                + std::to_string(planned.chapter.end_ms) + "," + csv_escape(path_to_utf8(planned.output_path)) + ","
+                + csv_escape(state) + "," + (rendered != nullptr && rendered->skipped ? "true" : "false") + ","
+                + csv_escape(error) + "\n";
         }
     }
     return atomic_write(target, text, errors);
@@ -263,7 +263,7 @@ auto write_manifests(const std::vector<ResolvedExportJob>& planned_jobs,
         manifest_job.success = manifest_job.errors.empty();
         for (const std::string& error : manifest_job.errors) {
             result.errors.push_back("Manifest failure for job " + std::to_string(index + 1) + " ('"
-                                    + path_to_utf8(job.metadata.source_path) + "'): " + error);
+                + path_to_utf8(job.metadata.source_path) + "'): " + error);
         }
         result.jobs.push_back(std::move(manifest_job));
     }

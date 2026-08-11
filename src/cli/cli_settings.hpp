@@ -30,9 +30,8 @@ struct CliResolvedSettings {
     [[nodiscard]] auto operator==(const CliResolvedSettings&) const -> bool = default;
 };
 
-[[nodiscard]] auto resolve_cli_settings_paths(const Path& executable_path,
-    bool use_gui_config,
-    const ConfigPathOptions& options = {}) -> CliSettingsPaths;
+[[nodiscard]] auto resolve_cli_settings_paths(
+    const Path& executable_path, bool use_gui_config, const ConfigPathOptions& options = {}) -> CliSettingsPaths;
 [[nodiscard]] auto ensure_cli_settings_file(const Path& settings_path) -> bool;
 [[nodiscard]] auto load_cli_settings(const CliSettingsPaths& paths) -> CliResolvedSettings;
 [[nodiscard]] auto apply_cli_flag_overrides(ExportSettings settings, const CliArguments& arguments) -> ExportSettings;

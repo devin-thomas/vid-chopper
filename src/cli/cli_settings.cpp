@@ -207,9 +207,8 @@ auto apply_setting(ExportSettings& settings, std::string key, const std::string_
 
 } // namespace
 
-auto resolve_cli_settings_paths(const Path& executable_path,
-    const bool use_gui_config,
-    const ConfigPathOptions& options) -> CliSettingsPaths {
+auto resolve_cli_settings_paths(
+    const Path& executable_path, const bool use_gui_config, const ConfigPathOptions& options) -> CliSettingsPaths {
     const ConfigResolutionResult resolved = resolve_config_paths(executable_path, ConfigStore::Cli, options);
     if (!resolved.ok()) {
         return CliSettingsPaths {

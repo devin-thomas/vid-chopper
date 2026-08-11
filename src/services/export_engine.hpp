@@ -93,8 +93,8 @@ class ExportEngine final {
 public:
     explicit ExportEngine(ProcessExecutor executor = run_process);
 
-    [[nodiscard]] auto run(const std::vector<ResolvedExportJob>& jobs, const ExportRunOptions& options = {}) const
-        -> ExportRunResult;
+    [[nodiscard]] auto run(
+        const std::vector<ResolvedExportJob>& jobs, const ExportRunOptions& options = {}) const -> ExportRunResult;
 
 private:
     ProcessExecutor executor_;

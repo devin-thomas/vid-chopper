@@ -91,7 +91,8 @@ auto main() -> int {
 
     auto json_stream = std::ifstream {job.output_directory / "vidchopper-manifest.json", std::ios::binary};
     const std::string json_text {std::istreambuf_iterator<char> {json_stream}, std::istreambuf_iterator<char> {}};
-    test_support::expect_true(json_text.find("\"source\": " + json_string_literal(path_to_utf8(job.metadata.source_path)))
+    test_support::expect_true(
+        json_text.find("\"source\": " + json_string_literal(path_to_utf8(job.metadata.source_path)))
             != std::string::npos,
         "JSON manifest paths should be serialized as UTF-8");
     test_support::expect_true(json_text.find(json_string_literal("序章 🎬")) != std::string::npos,

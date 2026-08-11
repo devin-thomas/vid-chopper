@@ -562,7 +562,8 @@ constexpr auto chapter_keys = std::to_array<std::string_view>({"name", "start", 
     if (!validation.ok()) {
         const ValidationIssue& issue = validation.issues.front();
         return ChapterConfigLoadResult {
-            .error_message = std::format("{}: chapters[{}]: {}", path_to_utf8(path), issue.chapter_index, issue.message),
+            .error_message =
+                std::format("{}: chapters[{}]: {}", path_to_utf8(path), issue.chapter_index, issue.message),
         };
     }
 
@@ -580,12 +581,14 @@ auto load_chapter_config(const Path& config_path,
     const ExportSettings& base_settings) -> ChapterConfigLoadResult {
     const std::string extension = normalized_extension(config_path);
     if (extension != ".json" && extension != ".yaml" && extension != ".yml") {
-        return ChapterConfigLoadResult {.error_message = path_to_utf8(config_path) + ": unknown chapter config extension."};
+        return ChapterConfigLoadResult {
+            .error_message = path_to_utf8(config_path) + ": unknown chapter config extension."};
     }
 
     const std::optional<std::string> text = read_text_file(config_path);
     if (!text.has_value()) {
-        return ChapterConfigLoadResult {.error_message = path_to_utf8(config_path) + ": could not read chapter config."};
+        return ChapterConfigLoadResult {
+            .error_message = path_to_utf8(config_path) + ": could not read chapter config."};
     }
 
     if (extension == ".json") {

@@ -182,8 +182,10 @@ template <typename Predicate>
     auto inventory = DirectoryInventory {.complete = scan.complete};
     for (const DirectoryScanFailure& failure : scan.failures) {
         if (failure.entry_path.has_value()) {
-            inventory.errors.push_back(std::format(
-                "Could not inspect {} directory entry {}: {}.", label, path_to_utf8(*failure.entry_path), failure.message));
+            inventory.errors.push_back(std::format("Could not inspect {} directory entry {}: {}.",
+                label,
+                path_to_utf8(*failure.entry_path),
+                failure.message));
         } else {
             inventory.errors.push_back(
                 std::format("Could not read {} directory {}: {}.", label, path_to_utf8(directory), failure.message));
@@ -305,8 +307,8 @@ auto resolve_batch(const BatchResolveRequest& request) -> BatchResolution {
     }
 
     if (source_kind == PathKind::File && !is_source_file(request.source_path)) {
-        result.errors.push_back(std::format(
-            "Unsupported Source extension: {}. Supported extensions: .mp4, .mkv, .mov.", path_to_utf8(request.source_path)));
+        result.errors.push_back(std::format("Unsupported Source extension: {}. Supported extensions: .mp4, .mkv, .mov.",
+            path_to_utf8(request.source_path)));
     }
     if (!request.use_embedded_chapters && chapter_kind == PathKind::File
         && !is_chapter_file(*request.chapter_source_path)) {

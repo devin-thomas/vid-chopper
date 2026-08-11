@@ -129,8 +129,8 @@ auto main(const int argument_count, char** arguments) -> int {
 
     const ToolDiscoveryOptions deterministic_options {
         .executor = fake_executor(),
-        .path_environment = path_to_utf8(path_directory) + std::string {path_separator()}
-            + path_to_utf8(path_directory),
+        .path_environment =
+            path_to_utf8(path_directory) + std::string {path_separator()} + path_to_utf8(path_directory),
         .additional_homebrew_paths = {homebrew_directory},
         .additional_standard_paths = {standard_directory},
         .use_platform_defaults = false,

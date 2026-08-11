@@ -23,7 +23,8 @@ auto main() -> int {
 
     const std::string unicode_path_text = "/tmp/VidChopper/媒体 clips/视频 🎬.mp4";
     const Path unicode_path = path_from_utf8(unicode_path_text);
-    test_support::expect_eq(path_to_utf8(unicode_path), unicode_path_text,
+    test_support::expect_eq(path_to_utf8(unicode_path),
+        unicode_path_text,
         "filesystem paths should round-trip through the explicit UTF-8 boundary");
 
     return 0;

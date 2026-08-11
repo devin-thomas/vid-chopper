@@ -106,7 +106,8 @@ auto validate_chapters(const std::vector<ChapterSegment>& chapters,
 }
 
 auto default_output_directory(const Path& source_path, const ExportSettings& settings) -> Path {
-    std::string folder_name = replace_all_copy(settings.output_folder_pattern, "%source%", path_to_utf8(source_path.stem()));
+    std::string folder_name =
+        replace_all_copy(settings.output_folder_pattern, "%source%", path_to_utf8(source_path.stem()));
     folder_name = sanitize_file_component(folder_name);
     return source_path.parent_path() / folder_name;
 }

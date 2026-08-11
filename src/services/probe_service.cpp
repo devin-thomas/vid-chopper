@@ -32,9 +32,10 @@ using Json = nlohmann::json;
     return context;
 }
 
-[[nodiscard]] auto failure(
-    const Path& executable, const Path& source_path, ProcessResult process, const std::string_view detail)
-    -> ProbeResult {
+[[nodiscard]] auto failure(const Path& executable,
+    const Path& source_path,
+    ProcessResult process,
+    const std::string_view detail) -> ProbeResult {
     const std::string context =
         bounded_context(process.standard_error.empty() ? process.error_message : process.standard_error);
     auto message = std::format("ffprobe executable '{}' failed for source '{}' ({})",
@@ -213,8 +214,8 @@ ProbeService::ProbeService(ProcessExecutor executor)
     , validate_tools_ {is_default_process_executor(executor_)} {
 }
 
-auto ProbeService::probe(const Path& executable, const Path& source_path, const std::stop_token stop_token) const
-    -> ProbeResult {
+auto ProbeService::probe(
+    const Path& executable, const Path& source_path, const std::stop_token stop_token) const -> ProbeResult {
     auto resolved_executable = executable;
     auto tool = ToolResolution {.kind = ToolKind::Ffprobe};
     if (validate_tools_) {

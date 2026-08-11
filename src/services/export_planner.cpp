@@ -56,8 +56,7 @@ auto plan_outputs(const std::vector<OutputPlanInput>& inputs) -> OutputPlanResul
 
         const Path output_directory =
             input.output_directory.value_or(default_output_directory(input.metadata.source_path, input.settings));
-        const ResolvedEncoder encoder =
-            resolve_encoder(input.settings, input.environment, input.encoder_selection);
+        const ResolvedEncoder encoder = resolve_encoder(input.settings, input.environment, input.encoder_selection);
         const EncoderSelection encoder_selection = input.encoder_selection.value_or(EncoderSelection {
             .requested_kind = input.settings.encoder_kind,
             .resolved_kind = encoder.kind,
@@ -99,9 +98,8 @@ auto plan_outputs(const std::vector<OutputPlanInput>& inputs) -> OutputPlanResul
                 .chapter = chapter,
                 .chapter_index = chapter_index,
                 .output_path = output_path,
-                .command =
-                    build_ffmpeg_command(
-                        input.metadata, chapter, output_path, input.settings, input.environment, input.encoder_selection),
+                .command = build_ffmpeg_command(
+                    input.metadata, chapter, output_path, input.settings, input.environment, input.encoder_selection),
             });
         }
 

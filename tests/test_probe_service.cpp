@@ -104,8 +104,8 @@ auto main() -> int {
              ProcessExitState::Cancelled}) {
         const ProbeResult failure = parse_probe_output(executable, source, failed(state, "bounded stderr"));
         test_support::expect_true(!failure.ok(), "process failure should reject probing");
-        test_support::expect_true(
-            contains(failure.error_message, path_to_utf8(executable)), "probe error should include the executable path");
+        test_support::expect_true(contains(failure.error_message, path_to_utf8(executable)),
+            "probe error should include the executable path");
         test_support::expect_true(
             contains(failure.error_message, path_to_utf8(source)), "probe error should include the source path");
         test_support::expect_true(contains(failure.error_message, process_exit_state_name(state)),

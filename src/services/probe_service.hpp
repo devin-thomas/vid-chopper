@@ -25,8 +25,8 @@ class ProbeService final {
 public:
     explicit ProbeService(ProcessExecutor executor = run_process);
 
-    [[nodiscard]] auto probe(const Path& executable, const Path& source_path, std::stop_token stop_token = {}) const
-        -> ProbeResult;
+    [[nodiscard]] auto probe(
+        const Path& executable, const Path& source_path, std::stop_token stop_token = {}) const -> ProbeResult;
 
 private:
     ProcessExecutor executor_;
@@ -34,7 +34,7 @@ private:
     bool validate_tools_ {false};
 };
 
-[[nodiscard]] auto parse_probe_output(const Path& executable, const Path& source_path, ProcessResult process)
-    -> ProbeResult;
+[[nodiscard]] auto parse_probe_output(
+    const Path& executable, const Path& source_path, ProcessResult process) -> ProbeResult;
 
 } // namespace vidchopper

@@ -220,8 +220,8 @@ ExportEngine::ExportEngine(ProcessExecutor executor)
     , validate_tools_ {is_default_process_executor(executor_)} {
 }
 
-auto ExportEngine::run(const std::vector<ResolvedExportJob>& jobs, const ExportRunOptions& options) const
-    -> ExportRunResult {
+auto ExportEngine::run(
+    const std::vector<ResolvedExportJob>& jobs, const ExportRunOptions& options) const -> ExportRunResult {
     auto result = ExportRunResult {};
     result.jobs.reserve(jobs.size());
     const u64 batch_duration_ms = total_duration(jobs);
@@ -331,8 +331,8 @@ auto ExportEngine::run(const std::vector<ResolvedExportJob>& jobs, const ExportR
             auto path_error = std::error_code {};
             const bool output_exists = std::filesystem::exists(segment.output_path, path_error);
             if (path_error) {
-                job_result.error_message =
-                    "Could not inspect planned output '" + path_to_utf8(segment.output_path) + "': " + path_error.message();
+                job_result.error_message = "Could not inspect planned output '" + path_to_utf8(segment.output_path)
+                    + "': " + path_error.message();
                 result.exit_code = ExportExitCode::ExportFailure;
                 break;
             }

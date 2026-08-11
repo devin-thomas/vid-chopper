@@ -27,10 +27,10 @@ auto load_integer(QSettings& settings,
     const qlonglong raw = settings.value(key, static_cast<qlonglong>(fallback)).toLongLong(&converted);
     if (!converted || raw < minimum || raw > maximum) {
         diagnostics.push_back(QStringLiteral("Invalid setting '%1'; using default %2 (expected %3-%4).")
-                .arg(QString::fromLatin1(key))
-                .arg(static_cast<qlonglong>(fallback))
-                .arg(minimum)
-                .arg(maximum));
+                                  .arg(QString::fromLatin1(key))
+                                  .arg(static_cast<qlonglong>(fallback))
+                                  .arg(minimum)
+                                  .arg(maximum));
         return fallback;
     }
     return static_cast<Integer>(raw);
@@ -53,7 +53,8 @@ auto load_boolean(QSettings& settings, const char* key, const bool fallback, QSt
         return false;
     }
 
-    diagnostics.push_back(QStringLiteral("Invalid setting '%1'; using default %2 (expected true or false).")
+    diagnostics.push_back(
+        QStringLiteral("Invalid setting '%1'; using default %2 (expected true or false).")
             .arg(QString::fromLatin1(key), fallback ? QStringLiteral("true") : QStringLiteral("false")));
     return fallback;
 }

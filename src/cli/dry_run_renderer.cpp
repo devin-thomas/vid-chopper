@@ -78,8 +78,8 @@ auto render_dry_run(const std::vector<ResolvedExportJob>& jobs,
             auto path_error = std::error_code {};
             const bool exists = std::filesystem::exists(segment.output_path, path_error);
             if (path_error) {
-                const std::string message =
-                    "Could not inspect planned output '" + path_to_utf8(segment.output_path) + "': " + path_error.message();
+                const std::string message = "Could not inspect planned output '" + path_to_utf8(segment.output_path)
+                    + "': " + path_error.message();
                 result.errors.push_back(message);
                 error_output << message << "\n";
                 continue;

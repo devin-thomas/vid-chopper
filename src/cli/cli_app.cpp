@@ -86,8 +86,8 @@ auto run_cli(const CliRunRequest& request) -> CliExitCode {
         const Path& source_path = cli_arguments.input_paths.front();
         auto path_error = std::error_code {};
         if (std::filesystem::is_regular_file(source_path, path_error) && !path_error) {
-            const ProbeResult probe =
-                ProbeService {request.process_executor}.probe(path_from_utf8(effective_settings.ffprobe_path), source_path);
+            const ProbeResult probe = ProbeService {request.process_executor}.probe(
+                path_from_utf8(effective_settings.ffprobe_path), source_path);
             if (!probe.ok()) {
                 request.error_output << probe.error_message << "\n";
                 return probe_failure_exit_code();
@@ -119,9 +119,8 @@ auto run_cli(const CliRunRequest& request) -> CliExitCode {
     plan_inputs.reserve(batch.jobs.size());
     if (cli_arguments.use_embedded_chapters) {
         for (const BatchJob& job : batch.jobs) {
-            const ProbeResult probe =
-                ProbeService {request.process_executor}.probe(
-                    path_from_utf8(effective_settings.ffprobe_path), job.source_path);
+            const ProbeResult probe = ProbeService {request.process_executor}.probe(
+                path_from_utf8(effective_settings.ffprobe_path), job.source_path);
             if (!probe.ok()) {
                 request.error_output << probe.error_message << "\n";
                 return probe_failure_exit_code();
@@ -131,7 +130,8 @@ auto run_cli(const CliRunRequest& request) -> CliExitCode {
                     request.error_output << chapter_source_guidance(probe.metadata) << "\n";
                     return CliExitCode::Error;
                 }
-                request.output << "Skipping source without embedded chapters: " << path_to_utf8(job.source_path) << "\n";
+                request.output << "Skipping source without embedded chapters: " << path_to_utf8(job.source_path)
+                               << "\n";
                 continue;
             }
             plan_inputs.push_back(OutputPlanInput {
@@ -149,9 +149,8 @@ auto run_cli(const CliRunRequest& request) -> CliExitCode {
         request.output << "Chapter source: embedded chapters (explicit).\n";
     } else {
         for (const BatchJob& job : batch.jobs) {
-            const ProbeResult probe =
-                ProbeService {request.process_executor}.probe(
-                    path_from_utf8(effective_settings.ffprobe_path), job.source_path);
+            const ProbeResult probe = ProbeService {request.process_executor}.probe(
+                path_from_utf8(effective_settings.ffprobe_path), job.source_path);
             if (!probe.ok()) {
                 request.error_output << probe.error_message << "\n";
                 return probe_failure_exit_code();
@@ -224,8 +223,8 @@ auto run_cli(const CliRunRequest& request) -> CliExitCode {
                                        << path_to_utf8(segment.output_path) << "\n";
                     } else {
                         request.error_output << "Failed Chapter " << segment.chapter_index + 1 << ": "
-                                             << path_to_utf8(segment.output_path) << ": " << rendered_segment_error(segment)
-                                             << "\n";
+                                             << path_to_utf8(segment.output_path) << ": "
+                                             << rendered_segment_error(segment) << "\n";
                     }
                 },
             .message = [&request](const std::string& message) { request.output << message << "\n"; },

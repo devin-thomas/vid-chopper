@@ -87,8 +87,7 @@ auto main() -> int {
     test_support::expect_eq(first.chapter_index, u16 {0}, "result should retain chapter index");
     test_support::expect_eq(first.chapter_name, std::string {"Intro"}, "result should retain chapter name");
     const std::vector<std::string>& expected_command = successful_job.segments.front().command;
-    test_support::expect_eq(
-        observed_requests.front().executable,
+    test_support::expect_eq(observed_requests.front().executable,
         path_from_utf8(expected_command.front()),
         "runner should preserve UTF-8 executable paths");
     test_support::expect_eq(observed_requests.front().arguments,
@@ -188,9 +187,8 @@ auto main() -> int {
         missing.exit_code, ExportExitCode::ToolingError, "missing ffmpeg should map to tooling exit code 3");
     test_support::expect_eq(
         missing.jobs.front().segments.size(), size_t {3}, "missing tool failures should remain explicit per chapter");
-    test_support::expect_true(
-        missing.jobs.front().segments.front().process.error_message.find(
-            path_to_utf8(path_from_utf8(successful_job.segments.front().command.front())))
+    test_support::expect_true(missing.jobs.front().segments.front().process.error_message.find(
+                                  path_to_utf8(path_from_utf8(successful_job.segments.front().command.front())))
             != std::string::npos,
         "missing-tool failure should identify the executable path");
     test_support::expect_true(
