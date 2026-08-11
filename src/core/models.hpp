@@ -16,6 +16,22 @@ enum class EncoderKind : u8 {
     Auto = 0,
     X264 = 1,
     HevcNvenc = 2,
+    HevcVideoToolbox = 3,
+};
+
+enum class EncoderPlatform : u8 {
+    Unknown = 0,
+    Windows = 1,
+    Linux = 2,
+    MacOs = 3,
+    Other = 4,
+};
+
+enum class EncoderQualitySemantics : u8 {
+    None = 0,
+    ConstantRateFactor = 1,
+    ConstantQuantizer = 2,
+    VideoToolboxQuality = 3,
 };
 
 enum class AudioMode : bool {
@@ -82,8 +98,19 @@ struct VideoMetadata {
 struct EncoderEnvironment {
     bool has_nvidia_gpu {false};
     bool has_hevc_nvenc_encoder {false};
+    bool has_hevc_videotoolbox_encoder {false};
+    EncoderPlatform platform {EncoderPlatform::Unknown};
 
     [[nodiscard]] auto operator==(const EncoderEnvironment&) const -> bool = default;
+};
+
+struct EncoderSelection {
+    EncoderKind requested_kind {EncoderKind::Auto};
+    EncoderKind resolved_kind {EncoderKind::X264};
+    bool used_fallback {false};
+    std::string reason;
+
+    [[nodiscard]] auto operator==(const EncoderSelection&) const -> bool = default;
 };
 
 struct ExportSettings {
@@ -93,6 +120,7 @@ struct ExportSettings {
     std::string naming_pattern {"%index% - %name%"};
     std::string x264_preset {"slow"};
     std::string nvenc_preset {"p5"};
+    std::string video_toolbox_preset;
     std::string extra_ffmpeg_args;
 
     EncoderKind encoder_kind {EncoderKind::Auto};
@@ -107,6 +135,7 @@ struct ExportSettings {
     u8 index_padding {2};
     u8 x264_crf {18};
     u8 nvenc_cq {22};
+    u8 video_toolbox_quality {65};
     u8 min_chapter_seconds {1};
     u8 ffmpeg_threads {0};
 
@@ -129,8 +158,15 @@ struct ExportSettings {
 
 struct ResolvedEncoder {
     EncoderKind kind {EncoderKind::X264};
+    EncoderKind requested_kind {EncoderKind::Auto};
+    std::string display_name;
     std::string video_codec;
     std::vector<std::string> arguments;
+    std::string quality_name;
+    u8 quality_value {0};
+    std::string preset;
+    bool used_fallback {false};
+    std::string selection_reason;
 
     [[nodiscard]] auto operator==(const ResolvedEncoder&) const -> bool = default;
 };

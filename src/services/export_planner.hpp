@@ -16,6 +16,7 @@ struct OutputPlanInput {
     std::vector<ChapterSegment> chapters;
     ExportSettings settings;
     EncoderEnvironment environment;
+    std::optional<EncoderSelection> encoder_selection;
 };
 
 struct OutputPlanResult {

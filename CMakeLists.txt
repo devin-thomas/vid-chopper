@@ -34,6 +34,8 @@ add_library(vidchopper_core
     src/core/chapter_plan.hpp
     src/core/command_builder.cpp
     src/core/command_builder.hpp
+    src/core/encoder_model.cpp
+    src/core/encoder_model.hpp
     src/core/enum_utils.hpp
     src/core/models.hpp
     src/core/ready_marker.cpp
@@ -53,6 +55,8 @@ apply_vidchopper_warnings(vidchopper_core)
 find_package(nlohmann_json CONFIG REQUIRED)
 
 add_library(vidchopper_services
+    src/services/encoder_capability.cpp
+    src/services/encoder_capability.hpp
     src/services/export_engine.cpp
     src/services/export_engine.hpp
     src/services/export_planner.cpp
@@ -138,6 +142,7 @@ if(VIDCHOPPER_BUILD_TESTS)
     add_vidchopper_test(vidchopper_test_command_builder tests/test_command_builder.cpp fast)
     add_vidchopper_test(vidchopper_test_command_builder_extended tests/test_command_builder_extended.cpp fast)
     add_vidchopper_test(vidchopper_test_command_builder_golden tests/test_command_builder_golden.cpp fast)
+    add_vidchopper_test(vidchopper_test_encoder_model tests/test_encoder_model.cpp fast)
     add_vidchopper_test(vidchopper_test_string_utils tests/test_string_utils.cpp fast)
     add_vidchopper_test(vidchopper_test_string_utils_extended tests/test_string_utils_extended.cpp fast)
     add_vidchopper_test(vidchopper_test_models tests/test_models.cpp fast)

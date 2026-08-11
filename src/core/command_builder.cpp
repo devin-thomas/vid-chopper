@@ -1,5 +1,6 @@
 #include "core/command_builder.hpp"
 
+#include "core/encoder_model.hpp"
 #include "core/string_utils.hpp"
 #include "core/timecode.hpp"
 
@@ -73,23 +74,54 @@ auto append_audio_arguments(std::vector<std::string>& command, const ExportSetti
 
 } // namespace
 
-auto resolve_encoder(const ExportSettings& settings, const EncoderEnvironment& environment) -> ResolvedEncoder {
-    const bool use_nvenc = settings.encoder_kind == EncoderKind::HevcNvenc
-        || (settings.encoder_kind == EncoderKind::Auto && settings.auto_detect_gpu && environment.has_nvidia_gpu
-            && environment.has_hevc_nvenc_encoder);
+auto resolve_encoder(const ExportSettings& settings,
+    const EncoderEnvironment& environment,
+    const std::optional<EncoderSelection>& selection) -> ResolvedEncoder {
+    const EncoderKind requested_kind = selection.has_value() ? selection->requested_kind : settings.encoder_kind;
+    auto selected_kind = selection.has_value() ? selection->resolved_kind : settings.encoder_kind;
+    auto used_fallback = selection.has_value() && selection->used_fallback;
+    auto selection_reason = selection.has_value() ? selection->reason : std::string {};
 
-    if (use_nvenc) {
-        return ResolvedEncoder {
-            .kind = EncoderKind::HevcNvenc,
-            .video_codec = "hevc_nvenc",
-            .arguments = {"-preset", settings.nvenc_preset, "-cq", std::to_string(settings.nvenc_cq), "-rc", "vbr_hq"},
-        };
+    if (!selection.has_value() && settings.encoder_kind == EncoderKind::Auto) {
+        const bool legacy_nvenc_available = environment.has_nvidia_gpu && environment.has_hevc_nvenc_encoder;
+        const bool platform_allows_nvenc = environment.platform == EncoderPlatform::Unknown
+            || environment.platform == EncoderPlatform::Windows || environment.platform == EncoderPlatform::Linux;
+        selected_kind = settings.auto_detect_gpu && legacy_nvenc_available && platform_allows_nvenc
+            ? EncoderKind::HevcNvenc
+            : EncoderKind::X264;
     }
 
+    if (!encoder_kind_is_known(selected_kind) || selected_kind == EncoderKind::Auto) {
+        selected_kind = EncoderKind::X264;
+        used_fallback = true;
+        if (selection_reason.empty()) {
+            selection_reason = "Unknown encoder selection; using x264.";
+        }
+    }
+
+    const EncoderDescriptor descriptor = encoder_descriptor(selected_kind);
+    if (!descriptor.enabled_in_release || !encoder_platform_eligible(descriptor, environment.platform)) {
+        selected_kind = EncoderKind::X264;
+        used_fallback = true;
+        if (selection_reason.empty()) {
+            selection_reason = std::string {encoder_kind_name(requested_kind)}
+                + " is not an enabled encoder on " + std::string {encoder_platform_name(environment.platform)}
+                + "; using x264.";
+        }
+    }
+
+    const EncoderDescriptor resolved_descriptor = encoder_descriptor(selected_kind);
     return ResolvedEncoder {
-        .kind = EncoderKind::X264,
-        .video_codec = "libx264",
-        .arguments = {"-preset", settings.x264_preset, "-crf", std::to_string(settings.x264_crf)},
+        .kind = selected_kind,
+        .requested_kind = requested_kind,
+        .display_name = std::string {resolved_descriptor.display_name},
+        .video_codec = std::string {resolved_descriptor.codec_name},
+        .arguments = encoder_arguments_for(settings, selected_kind),
+        .quality_name = std::string {resolved_descriptor.quality_name},
+        .quality_value = encoder_quality_value(settings, selected_kind),
+        .preset = std::string {encoder_preset_value(settings, selected_kind)},
+        .used_fallback = used_fallback,
+        .selection_reason = std::move(selection_reason),
     };
 }
 
@@ -130,7 +162,8 @@ auto build_ffmpeg_command(const VideoMetadata& metadata,
     const ChapterSegment& chapter,
     const Path& output_path,
     const ExportSettings& settings,
-    const EncoderEnvironment& environment) -> std::vector<std::string> {
+    const EncoderEnvironment& environment,
+    const std::optional<EncoderSelection>& selection) -> std::vector<std::string> {
     auto command = std::vector<std::string> {};
     command.reserve(32);
     command.emplace_back(settings.ffmpeg_path);
@@ -154,7 +187,7 @@ auto build_ffmpeg_command(const VideoMetadata& metadata,
 
     append(command, {ffmpeg_arg::duration, duration});
 
-    const ResolvedEncoder resolved_encoder = resolve_encoder(settings, environment);
+    const ResolvedEncoder resolved_encoder = resolve_encoder(settings, environment, selection);
     append(command, {ffmpeg_arg::video_codec, resolved_encoder.video_codec});
     command.insert(command.end(), resolved_encoder.arguments.begin(), resolved_encoder.arguments.end());
 

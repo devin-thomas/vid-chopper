@@ -35,6 +35,8 @@ struct ResolvedExportJob {
     Path output_directory;
     ExportSettings settings;
     EncoderEnvironment environment;
+    EncoderSelection encoder_selection;
+    ResolvedEncoder encoder;
     std::vector<PlannedExportSegment> segments;
 
     [[nodiscard]] auto operator==(const ResolvedExportJob&) const -> bool = default;

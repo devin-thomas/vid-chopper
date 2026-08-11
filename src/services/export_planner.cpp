@@ -55,6 +55,14 @@ auto plan_outputs(const std::vector<OutputPlanInput>& inputs) -> OutputPlanResul
 
         const Path output_directory =
             input.output_directory.value_or(default_output_directory(input.metadata.source_path, input.settings));
+        const ResolvedEncoder encoder =
+            resolve_encoder(input.settings, input.environment, input.encoder_selection);
+        const EncoderSelection encoder_selection = input.encoder_selection.value_or(EncoderSelection {
+            .requested_kind = input.settings.encoder_kind,
+            .resolved_kind = encoder.kind,
+            .used_fallback = encoder.used_fallback,
+            .reason = encoder.selection_reason,
+        });
         auto job = ResolvedExportJob {
             .metadata = input.metadata,
             .chapter_source_path = input.chapter_source_path,
@@ -62,6 +70,8 @@ auto plan_outputs(const std::vector<OutputPlanInput>& inputs) -> OutputPlanResul
             .output_directory = output_directory,
             .settings = input.settings,
             .environment = input.environment,
+            .encoder_selection = encoder_selection,
+            .encoder = encoder,
         };
         job.segments.reserve(input.chapters.size());
 
@@ -89,7 +99,8 @@ auto plan_outputs(const std::vector<OutputPlanInput>& inputs) -> OutputPlanResul
                 .chapter_index = chapter_index,
                 .output_path = output_path,
                 .command =
-                    build_ffmpeg_command(input.metadata, chapter, output_path, input.settings, input.environment),
+                    build_ffmpeg_command(
+                        input.metadata, chapter, output_path, input.settings, input.environment, input.encoder_selection),
             });
         }
 
