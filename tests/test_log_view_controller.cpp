@@ -13,6 +13,7 @@ auto main(int argc, char* argv[]) -> int {
     auto application = QApplication {argc, argv};
     auto container = QWidget {};
     auto toggle = QToolButton {&container};
+    toggle.setCheckable(true);
     auto panel = QWidget {&container};
     auto advanced = QCheckBox {&panel};
     auto output = QPlainTextEdit {&panel};
