@@ -147,8 +147,8 @@ assert(
 );
 
 assert(
-  packageMetadata.devDependencies?.wrangler === "4.118.0",
-  "Wrangler must be pinned exactly to 4.118.0",
+  packageMetadata.devDependencies?.wrangler === "4.120.1",
+  "Wrangler must be pinned exactly to 4.120.1",
 );
 assert(
   packageMetadata.scripts?.["cloudflare:dry-run"] ===
@@ -208,7 +208,7 @@ const workflowSnippets = [
   "uses: cloudflare/wrangler-action@ebbaa1584979971c8614a24965b4405ff95890e0 # v4",
   "apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}",
   "accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}",
-  'wranglerVersion: "4.118.0"',
+  'wranglerVersion: "4.120.1"',
   "workingDirectory: docs",
   "deploy --strict --message",
   "--tag git-${{ github.sha }}",
