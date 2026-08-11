@@ -231,7 +231,7 @@ export function DocsPage() {
               <h2>Machine-readable contracts stay beside the human journey.</h2>
               <ul>
                 <li>Versioned ChapterFile schema and JSON/YAML samples.</li>
-                <li>Immutable beta release metadata with package checksum.</li>
+                <li>Immutable stable release metadata with package checksum.</li>
                 <li>
                   Strict not-found behavior for unpublished or unknown machine
                   resources.

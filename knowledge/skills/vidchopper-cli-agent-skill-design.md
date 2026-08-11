@@ -7,7 +7,7 @@ Decision checkpoint: 2026-08-01, against `origin/main` commit `07aba676`.
 
 ## Baseline and boundaries
 
-- Product baseline: `VidChopperCLI 0.3.0-beta`.
+- Product baseline: `VidChopperCLI 1.0.0`.
 - ChapterFile schema baseline: version `1` JSON or YAML.
 - Export-manifest schema baseline: version `1`.
 - Compatibility evidence: the released CLI plans and exports all 16 chapters in the byte-identical
@@ -30,9 +30,9 @@ that source, not separately maintained copies.
 | Canonical repository source  | `.agents/skills/vidchopper-cli/SKILL.md`                                      |
 | Stable hosted entry point    | `https://vidchopper.app/agents/vidchopper-cli/SKILL.md`                       |
 | Stable hosted metadata       | `https://vidchopper.app/agents/vidchopper-cli/manifest.json`                  |
-| Immutable hosted snapshot    | `https://vidchopper.app/agents/vidchopper-cli/v0.3.0-beta/SKILL.md`           |
-| Immutable hosted metadata    | `https://vidchopper.app/agents/vidchopper-cli/v0.3.0-beta/manifest.json`      |
-| Versioned discovery bundle   | `https://vidchopper.app/agents/vidchopper-cli/v0.3.0-beta/vidchopper-cli.zip` |
+| Immutable hosted snapshot    | `https://vidchopper.app/agents/vidchopper-cli/v1.0.0/SKILL.md`           |
+| Immutable hosted metadata    | `https://vidchopper.app/agents/vidchopper-cli/v1.0.0/manifest.json`      |
+| Versioned discovery bundle   | `https://vidchopper.app/agents/vidchopper-cli/v1.0.0/vidchopper-cli.zip` |
 | Future portable ZIP fallback | `.agents/skills/vidchopper-cli/` unchanged, beside a small integrity manifest |
 | Human documentation          | `https://vidchopper.app/docs`                                                 |
 | Optional discovery index     | `https://vidchopper.app/.well-known/agent-skills/index.json`                  |
@@ -70,7 +70,7 @@ make VID-51 through VID-53 testable without turning VID-48 into a second roadmap
 | ChapterBuilder proof      | `tests/fixtures/chapterbuilder/tns-2xko-36-chapters.json`                                 | Unmodified compatibility smoke fixture                     |
 | Clean release proof       | `tools/verify-release-archive.ps1` and `.github/workflows/release.yml`                    | Packaged skill/example execution gate                      |
 | Portable package notes    | `packaging/windows/README.txt`                                                            | Offline skill pointer and prerequisites                    |
-| Release identity/evidence | `packaging/releases/0.3.0-beta.md` and `knowledge/operations/publishing-and-workflows.md` | Version and digest alignment                               |
+| Release identity/evidence | `packaging/releases/1.0.0.md` and `knowledge/operations/publishing-and-workflows.md` | Version and digest alignment                               |
 | Human entry points        | `README.md` and the React site in `docs/`                                                 | Canonical docs and onboarding links                        |
 | Legacy public route       | GitHub Pages with Vite base `/vid-chopper/` and hash routing                              | Intentional migration landing, not canonical skill hosting |
 
@@ -145,15 +145,15 @@ Use copies in this order:
 2. A previously verified local copy whose declared CLI and schema versions match exactly.
 3. The stable HTTPS copy when network access is available and a refresh is needed.
 
-Version 1 uses exact-match compatibility only: CLI `0.3.0-beta`, ChapterFile schema `1`, export
+Version 1 uses exact-match compatibility only: CLI `1.0.0`, ChapterFile schema `1`, export
 manifest schema `1`, and skill contract `1`. A cached or hosted skill with any different tuple is not
 compatible. Supported ranges can be introduced only after CI exercises a real version matrix and the
 manifest gains an unambiguous machine-readable range contract.
 
-The already-published `v0.3.0-beta` ZIP contains no skill or schema copy and must never be described
-as though it does. Existing beta installations use the VID-52 repository/hosted skill and may cache a
-verified copy for later offline work. If they are offline without that cache, stop and provide the
-local human docs/pinned schema path rather than claiming agent onboarding is complete.
+The `v1.0.0` ZIP contains the exact versioned skill and adjacent manifest. The historical
+`v0.3.0-beta` ZIP contains no skill or schema copy; existing beta installations use a verified
+repository or hosted copy. If they are offline without that cache, stop and provide the local human
+docs/pinned schema path rather than claiming agent onboarding is complete.
 
 When fetching, accept only the exact `https://vidchopper.app` origin, record the resolved skill and
 CLI versions, and verify SHA-256 against release or discovery metadata. Do not replace a trusted local
@@ -184,8 +184,8 @@ The released clean-runner proof uses FFmpeg `7.1.1`. Other versions are not sile
 agent reports the detected versions and explains that they are outside that exact release evidence.
 Missing tools, downloads, PATH edits, or ChapterBuilder installation require user confirmation.
 
-The `0.3.0-beta` standalone CLI resolves its tested path to x264 and does not populate a GPU-detection
-environment. Skill examples therefore use `--crf` and do not promise that `--cq` selects NVENC.
+The `1.0.0` CLI does not itself perform the desktop GPU-detection step. Skill examples therefore use
+`--crf` unless the effective plan selects NVENC and do not promise that `--cq` selects it.
 
 The authoritative ChapterBuilder source is
 [`devin-thomas/ChapterBuilder`](https://github.com/devin-thomas/ChapterBuilder). At this design
@@ -251,7 +251,7 @@ Before export, the agent reports:
 - the `VidChopperCLI.ini` path that a normal run may create beside the executable;
 - the exact export command.
 
-Normal `0.3.0-beta` CLI execution uses overwrite mode unless settings override it, and there is no
+Normal `1.0.0` CLI execution uses overwrite mode unless settings override it, and there is no
 explicit overwrite flag. Therefore the skill must inspect every planned destination after dry-run and
 stop when a collision exists. It may proceed only after the user explicitly confirms the listed
 overwrites. The exact dry-run marker `Existing output: yes` always blocks automatic continuation. A
@@ -296,10 +296,10 @@ material moves to one-level-deep references.
 name: vidchopper-cli
 description: Plan and export local video chapter clips with VidChopperCLI and ChapterBuilder ChapterFiles. Use for safe media inspection, dry-runs, confirmed exports, and manifest verification.
 license: MIT
-compatibility: Windows 10/11 x64; VidChopperCLI 0.3.0-beta; local ffmpeg and ffprobe; network optional.
+compatibility: Windows 10/11 x64; VidChopperCLI 1.0.0; local ffmpeg and ffprobe; network optional.
 metadata:
   vidchopper.skill-contract-version: "1"
-  vidchopper.cli-version: "0.3.0-beta"
+  vidchopper.cli-version: "1.0.0"
   vidchopper.chapterfile-schema-version: "1"
 ---
 ```
@@ -346,7 +346,7 @@ One generated manifest records:
 ```json
 {
   "skillContractVersion": 1,
-  "cliVersion": "0.3.0-beta",
+  "cliVersion": "1.0.0",
   "chapterFileSchemaVersion": 1,
   "exportManifestSchemaVersion": 1,
   "skillSha256": "<sha256-of-raw-SKILL.md>",
@@ -355,7 +355,7 @@ One generated manifest records:
   "sourceCommit": "<release-commit-sha>",
   "repositoryPath": ".agents/skills/vidchopper-cli/SKILL.md",
   "stableUrl": "https://vidchopper.app/agents/vidchopper-cli/SKILL.md",
-  "versionedUrl": "https://vidchopper.app/agents/vidchopper-cli/v0.3.0-beta/SKILL.md"
+  "versionedUrl": "https://vidchopper.app/agents/vidchopper-cli/v1.0.0/SKILL.md"
 }
 ```
 
@@ -377,9 +377,8 @@ that path policy with `.gitattributes` (or generates from the Git blob) before h
 checkout conversion cannot make the site and ZIP digests disagree. Digests cover the raw published
 bytes, not a platform-normalized local copy.
 
-Schema version `1` will be bundled with the VID-52 skill and future packages; it is not in the
-published `v0.3.0-beta` ZIP. Until the canonical site route exists, its immutable network fallback is
-the release-commit
+Schema version `1` is bundled with the released skill and `1.0.0` package. The historical
+`v0.3.0-beta` ZIP predates that addition, so its immutable network fallback remains the release-commit
 [`chapter-config.schema.json`](https://raw.githubusercontent.com/devin-thomas/vid-chopper/886815578066c972de7ef400eb0b6de41a5bc33d/docs/schemas/chapter-config.schema.json),
 SHA-256 `e7583c6a9062549059fa224b7adf687096dc940d1fb40a9e39d254805f8299bc`. The
 `$schema` field is a hint; `VidChopperCLI.exe` does not fetch it. A mismatched or unavailable network
@@ -395,7 +394,7 @@ The well-known index uses Cloudflare's proposed discovery shape exactly when pub
       "name": "vidchopper-cli",
       "type": "archive",
       "description": "Plan and export local chapter clips safely with VidChopperCLI.",
-      "url": "/agents/vidchopper-cli/v0.3.0-beta/vidchopper-cli.zip",
+      "url": "/agents/vidchopper-cli/v1.0.0/vidchopper-cli.zip",
       "digest": "sha256:<skill-archive-sha256>"
     }
   ]

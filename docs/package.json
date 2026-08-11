@@ -1,7 +1,7 @@
 {
   "name": "vidchopper-site",
   "private": true,
-  "version": "0.3.0-beta",
+  "version": "1.0.0",
   "description": "Canonical VidChopper product, release, and CLI documentation site.",
   "homepage": "https://vidchopper.app",
   "repository": {

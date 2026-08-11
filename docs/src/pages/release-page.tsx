@@ -37,7 +37,7 @@ export function ReleasePage() {
             locally.
           </h1>
           <p>
-            The current prerelease is the intended end-user path: unzip it,
+            The stable release is the intended end-user path: unzip it,
             launch VidChopper.exe, then point the app at ffmpeg and ffprobe if
             they are not already on your PATH.
           </p>
@@ -94,6 +94,7 @@ export function ReleasePage() {
             <li>yaml-cpp.dll for ChapterFile loading</li>
             <li>Required Qt runtime files</li>
             <li>Microsoft VC++ runtime</li>
+            <li>Offline VidChopper CLI skill and integrity manifest</li>
             <li>Release readme, notices, and license files</li>
           </ul>
         </article>
@@ -158,7 +159,7 @@ export function ReleasePage() {
         <div className="release-history-panel">
           <h2>Changelog</h2>
           <p>
-            The current prerelease story is grounded in actual shipped repo
+            The stable release story is grounded in actual shipped repo
             behavior, not placeholder bullets.
           </p>
         </div>

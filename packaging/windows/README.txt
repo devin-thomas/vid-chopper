@@ -12,9 +12,8 @@ New archives assembled from this source include the first-party offline skill at
 `.agents\skills\vidchopper-cli\` plus `.agents\skills\vidchopper-cli.manifest.json`.
 The skill keeps media local, requires a dry-run, and asks before writing or overwriting clips.
 
-The already-published v0.3.0-beta archive predates this addition and does not contain the skill.
-Beta users of that historical archive use the verified repository or hosted copy and may cache it
-for offline work.
+The v1.0.0 archive includes the skill and its adjacent manifest so the released CLI workflow remains
+available offline. The historical v0.3.0-beta archive predates this addition and does not contain it.
 
 Quick start
 -----------

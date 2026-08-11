@@ -38,11 +38,11 @@ behavior. Use `--embedded` only after the user selects detected embedded chapter
 | `--aggregate-csv` | path | Write one atomic run-level CSV manifest. |
 | `--stop-on-first-error` | none | Stop batch execution after the first failed item. |
 | `--use-gui-config` | none | Explicitly import `VidChopper.ini` before CLI-owned settings. |
-| `--version` | none | Print `VidChopperCLI 0.3.0-beta`. |
+| `--version` | none | Print `VidChopperCLI 1.0.0`. |
 | `--help` | none | Print help; `-h` is the short form. |
 
 There is no released `--existing-output` or output-directory flag. Never invent either. Use `--crf`
-for the beta standalone path; `--cq` alone does not prove NVENC selection.
+unless the effective plan selects NVENC; `--cq` alone does not prove NVENC selection.
 
 ## Settings and outputs
 
@@ -58,7 +58,7 @@ Dry-run reads settings but creates nothing. A normal run may create `VidChopperC
 `VidChopperCLI.exe`. It never writes the GUI file. Unknown CLI INI keys are ignored for forward
 compatibility.
 
-The beta CLI default is overwrite mode. Dry-run renders the effective mode and reports every planned
+The `1.0.0` CLI default is overwrite mode. Dry-run renders the effective mode and reports every planned
 path as `Existing output: yes|no`. Block on `yes`, recheck paths after approval, and prefer a fresh
 output folder. `output.folder` is sanitized into a sibling folder of the source.
 

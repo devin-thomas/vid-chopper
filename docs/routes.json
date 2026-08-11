@@ -86,10 +86,17 @@
       "sha256": "e1bfb8e29c4288b4835cd4e7a958207eee18e0a7ddf79932cecaf8db1269fa45"
     },
     {
-      "source": "packaging/releases/0.3.0-beta.json",
+      "source": "packaging/releases/1.0.0.json",
       "route": "/releases/current.json",
       "contentType": "application/json; charset=utf-8",
       "cache": "stable"
+    },
+    {
+      "source": "packaging/releases/1.0.0.json",
+      "route": "/releases/v1.0.0/manifest.json",
+      "contentType": "application/json; charset=utf-8",
+      "cache": "immutable",
+      "sha256": "87f5197dcc81dc054d9e975e31c451a5854bc6c323586c58c92e1f79ebd8c06f"
     },
     {
       "source": "packaging/releases/0.3.0-beta.json",
@@ -105,10 +112,31 @@
       "cache": "stable"
     },
     {
-      "source": "packaging/releases/agent-skills/v0.3.0-beta/manifest.json",
+      "source": "packaging/releases/agent-skills/v1.0.0/manifest.json",
       "route": "/agents/vidchopper-cli/manifest.json",
       "contentType": "application/json; charset=utf-8",
       "cache": "stable"
+    },
+    {
+      "source": "packaging/releases/agent-skills/v1.0.0/SKILL.md",
+      "route": "/agents/vidchopper-cli/v1.0.0/SKILL.md",
+      "contentType": "text/markdown; charset=utf-8",
+      "cache": "immutable",
+      "sha256": "5c4fd82aeec8ab07120567a8f73840848ea5fa19ac3ff3efa8b58f48d45b4c87"
+    },
+    {
+      "source": "packaging/releases/agent-skills/v1.0.0/manifest.json",
+      "route": "/agents/vidchopper-cli/v1.0.0/manifest.json",
+      "contentType": "application/json; charset=utf-8",
+      "cache": "immutable",
+      "sha256": "f1e263be6f79ed2d2e8505a070feae05e8055032e9528f344fae1a2ad205e209"
+    },
+    {
+      "source": "packaging/releases/agent-skills/v1.0.0/vidchopper-cli.zip",
+      "route": "/agents/vidchopper-cli/v1.0.0/vidchopper-cli.zip",
+      "contentType": "application/zip",
+      "cache": "immutable",
+      "sha256": "28226f79825a3d9b93ddbbc30dbe70ed79b998d65bdc07915d09231c711a0a3c"
     },
     {
       "source": "packaging/releases/agent-skills/v0.3.0-beta/SKILL.md",
@@ -132,7 +160,7 @@
       "sha256": "15d82b609af3491d7f776a14b0f08b3e59356330f3955953a5b0c08962ed17e3"
     },
     {
-      "source": "packaging/releases/agent-skills/v0.3.0-beta/index.json",
+      "source": "packaging/releases/agent-skills/v1.0.0/index.json",
       "route": "/.well-known/agent-skills/index.json",
       "contentType": "application/json; charset=utf-8",
       "cache": "stable"

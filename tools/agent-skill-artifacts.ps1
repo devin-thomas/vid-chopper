@@ -7,7 +7,7 @@ $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
-$skillVersion = "0.3.0-beta"
+$skillVersion = "1.0.0"
 $skillContractVersion = 1
 $skillRepoRoot = ".agents/skills/vidchopper-cli"
 $skillRoot = Join-Path $repoRoot ".agents\skills\vidchopper-cli"
@@ -125,7 +125,7 @@ function Assert-CanonicalSkill {
         '^description: .+$',
         '^license: MIT$',
         'vidchopper\.skill-contract-version: "1"',
-        'vidchopper\.cli-version: "0\.3\.0-beta"',
+        'vidchopper\.cli-version: "1\.0\.0"',
         'vidchopper\.chapterfile-schema-version: "1"',
         'vidchopper\.export-manifest-schema-version: "1"'
     )) {
@@ -138,8 +138,8 @@ function Assert-CanonicalSkill {
         'Planned chapters: N',
         'Existing output: yes',
         'Immediately before export',
-        'The already-published',
-        'does not contain this skill'
+        'The `v1.0.0` application ZIP',
+        'contains this skill and its adjacent manifest'
     )) {
         if (-not $skillText.Contains($requiredText, [StringComparison]::Ordinal)) {
             throw "SKILL.md safety contract drifted: $requiredText"
