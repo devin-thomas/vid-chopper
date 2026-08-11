@@ -881,14 +881,39 @@ try {
     );
     if (match) flagArity.set(match[1], match[2] ? 1 : 0);
   }
-  const releasedFlags = new Set(
+  const currentFlags = new Set(
     [...cliArguments.matchAll(/"(--[a-z0-9-]+)"/g)].map((match) => match[1]),
   );
   assert(
-    JSON.stringify([...releasedFlags].sort()) ===
+    JSON.stringify([...currentFlags].sort()) ===
       JSON.stringify([...flagArity.keys()].sort()),
     `Frozen ${packageMetadata.version} flag contract drifted from cli_arguments.cpp.`,
   );
+
+  let releasedFlags = currentFlags;
+  const cmakeSource = await readFile(
+    path.join(repositoryRoot, "CMakeLists.txt"),
+    "utf8",
+  );
+  const displayVersion = cmakeSource.match(
+    /VIDCHOPPER_DISPLAY_VERSION\s+"([^"]+)"/,
+  )?.[1];
+  if (displayVersion && displayVersion !== packageMetadata.version) {
+    const stableSkillManifest = JSON.parse(
+      await readFile(
+        path.join(
+          repositoryRoot,
+          "packaging",
+          "releases",
+          "agent-skills",
+          `v${packageMetadata.version}`,
+          "manifest.json",
+        ),
+        "utf8",
+      ),
+    );
+    releasedFlags = new Set(stableSkillManifest.cliFlags);
+  }
 
   const stableSkillRoute = "/agents/vidchopper-cli/SKILL.md";
   const stableSkillManifestRoute = "/agents/vidchopper-cli/manifest.json";

@@ -248,7 +248,22 @@ async function validateReleaseContract(validatedSources) {
     /^[a-f0-9]{64}$/.test(checksumAsset?.sha256 ?? ""),
     "checksum asset SHA-256 must be 64 lowercase hexadecimal characters",
   );
-  requireRelease(displayVersion === version, "CMake display version drifted");
+  if (displayVersion !== version) {
+    const candidateReleasePath = path.join(
+      repositoryRoot,
+      "packaging",
+      "releases",
+      `${displayVersion}.json`,
+    );
+    const candidateRelease = JSON.parse(
+      await readFile(candidateReleasePath, "utf8"),
+    );
+    requireRelease(
+      candidateRelease.version === displayVersion &&
+        candidateRelease.publicationStatus === "candidate-pending",
+      "CMake display version drifted without an explicit pending release candidate",
+    );
+  }
 }
 
 assertInside(

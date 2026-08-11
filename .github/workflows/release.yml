@@ -27,6 +27,7 @@ jobs:
     timeout-minutes: 60
     env:
       VERSION: ${{ inputs.version }}
+      PUBLISH: ${{ inputs.publish }}
       RELEASE_OUTPUT: artifacts\release
 
     steps:
@@ -50,8 +51,11 @@ jobs:
             throw "CMake version '$($Matches[1])' does not match '$env:VERSION'."
           }
           $docsVersion = (Get-Content -Raw docs/package.json | ConvertFrom-Json).version
-          if ($docsVersion -ne $env:VERSION) {
+          if ($docsVersion -ne $env:VERSION -and $env:PUBLISH -eq "true") {
             throw "Docs version '$docsVersion' does not match '$env:VERSION'."
+          }
+          if ($docsVersion -ne $env:VERSION) {
+            Write-Host "Docs remain on stable version '$docsVersion' during candidate qualification for '$env:VERSION'."
           }
           $releaseManifestPath = Join-Path "packaging/releases" "$($env:VERSION).json"
           if (-not (Test-Path -LiteralPath $releaseManifestPath -PathType Leaf)) {

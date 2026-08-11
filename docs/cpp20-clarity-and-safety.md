@@ -149,6 +149,7 @@ state needed by callers.
 struct ProcessResult {
     ProcessExitState state {ProcessExitState::FailedStart};
     i32 exit_code {0};
+    i32 termination_signal {0};
     std::string standard_output;
     std::string standard_error;
     std::string error_message;
@@ -237,11 +238,11 @@ Use `Path` or `std::filesystem::path` for paths. Build paths with filesystem ope
 separator string concatenation. Normalize storage paths deliberately and convert to `QString` only
 at the Qt boundary. Use wide-string conversion on Windows and native separators for display.
 
-**Compiled source excerpt - `src/qt/ui/main_window.cpp`:**
+**Compiled source excerpt - `src/qt/path_utils.hpp`:**
 
 ```cpp
-auto display_path(const std::filesystem::path& path) -> QString {
-    return QDir::toNativeSeparators(QString::fromStdWString(path.wstring()));
+[[nodiscard]] inline auto path_to_display(const Path& path) -> QString {
+    return QDir::toNativeSeparators(path_to_qstring(path));
 }
 ```
 

@@ -241,6 +241,7 @@ auto cli_usage() -> std::string {
            "  --embedded             Explicitly use chapters embedded in each input video.\n"
            "  --dry-run              Print the planned work without exporting.\n"
            "  --config <path>        Use this file as the sole CLI settings store.\n"
+           "  --config-path <path>   Alias for --config.\n"
            "  --portable             Use the deterministic settings sidecar beside the executable.\n"
            "  --crf <0-51>           Override x264 CRF for this run.\n"
            "  --cq <0-51>            Override NVENC CQ for this run.\n"
