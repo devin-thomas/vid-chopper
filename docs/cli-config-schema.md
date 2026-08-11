@@ -96,8 +96,10 @@ This means config files can travel with a video/chapter plan, but command-line f
 
 The ChapterFile is not a second settings file. Its `output` and `encoder` fields override loaded
 settings, while the supported CLI flags override the ChapterFile for one run. Tool paths belong to the
-INI settings boundary (`tools.ffmpegPath` and `tools.ffprobePath`); the current parser has no `--config`,
-`--portable`, `--ffmpeg`, or `--ffprobe` flag.
+INI settings boundary (`tools.ffmpegPath` and `tools.ffprobePath`). The CLI settings boundary can be
+selected with `--config <path>` or its `--config-path <path>` alias; `--portable` selects the deterministic
+sidecar beside the executable. Explicit and portable modes cannot be combined. There are no `--ffmpeg`
+or `--ffprobe` flags.
 
 The current schema exposes quality/preset values, not encoder selection:
 

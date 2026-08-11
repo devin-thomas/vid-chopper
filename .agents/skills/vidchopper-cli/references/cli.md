@@ -30,6 +30,9 @@ behavior. Use `--embedded` only after the user selects detected embedded chapter
 | --- | --- | --- |
 | `--embedded` | none | Explicitly use chapters embedded in each input video. |
 | `--dry-run` | none | Probe and print the complete plan without settings, output, manifests, or clips. |
+| `--config` | path | Use the supplied file as the sole CLI settings store for this run. |
+| `--config-path` | path | Alias for `--config`. |
+| `--portable` | none | Use the deterministic settings sidecar beside the executable. Do not combine with `--config`. |
 | `--crf` | `0..51` | Override x264 CRF for this run. |
 | `--cq` | `0..51` | Override NVENC CQ when that encoder is actually selected. |
 | `--preset` | name | Apply the current encoder preset override. |
@@ -45,6 +48,21 @@ There is no released `--existing-output` or output-directory flag. Never invent 
 unless the effective plan selects NVENC; `--cq` alone does not prove NVENC selection.
 
 ## Settings and outputs
+
+Resolve the CLI settings location first. The default is the native platform location; `--config` and
+`--config-path` select one explicit settings file, while `--portable` selects the deterministic sidecar
+beside the executable. Explicit and portable modes cannot be combined. An explicit settings file is the
+sole CLI settings store and does not import GUI settings.
+
+```powershell
+& "C:\Tools\VidChopper\VidChopperCLI.exe" `
+  "C:\Media\event.mp4" "C:\Media\event.chapters.json" `
+  --config "C:\Media\event.cli.ini" --dry-run
+
+& "C:\Tools\VidChopper\VidChopperCLI.exe" `
+  "C:\Media\event.mp4" "C:\Media\event.chapters.json" `
+  --portable --dry-run
+```
 
 Resolve settings from lowest to highest precedence:
 

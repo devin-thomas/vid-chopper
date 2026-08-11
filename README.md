@@ -190,10 +190,12 @@ This split exists because the export path depends on external media tooling, whi
 ## CLI, Tool, and Encoder Contract
 
 The current CLI flags are the only flags documented as released behavior: `--embedded`, `--dry-run`,
-`--crf`, `--cq`, `--preset`, `--threads`, `--aggregate-json`, `--aggregate-csv`,
-`--stop-on-first-error`, `--use-gui-config`, `--version`, and `--help`/`-h`. The ChapterFile path is a
-positional argument. There is no documented `--config`, `--portable`, `--ffmpeg`, or `--ffprobe` flag.
-Do not invent one; use the current [CLI reference](docs/cli-config-schema.md) and [settings reference](docs/cli-settings.md).
+`--config`, `--config-path`, `--portable`, `--crf`, `--cq`, `--preset`, `--threads`,
+`--aggregate-json`, `--aggregate-csv`, `--stop-on-first-error`, `--use-gui-config`, `--version`, and
+`--help`/`-h`. The ChapterFile path is a positional argument. `--config` and `--config-path` select
+one explicit CLI settings file; `--portable` selects the deterministic sidecar beside the executable.
+Those modes cannot be combined. There are no `--ffmpeg` or `--ffprobe` flags; use the current
+[CLI reference](docs/cli-config-schema.md) and [settings reference](docs/cli-settings.md).
 
 The 1.1.0 foundation accepts external FFmpeg and ffprobe from a configured path, `PATH`, common Homebrew
 locations, and standard Unix locations, then validates that each executable runs `-version` and reports a

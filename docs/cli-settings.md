@@ -12,9 +12,11 @@ The file names are stable; the platform adapter chooses the native default root:
 | GUI | Existing adjacent `VidChopper.ini` behavior | `~/Library/Application Support/VidChopper/VidChopper.ini` | `$XDG_CONFIG_HOME/VidChopper/VidChopper.ini`, or `~/.config/VidChopper/VidChopper.ini` |
 | CLI | Existing adjacent `VidChopperCLI.ini` behavior | Native config root plus `VidChopperCLI.ini` | Native config root plus `VidChopperCLI.ini` |
 
-The current CLI settings API resolves both file names from the executable path and keeps the paths
-separate. That is an implementation boundary, not permission to add a new CLI option: the current
-`src/cli/cli_arguments.cpp` exposes no `--config` or `--portable` flag.
+The current CLI settings API resolves both file names from the selected config boundary and keeps the
+paths separate. The default boundary is native on macOS/Linux and adjacent to the executable on Windows.
+Use `--config <path>` or its `--config-path <path>` alias to select one explicit CLI settings file, or
+use `--portable` for the deterministic sidecar beside the executable. Explicit and portable modes cannot
+be combined; an explicit settings file is the sole CLI settings store and does not import GUI settings.
 
 Portable mode is explicit in the approved foundation contract. A portable executable uses a deterministic
 sidecar location; a macOS app uses a file beside the outer `.app` bundle or an explicitly supplied
@@ -39,8 +41,20 @@ VidChopperCLI.exe <input-video> --embedded [options]
 VidChopperCLI.exe chop <input-video> <chapters.json|chapters.yaml> [options]
 ```
 
-There is no released `--config`, `--portable`, `--ffmpeg`, or `--ffprobe` flag. Do not document or use
-one until the parser and its tests establish an approved spelling.
+There are no released `--ffmpeg` or `--ffprobe` flags. Tool paths remain settings-file fields. The
+approved settings-boundary flags are `--config <path>`, `--config-path <path>`, and `--portable`.
+
+Examples:
+
+```powershell
+& "C:\Tools\VidChopper\VidChopperCLI.exe" `
+  "C:\Media\event.mp4" "C:\Media\event.chapters.json" `
+  --config "C:\Media\event.cli.ini" --dry-run
+
+& "C:\Tools\VidChopper\VidChopperCLI.exe" `
+  "C:\Media\event.mp4" "C:\Media\event.chapters.json" `
+  --portable --dry-run
+```
 
 ## Precedence
 
@@ -87,6 +101,9 @@ The parser currently supports these options and ranges:
 | --- | --- | --- |
 | `--embedded` | none | Explicitly use chapters embedded in the source. |
 | `--dry-run` | none | Probe and print the plan without exporting or writing settings. |
+| `--config` | path | Use the supplied file as the sole CLI settings store for this run. |
+| `--config-path` | path | Alias for `--config`. |
+| `--portable` | none | Use the deterministic settings sidecar beside the executable. Cannot be combined with `--config`. |
 | `--crf` | `0..51` | Override x264 CRF for this run. It does not select x264. |
 | `--cq` | `0..51` | Override NVENC CQ when NVENC is selected. It does not select NVENC. |
 | `--preset` | name | Apply the preset to the x264 and NVENC preset fields for this run. |
