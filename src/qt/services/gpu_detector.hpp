@@ -1,12 +1,12 @@
 #pragma once
 
 #include "core/models.hpp"
+#include "services/process_runner.hpp"
 
 #include <QObject>
 #include <QString>
 
-class QProcess;
-class QTimer;
+#include <memory>
 
 namespace vidchopper {
 
@@ -16,28 +16,22 @@ class GpuDetector final : public QObject {
 
 public:
     explicit GpuDetector(QObject* parent = nullptr);
+    explicit GpuDetector(ProcessExecutor executor, QObject* parent = nullptr);
+    ~GpuDetector() override;
 
     [[nodiscard]] auto busy() const noexcept -> bool;
     [[nodiscard]] auto detect(const QString& ffmpeg_path) -> bool;
 
 signals:
-    void finished(const EncoderEnvironment& environment);
+    void finished(const EncoderEnvironment& environment, const QString& diagnostic);
 
 private:
-    auto start_gpu_process(const QString& executable) -> void;
-    auto finish_gpu_detection() -> void;
-    auto finish_ffmpeg_detection() -> void;
-    auto complete_if_ready() -> void;
+    struct TaskState;
 
-    QProcess* gpu_process_ {nullptr};
-    QProcess* ffmpeg_process_ {nullptr};
-    QTimer* gpu_timeout_ {nullptr};
-    QTimer* ffmpeg_timeout_ {nullptr};
-    EncoderEnvironment environment_;
-    bool detecting_ {false};
-    bool gpu_complete_ {true};
-    bool ffmpeg_complete_ {true};
-    bool tried_windows_powershell_ {false};
+    auto complete(const std::shared_ptr<TaskState>& state, EncoderEnvironment environment, QString diagnostic) -> void;
+
+    ProcessExecutor executor_;
+    std::shared_ptr<TaskState> state_;
 };
 
 } // namespace vidchopper

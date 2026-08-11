@@ -3,6 +3,7 @@
 #include "core/path_utils.hpp"
 
 #include <QByteArray>
+#include <QDir>
 #include <QString>
 
 #include <cstddef>
@@ -26,6 +27,10 @@ namespace vidchopper {
 
 [[nodiscard]] inline auto qstring_to_path(const QString& value) -> Path {
     return path_from_utf8(qstring_to_utf8(value));
+}
+
+[[nodiscard]] inline auto path_to_display(const Path& path) -> QString {
+    return QDir::toNativeSeparators(path_to_qstring(path));
 }
 
 } // namespace vidchopper

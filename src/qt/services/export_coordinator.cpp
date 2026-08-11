@@ -5,7 +5,6 @@
 #include "services/manifest_writer.hpp"
 #include "qt/path_utils.hpp"
 
-#include <QDir>
 #include <QMetaObject>
 #include <QThread>
 
@@ -24,10 +23,6 @@ struct ExportCoordinator::TaskState {
 };
 
 namespace {
-
-[[nodiscard]] auto display_path(const std::filesystem::path& path) -> QString {
-    return QDir::toNativeSeparators(path_to_qstring(path));
-}
 
 [[nodiscard]] auto segment_error(const RenderedSegment& segment) -> std::string {
     if (!segment.verification_error.empty()) {
@@ -142,7 +137,7 @@ auto ExportCoordinator::start_export(const VideoMetadata& metadata,
                     const size_t chapter_count,
                     const ResolvedExportJob&,
                     const PlannedExportSegment& segment) {
-                    const QString output = display_path(segment.output_path);
+                    const QString output = path_to_display(segment.output_path);
                     dispatch([chapter_index, chapter_count, output](ExportCoordinator& receiver) {
                         emit receiver.chapter_started(
                             static_cast<int>(chapter_index), static_cast<int>(chapter_count), output);

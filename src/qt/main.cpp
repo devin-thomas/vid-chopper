@@ -20,7 +20,8 @@ auto main(int argc, char* argv[]) -> int {
     QApplication::setApplicationName("VidChopper");
     QApplication::setOrganizationName("Devin Thomas");
     QApplication::setOrganizationDomain("github.com/devin-thomas");
-    QApplication::setWindowIcon(QIcon(":/icons/app_icon.ico"));
+    QApplication::setApplicationVersion(QStringLiteral(VIDCHOPPER_DISPLAY_VERSION));
+    QApplication::setWindowIcon(QIcon(":/icons/app_icon.png"));
     app.setStyle(QStyleFactory::create("Fusion"));
 
     vidchopper::apply_dark_palette(app);

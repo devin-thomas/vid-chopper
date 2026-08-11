@@ -320,5 +320,23 @@ if(VIDCHOPPER_BUILD_GUI)
         apply_vidchopper_warnings(vidchopper_test_export_coordinator)
         add_test(NAME qt.vidchopper_test_export_coordinator COMMAND vidchopper_test_export_coordinator)
         set_tests_properties(qt.vidchopper_test_export_coordinator PROPERTIES LABELS "qt")
+
+        add_executable(vidchopper_test_gpu_detector
+            tests/test_gpu_detector.cpp
+            src/qt/services/gpu_detector.cpp
+            src/qt/services/gpu_detector.hpp
+        )
+        target_include_directories(vidchopper_test_gpu_detector PRIVATE
+            "${PROJECT_SOURCE_DIR}/src"
+            "${PROJECT_SOURCE_DIR}/tests"
+        )
+        target_link_libraries(vidchopper_test_gpu_detector PRIVATE
+            Qt6::Core
+            vidchopper_services
+        )
+        apply_vidchopper_display_version(vidchopper_test_gpu_detector)
+        apply_vidchopper_warnings(vidchopper_test_gpu_detector)
+        add_test(NAME qt.vidchopper_test_gpu_detector COMMAND vidchopper_test_gpu_detector)
+        set_tests_properties(qt.vidchopper_test_gpu_detector PROPERTIES LABELS "qt")
     endif()
 endif()

@@ -19,7 +19,6 @@
 #include <QApplication>
 #include <QCheckBox>
 #include <QCloseEvent>
-#include <QDir>
 #include <QDesktopServices>
 #include <QFileDialog>
 #include <QFontMetrics>
@@ -56,10 +55,6 @@ namespace {
 #ifndef VIDCHOPPER_DISPLAY_VERSION
 #define VIDCHOPPER_DISPLAY_VERSION "0.2.0-alpha"
 #endif
-
-auto display_path(const std::filesystem::path& path) -> QString {
-    return QDir::toNativeSeparators(path_to_qstring(path));
-}
 
 auto demo_window_title() -> QString {
     const auto version = QStringLiteral(VIDCHOPPER_DISPLAY_VERSION);
@@ -113,11 +108,15 @@ MainWindow::MainWindow(DemoLaunchOptions demo_options, QWidget* parent)
             }
         });
     presentation_controller_->apply_zoom_percent(initial_zoom_percent, false);
-    connect(gpu_detector_, &GpuDetector::finished, this, [this](const EncoderEnvironment& environment) {
-        environment_ = environment;
-        refresh_summary();
-        log_controller_->append(LogCategory::App, resolve_encoder_summary());
-    });
+    connect(gpu_detector_,
+        &GpuDetector::finished,
+        this,
+        [this](const EncoderEnvironment& environment, const QString& diagnostic) {
+            environment_ = environment;
+            refresh_summary();
+            log_controller_->append(LogCategory::App, diagnostic);
+            log_controller_->append(LogCategory::App, resolve_encoder_summary());
+        });
     redetect_gpu();
 
     connect(chapter_model_, &ChapterTableModel::chapters_changed, this, [this]() {
@@ -189,12 +188,12 @@ auto MainWindow::create_menus() -> void {
 
     auto* view_menu = menuBar()->addMenu("&View");
     auto* zoom_in_action = new QAction {"Zoom &In", this};
-    zoom_in_action->setShortcuts({QKeySequence {"Ctrl+="}, QKeySequence {"Ctrl++"}});
+    zoom_in_action->setShortcuts(QKeySequence::keyBindings(QKeySequence::ZoomIn));
     connect(zoom_in_action, &QAction::triggered, presentation_controller_, &PresentationController::zoom_in);
     view_menu->addAction(zoom_in_action);
 
     auto* zoom_out_action = new QAction {"Zoom &Out", this};
-    zoom_out_action->setShortcut(QKeySequence {"Ctrl+-"});
+    zoom_out_action->setShortcuts(QKeySequence::keyBindings(QKeySequence::ZoomOut));
     connect(zoom_out_action, &QAction::triggered, presentation_controller_, &PresentationController::zoom_out);
     view_menu->addAction(zoom_out_action);
 
@@ -214,12 +213,13 @@ auto MainWindow::create_menus() -> void {
 
     auto* advanced_menu = menuBar()->addMenu("&Advanced");
     advanced_menu->addAction("&Settings...", this, &MainWindow::open_advanced_settings);
-    advanced_menu->addAction("&Re-detect GPU", this, &MainWindow::redetect_gpu);
+    advanced_menu->addAction("&Re-detect Encoder Capability", this, &MainWindow::redetect_gpu);
     advanced_menu->addAction("&Reset Output Directory", this, &MainWindow::reset_output_directory);
     auto* open_output_folder_action = new QAction {"Open Output &Folder", this};
     connect(open_output_folder_action, &QAction::triggered, this, [this]() {
-        if (!output_directory_edit_->text().isEmpty()) {
-            QDesktopServices::openUrl(QUrl::fromLocalFile(output_directory_edit_->text()));
+        const Path output_directory = current_output_directory();
+        if (!output_directory.empty()) {
+            QDesktopServices::openUrl(QUrl::fromLocalFile(path_to_qstring(output_directory)));
         }
     });
     advanced_menu->addAction(open_output_folder_action);
@@ -229,7 +229,7 @@ auto MainWindow::create_menus() -> void {
     connect(about_vidchopper_action, &QAction::triggered, this, [this]() {
         QMessageBox::about(this,
             "About VidChopper",
-            "VidChopper is a Windows-first Qt desktop application for turning one source video into chapter clips with ffmpeg.");
+            "VidChopper is a cross-platform Qt desktop application for turning source videos into chapter clips with FFmpeg.");
     });
     help_menu->addAction(about_vidchopper_action);
 
@@ -291,7 +291,7 @@ auto MainWindow::build_ui() -> void {
     summary_layout->addWidget(frame_rate_value_label_, 0, 3);
     summary_layout->addWidget(new QLabel {"Chapter source"}, 1, 0);
     summary_layout->addWidget(chapter_source_value_label_, 1, 1, 1, 3);
-    summary_layout->addWidget(new QLabel {"Encoder path"}, 2, 0);
+    summary_layout->addWidget(new QLabel {"Encoder capability"}, 2, 0);
     summary_layout->addWidget(encoder_value_label_, 2, 1, 1, 3);
 
     auto* chapter_controls = new QWidget {central};
@@ -353,10 +353,8 @@ auto MainWindow::build_ui() -> void {
 }
 
 auto MainWindow::open_video() -> void {
-    const auto file_path = QFileDialog::getOpenFileName(this,
-        "Select a source video",
-        QString {},
-        "Video Files (*.mp4 *.mkv *.mov *.m4v *.avi *.webm);;All Files (*.*)");
+    const auto file_path = QFileDialog::getOpenFileName(
+        this, "Select a source video", QString {}, "Video Files (*.mp4 *.mkv *.mov *.m4v *.avi *.webm);;All Files (*)");
 
     if (!file_path.isEmpty()) {
         static_cast<void>(request_video_load(qstring_to_path(file_path)));
@@ -365,7 +363,7 @@ auto MainWindow::open_video() -> void {
 
 auto MainWindow::choose_output_directory() -> void {
     const auto directory =
-        QFileDialog::getExistingDirectory(this, "Choose output directory", output_directory_edit_->text());
+        QFileDialog::getExistingDirectory(this, "Choose output directory", path_to_display(current_output_directory()));
     if (!directory.isEmpty()) {
         set_output_directory_path(qstring_to_path(directory), true);
     }
@@ -376,7 +374,7 @@ auto MainWindow::reset_output_directory() -> void {
         return;
     }
 
-    output_directory_edit_->setText(display_path(session_controller_->output_directory()));
+    output_directory_edit_->setText(path_to_display(session_controller_->output_directory()));
 }
 
 auto MainWindow::import_embedded_chapters() -> void {
@@ -468,8 +466,8 @@ auto MainWindow::open_advanced_settings() -> void {
 }
 
 auto MainWindow::redetect_gpu() -> void {
-    if (!gpu_detector_->detect(utf8_to_qstring(settings_.ffmpeg_path))) {
-        log_controller_->append(LogCategory::Warning, "GPU detection is already running.");
+    if (!gpu_detector_->detect(path_to_qstring(path_from_utf8(settings_.ffmpeg_path)))) {
+        log_controller_->append(LogCategory::Warning, "Encoder capability detection is already running.");
         return;
     }
     encoder_value_label_->setText("Detecting...");
@@ -525,7 +523,10 @@ auto MainWindow::handle_export_finished(const bool success, const QStringList& e
     }
 
     if (success && settings_.open_output_directory_after_export) {
-        QDesktopServices::openUrl(QUrl::fromLocalFile(output_directory_edit_->text()));
+        const Path output_directory = current_output_directory();
+        if (!output_directory.empty()) {
+            QDesktopServices::openUrl(QUrl::fromLocalFile(path_to_qstring(output_directory)));
+        }
     }
 }
 
@@ -536,7 +537,8 @@ auto MainWindow::request_video_load(const Path& source_path, std::function<void(
     }
 
     statusBar()->showMessage("Inspecting source video...");
-    if (!session_controller_->request_video_load(path_from_utf8(settings_.ffprobe_path), source_path, std::move(completion))) {
+    if (!session_controller_->request_video_load(
+            path_from_utf8(settings_.ffprobe_path), source_path, std::move(completion))) {
         statusBar()->showMessage("Source inspection could not start");
         return false;
     }
@@ -548,7 +550,7 @@ auto MainWindow::handle_video_loaded() -> void {
     if (metadata == nullptr) {
         return;
     }
-    source_path_edit_->setText(display_path(metadata->source_path));
+    source_path_edit_->setText(path_to_display(metadata->source_path));
 
     if (settings_.prefer_embedded_chapters && !metadata->embedded_chapters.empty()) {
         chapter_model_->set_chapters(metadata->embedded_chapters);
@@ -563,11 +565,12 @@ auto MainWindow::handle_video_loaded() -> void {
 
     if (!session_controller_->output_directory_overridden()) {
         static_cast<void>(session_controller_->reset_output_directory(settings_));
-        output_directory_edit_->setText(display_path(session_controller_->output_directory()));
+        output_directory_edit_->setText(path_to_display(session_controller_->output_directory()));
     }
 
     refresh_summary();
-    log_controller_->append(LogCategory::Probe, QStringLiteral("Loaded %1").arg(display_path(metadata->source_path)));
+    log_controller_->append(
+        LogCategory::Probe, QStringLiteral("Loaded %1").arg(path_to_display(metadata->source_path)));
     statusBar()->showMessage("Source video loaded");
 }
 
@@ -623,12 +626,12 @@ auto MainWindow::update_export_button_style() -> void {
     export_button_->setStyleSheet(QStringLiteral(
         "QPushButton { background:%1; color:white; border:1px solid %2; border-radius:%3px; font-weight:700; padding:%4px %5px; }"
         "QPushButton:hover { background:%6; }")
-                                      .arg(background)
-                                      .arg(border)
-                                      .arg(radius)
-                                      .arg(vertical_padding)
-                                      .arg(horizontal_padding)
-                                      .arg(hover));
+            .arg(background)
+            .arg(border)
+            .arg(radius)
+            .arg(vertical_padding)
+            .arg(horizontal_padding)
+            .arg(hover));
 }
 
 auto MainWindow::persist_app_settings() -> bool {
@@ -655,7 +658,7 @@ auto MainWindow::persist_app_settings() -> bool {
 
 auto MainWindow::set_output_directory_path(const std::filesystem::path& path, const bool overridden) -> void {
     session_controller_->set_output_directory(path, overridden);
-    output_directory_edit_->setText(display_path(session_controller_->output_directory()));
+    output_directory_edit_->setText(path_to_display(session_controller_->output_directory()));
 }
 
 auto MainWindow::seed_demo_scene(const DemoScene scene) -> bool {
@@ -689,14 +692,14 @@ auto MainWindow::seed_workspace_demo(const bool show_logs) -> bool {
     if (directory_error) {
         log_controller_->append(LogCategory::Error,
             QStringLiteral("Could not create demo output directory '%1': %2")
-                .arg(display_path(output_directory), utf8_to_qstring(directory_error.message())));
+                .arg(path_to_display(output_directory), utf8_to_qstring(directory_error.message())));
         return false;
     }
     set_output_directory_path(output_directory, true);
 
     select_demo_chapter_row(3);
     log_controller_->append(LogCategory::App, "Seeded demo workspace prepared.");
-    log_controller_->append(LogCategory::App, QStringLiteral("Output path: %1").arg(output_directory_edit_->text()));
+    log_controller_->append(LogCategory::App, QStringLiteral("Output path: %1").arg(path_to_display(output_directory)));
 
     if (show_logs) {
         log_controller_->set_expanded(true);

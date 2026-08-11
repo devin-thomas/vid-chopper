@@ -1,128 +1,129 @@
 #include "qt/services/gpu_detector.hpp"
 
-#include <QProcess>
-#include <QTimer>
+#include "qt/path_utils.hpp"
+#include "services/encoder_capability.hpp"
+
+#include <QMetaObject>
+#include <QThread>
+
+#include <chrono>
+#include <mutex>
+#include <stop_token>
+#include <utility>
 
 namespace vidchopper {
 
+struct GpuDetector::TaskState {
+    std::mutex receiver_mutex;
+    GpuDetector* receiver {nullptr};
+    std::stop_source stop_source;
+};
+
 namespace {
 
-[[nodiscard]] auto powershell_arguments() -> QStringList {
-    return {
-        "-NoProfile",
-        "-Command",
-        "(Get-CimInstance Win32_VideoController | Select-Object -ExpandProperty Name) -join \"`n\"",
-    };
+[[nodiscard]] auto capability_settings(const QString& ffmpeg_path) -> ExportSettings {
+    auto settings = ExportSettings {};
+    settings.ffmpeg_path = path_to_utf8(qstring_to_path(ffmpeg_path));
+    settings.encoder_kind = EncoderKind::HevcNvenc;
+    return settings;
+}
+
+[[nodiscard]] auto capability_diagnostic(const EncoderCapabilityResult& result) -> QString {
+    if (result.available()) {
+        return QStringLiteral("HEVC NVENC capability test passed.");
+    }
+
+    return QStringLiteral("HEVC NVENC capability unavailable: %1").arg(utf8_to_qstring(result.rejection_reason));
 }
 
 } // namespace
 
 GpuDetector::GpuDetector(QObject* parent)
+    : GpuDetector(run_process, parent) {
+}
+
+GpuDetector::GpuDetector(ProcessExecutor executor, QObject* parent)
     : QObject(parent)
-    , gpu_process_(new QProcess {this})
-    , ffmpeg_process_(new QProcess {this})
-    , gpu_timeout_(new QTimer {this})
-    , ffmpeg_timeout_(new QTimer {this}) {
-    gpu_timeout_->setSingleShot(true);
-    ffmpeg_timeout_->setSingleShot(true);
+    , executor_ {std::move(executor)} {
+}
 
-    connect(gpu_process_,
-        qOverload<int, QProcess::ExitStatus>(&QProcess::finished),
-        this,
-        [this](const int, const QProcess::ExitStatus) { finish_gpu_detection(); });
-    connect(gpu_process_, &QProcess::errorOccurred, this, [this](const QProcess::ProcessError error) {
-        if (error == QProcess::FailedToStart && !tried_windows_powershell_) {
-            tried_windows_powershell_ = true;
-            start_gpu_process("powershell");
-            return;
-        }
-        if (error == QProcess::FailedToStart || error == QProcess::Crashed) {
-            finish_gpu_detection();
-        }
-    });
-    connect(gpu_timeout_, &QTimer::timeout, this, [this]() {
-        if (gpu_process_->state() != QProcess::NotRunning) {
-            gpu_process_->kill();
-        }
-        finish_gpu_detection();
-    });
+GpuDetector::~GpuDetector() {
+    const std::shared_ptr<TaskState> state = std::move(state_);
+    if (state == nullptr) {
+        return;
+    }
 
-    connect(ffmpeg_process_,
-        qOverload<int, QProcess::ExitStatus>(&QProcess::finished),
-        this,
-        [this](const int, const QProcess::ExitStatus) { finish_ffmpeg_detection(); });
-    connect(ffmpeg_process_, &QProcess::errorOccurred, this, [this](const QProcess::ProcessError error) {
-        if (error == QProcess::FailedToStart || error == QProcess::Crashed) {
-            finish_ffmpeg_detection();
-        }
-    });
-    connect(ffmpeg_timeout_, &QTimer::timeout, this, [this]() {
-        if (ffmpeg_process_->state() != QProcess::NotRunning) {
-            ffmpeg_process_->kill();
-        }
-        finish_ffmpeg_detection();
-    });
+    state->stop_source.request_stop();
+    const auto lock = std::scoped_lock {state->receiver_mutex};
+    state->receiver = nullptr;
 }
 
 auto GpuDetector::busy() const noexcept -> bool {
-    return detecting_;
+    return state_ != nullptr;
 }
 
 auto GpuDetector::detect(const QString& ffmpeg_path) -> bool {
-    if (detecting_) {
+    if (busy()) {
         return false;
     }
 
-    environment_ = {};
-    detecting_ = true;
-    gpu_complete_ = false;
-    ffmpeg_complete_ = false;
-    tried_windows_powershell_ = false;
+    auto state = std::make_shared<TaskState>();
+    state->receiver = this;
+    state_ = state;
 
-    start_gpu_process("pwsh");
-    ffmpeg_timeout_->start(4000);
-    ffmpeg_process_->start(ffmpeg_path, {"-hide_banner", "-encoders"});
+    const ExportSettings settings = capability_settings(ffmpeg_path);
+    ProcessExecutor executor = executor_;
+    auto* thread = QThread::create([state, executor = std::move(executor), settings]() mutable {
+        const auto options = EncoderCapabilityOptions {
+            .timeout = std::chrono::seconds {3},
+            .stdout_limit_bytes = 1024 * 1024,
+            .stderr_limit_bytes = 4096,
+            .stop_token = state->stop_source.get_token(),
+            .use_encoder_listing_prefilter = true,
+        };
+        auto environment = EncoderEnvironment {.platform = current_encoder_platform()};
+        const auto result =
+            EncoderCapabilityService {std::move(executor)}.test(settings, EncoderKind::HevcNvenc, environment, options);
+        environment.has_nvidia_gpu = result.available();
+        environment.has_hevc_nvenc_encoder = result.available();
+        const QString diagnostic = capability_diagnostic(result);
+
+        const auto lock = std::scoped_lock {state->receiver_mutex};
+        if (state->receiver == nullptr) {
+            return;
+        }
+        auto* receiver = state->receiver;
+        static_cast<void>(QMetaObject::invokeMethod(
+            receiver,
+            [state, environment, diagnostic]() mutable {
+                auto* active_receiver = static_cast<GpuDetector*>(nullptr);
+                {
+                    const auto state_lock = std::scoped_lock {state->receiver_mutex};
+                    active_receiver = state->receiver;
+                }
+                if (active_receiver != nullptr) {
+                    active_receiver->complete(state, environment, diagnostic);
+                }
+            },
+            Qt::QueuedConnection));
+    });
+    QObject::connect(thread, &QThread::finished, thread, &QObject::deleteLater);
+    thread->start();
     return true;
 }
 
-auto GpuDetector::start_gpu_process(const QString& executable) -> void {
-    gpu_timeout_->stop();
-    gpu_timeout_->start(3000);
-    gpu_process_->start(executable, powershell_arguments());
-}
-
-auto GpuDetector::finish_gpu_detection() -> void {
-    if (gpu_complete_) {
+auto GpuDetector::complete(const std::shared_ptr<TaskState>& state, EncoderEnvironment environment, QString diagnostic)
+    -> void {
+    if (state_ != state) {
         return;
     }
 
-    gpu_timeout_->stop();
-    const auto gpu_names = QString::fromUtf8(gpu_process_->readAllStandardOutput()).toLower();
-    environment_.has_nvidia_gpu = gpu_names.contains("nvidia");
-    gpu_complete_ = true;
-    complete_if_ready();
-}
-
-auto GpuDetector::finish_ffmpeg_detection() -> void {
-    if (ffmpeg_complete_) {
-        return;
+    {
+        const auto lock = std::scoped_lock {state->receiver_mutex};
+        state->receiver = nullptr;
     }
-
-    ffmpeg_timeout_->stop();
-    const auto encoders = QString::fromUtf8(ffmpeg_process_->readAllStandardOutput()).toLower()
-        + QString::fromUtf8(ffmpeg_process_->readAllStandardError()).toLower();
-    environment_.has_hevc_nvenc_encoder = encoders.contains("hevc_nvenc");
-    ffmpeg_complete_ = true;
-    complete_if_ready();
-}
-
-auto GpuDetector::complete_if_ready() -> void {
-    if (!gpu_complete_ || !ffmpeg_complete_) {
-        return;
-    }
-
-    detecting_ = false;
-    emit finished(environment_);
+    state_.reset();
+    emit finished(environment, diagnostic);
 }
 
 } // namespace vidchopper

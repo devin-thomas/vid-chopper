@@ -40,7 +40,7 @@ AdvancedSettingsDialog::AdvancedSettingsDialog(QWidget* parent)
     threads_spin_->setRange(0, 64);
     threads_spin_->setSpecialValueText("Auto");
     auto_gpu_checkbox_ =
-        new QCheckBox {"Automatically switch to HEVC NVENC when NVIDIA hardware is detected", encoding_tab};
+        new QCheckBox {"Automatically use a supported hardware encoder when capability testing succeeds", encoding_tab};
 
     encoding_form->addRow("Video encoder", encoder_combo_);
     encoding_form->addRow("Audio handling", audio_combo_);

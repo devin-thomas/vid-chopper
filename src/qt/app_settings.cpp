@@ -27,10 +27,10 @@ auto load_integer(QSettings& settings,
     const qlonglong raw = settings.value(key, static_cast<qlonglong>(fallback)).toLongLong(&converted);
     if (!converted || raw < minimum || raw > maximum) {
         diagnostics.push_back(QStringLiteral("Invalid setting '%1'; using default %2 (expected %3-%4).")
-                                  .arg(QString::fromLatin1(key))
-                                  .arg(static_cast<qlonglong>(fallback))
-                                  .arg(minimum)
-                                  .arg(maximum));
+                .arg(QString::fromLatin1(key))
+                .arg(static_cast<qlonglong>(fallback))
+                .arg(minimum)
+                .arg(maximum));
         return fallback;
     }
     return static_cast<Integer>(raw);
@@ -53,8 +53,7 @@ auto load_boolean(QSettings& settings, const char* key, const bool fallback, QSt
         return false;
     }
 
-    diagnostics.push_back(
-        QStringLiteral("Invalid setting '%1'; using default %2 (expected true or false).")
+    diagnostics.push_back(QStringLiteral("Invalid setting '%1'; using default %2 (expected true or false).")
             .arg(QString::fromLatin1(key), fallback ? QStringLiteral("true") : QStringLiteral("false")));
     return fallback;
 }
@@ -65,13 +64,13 @@ auto settings_status_message(const QSettings& settings) -> QString {
         return {};
     case QSettings::AccessError:
         return QStringLiteral("Could not access settings file '%1'. Check the folder permissions.")
-            .arg(QDir::toNativeSeparators(settings.fileName()));
+            .arg(path_to_display(qstring_to_path(settings.fileName())));
     case QSettings::FormatError:
         return QStringLiteral("Settings file '%1' has an invalid format.")
-            .arg(QDir::toNativeSeparators(settings.fileName()));
+            .arg(path_to_display(qstring_to_path(settings.fileName())));
     }
     return QStringLiteral("Settings file '%1' reported an unknown error.")
-        .arg(QDir::toNativeSeparators(settings.fileName()));
+        .arg(path_to_display(qstring_to_path(settings.fileName())));
 }
 
 [[nodiscard]] auto settings_options_from_arguments() -> std::pair<ConfigPathOptions, QString> {
@@ -84,8 +83,8 @@ auto settings_status_message(const QSettings& settings) -> QString {
             continue;
         }
 
-        const bool is_config_flag = argument == QStringLiteral("--config")
-                                  || argument == QStringLiteral("--config-path");
+        const bool is_config_flag =
+            argument == QStringLiteral("--config") || argument == QStringLiteral("--config-path");
         QString value;
         if (is_config_flag) {
             if (index + 1 >= arguments.size()) {
@@ -117,14 +116,14 @@ auto settings_status_message(const QSettings& settings) -> QString {
     if (!parent.exists()) {
         if (!parent.mkpath(".")) {
             return QStringLiteral("Could not create the settings directory '%1'. Check the folder permissions.")
-                .arg(QDir::toNativeSeparators(parent.absolutePath()));
+                .arg(path_to_display(qstring_to_path(parent.absolutePath())));
         }
     }
 
     auto file = QFile {file_path};
     if (!file.open(QIODevice::WriteOnly | QIODevice::Append)) {
         return QStringLiteral("Could not create or open settings file '%1': %2")
-            .arg(QDir::toNativeSeparators(file_path), file.errorString());
+            .arg(path_to_display(qstring_to_path(file_path)), file.errorString());
     }
     file.close();
     return {};
@@ -134,8 +133,8 @@ auto settings_status_message(const QSettings& settings) -> QString {
 
 auto create_settings_store(QObject* parent) -> SettingsStore {
     const auto [options, options_error] = settings_options_from_arguments();
-    const ConfigResolutionResult resolved = resolve_config_paths(
-        qstring_to_path(QCoreApplication::applicationFilePath()), ConfigStore::Gui, options);
+    const ConfigResolutionResult resolved =
+        resolve_config_paths(qstring_to_path(QCoreApplication::applicationFilePath()), ConfigStore::Gui, options);
 
     QString error_message = options_error;
     Path resolved_path;
@@ -153,7 +152,7 @@ auto create_settings_store(QObject* parent) -> SettingsStore {
         }
     }
 
-    const QString config_path = QDir::toNativeSeparators(path_to_qstring(resolved_path));
+    const QString config_path = path_to_display(resolved_path);
     if (error_message.isEmpty()) {
         error_message = prepare_settings_file(config_path);
     }
@@ -170,12 +169,12 @@ auto load_app_settings(QSettings& settings) -> SettingsLoadResult {
     auto result = SettingsLoadResult {};
     auto& values = result.values.export_settings;
 
-    values.ffmpeg_path = qstring_to_utf8(
-        settings.value("tools/ffmpegPath", utf8_to_qstring(values.ffmpeg_path)).toString());
-    values.ffprobe_path = qstring_to_utf8(
-        settings.value("tools/ffprobePath", utf8_to_qstring(values.ffprobe_path)).toString());
-    values.output_folder_pattern =
-        qstring_to_utf8(settings.value("output/folderPattern", utf8_to_qstring(values.output_folder_pattern)).toString());
+    values.ffmpeg_path =
+        qstring_to_utf8(settings.value("tools/ffmpegPath", utf8_to_qstring(values.ffmpeg_path)).toString());
+    values.ffprobe_path =
+        qstring_to_utf8(settings.value("tools/ffprobePath", utf8_to_qstring(values.ffprobe_path)).toString());
+    values.output_folder_pattern = qstring_to_utf8(
+        settings.value("output/folderPattern", utf8_to_qstring(values.output_folder_pattern)).toString());
     values.naming_pattern =
         qstring_to_utf8(settings.value("output/namingPattern", utf8_to_qstring(values.naming_pattern)).toString());
     values.x264_preset =
