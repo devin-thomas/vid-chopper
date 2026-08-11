@@ -1,5 +1,6 @@
 #include "cli/cli_arguments.hpp"
 #include "cli/cli_settings.hpp"
+#include "core/path_utils.hpp"
 #include "dummy/dummy_cli_data.hpp"
 #include "test_support.hpp"
 
@@ -78,6 +79,25 @@ auto main() -> int {
     test_support::expect_true(cli_filename_matches, "CLI should resolve its own settings filename");
     test_support::expect_true(gui_filename_matches, "GUI settings path should stay separate");
     test_support::expect_true(paths.use_gui_config, "settings path should preserve explicit GUI config request");
+
+    const CliParseResult config_options =
+        parse({"input.mp4", "chapters.json", "--config", "settings/cli.ini", "--portable"});
+    test_support::expect_true(config_options.ok(), "explicit config and portable flags should parse");
+    test_support::expect_eq(*config_options.arguments.settings_path,
+        Path {"settings/cli.ini"},
+        "explicit config path should be captured separately from the chapter config");
+    test_support::expect_true(config_options.arguments.portable_config, "portable config mode should be captured");
+
+    const std::string unicode_input = "/tmp/VidChopper/媒体 clips/视频 🎬.mp4";
+    const std::string unicode_config = "/tmp/VidChopper/章节/第一.json";
+    const CliParseResult unicode_paths = parse({unicode_input, unicode_config});
+    test_support::expect_true(unicode_paths.ok(), "UTF-8 positional paths should parse");
+    test_support::expect_eq(path_to_utf8(unicode_paths.arguments.input_paths.front()),
+        unicode_input,
+        "CLI input paths should cross the UTF-8 filesystem boundary once");
+    test_support::expect_eq(path_to_utf8(unicode_paths.arguments.config_paths.front()),
+        unicode_config,
+        "CLI chapter paths should preserve UTF-8 text");
 
     return 0;
 }

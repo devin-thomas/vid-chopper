@@ -6,6 +6,7 @@
 #include "cli/cli_arguments.hpp"
 #include "cli/cli_settings.hpp"
 #include "cli/dry_run_renderer.hpp"
+#include "core/path_utils.hpp"
 #include "services/export_engine.hpp"
 #include "services/export_planner.hpp"
 #include "services/manifest_writer.hpp"
@@ -56,11 +57,20 @@ auto run_cli(const CliRunRequest& request) -> CliExitCode {
         return CliExitCode::Success;
     }
 
+    const ConfigPathOptions config_options {
+        .explicit_path = cli_arguments.settings_path,
+        .portable = cli_arguments.portable_config,
+    };
     const CliSettingsPaths settings_paths =
-        resolve_cli_settings_paths(request.executable_path, cli_arguments.use_gui_config);
-    if (!cli_arguments.dry_run && !ensure_cli_settings_file(settings_paths.cli_settings_path)) {
+        resolve_cli_settings_paths(request.executable_path, cli_arguments.use_gui_config, config_options);
+    if (!settings_paths.valid) {
+        request.error_output << "Could not resolve CLI settings: " << settings_paths.error_message << "\n";
+        return CliExitCode::Error;
+    }
+    const bool must_prepare_settings = !cli_arguments.dry_run;
+    if (must_prepare_settings && !ensure_cli_settings_file(settings_paths.cli_settings_path)) {
         request.error_output << "Could not create or open CLI settings file: ";
-        request.error_output << settings_paths.cli_settings_path.string() << "\n";
+        request.error_output << path_to_utf8(settings_paths.cli_settings_path) << "\n";
         return CliExitCode::Error;
     }
 
@@ -77,7 +87,7 @@ auto run_cli(const CliRunRequest& request) -> CliExitCode {
         auto path_error = std::error_code {};
         if (std::filesystem::is_regular_file(source_path, path_error) && !path_error) {
             const ProbeResult probe =
-                ProbeService {request.process_executor}.probe(effective_settings.ffprobe_path, source_path);
+                ProbeService {request.process_executor}.probe(path_from_utf8(effective_settings.ffprobe_path), source_path);
             if (!probe.ok()) {
                 request.error_output << probe.error_message << "\n";
                 return probe_failure_exit_code();
@@ -110,7 +120,8 @@ auto run_cli(const CliRunRequest& request) -> CliExitCode {
     if (cli_arguments.use_embedded_chapters) {
         for (const BatchJob& job : batch.jobs) {
             const ProbeResult probe =
-                ProbeService {request.process_executor}.probe(effective_settings.ffprobe_path, job.source_path);
+                ProbeService {request.process_executor}.probe(
+                    path_from_utf8(effective_settings.ffprobe_path), job.source_path);
             if (!probe.ok()) {
                 request.error_output << probe.error_message << "\n";
                 return probe_failure_exit_code();
@@ -120,7 +131,7 @@ auto run_cli(const CliRunRequest& request) -> CliExitCode {
                     request.error_output << chapter_source_guidance(probe.metadata) << "\n";
                     return CliExitCode::Error;
                 }
-                request.output << "Skipping source without embedded chapters: " << job.source_path.string() << "\n";
+                request.output << "Skipping source without embedded chapters: " << path_to_utf8(job.source_path) << "\n";
                 continue;
             }
             plan_inputs.push_back(OutputPlanInput {
@@ -139,13 +150,14 @@ auto run_cli(const CliRunRequest& request) -> CliExitCode {
     } else {
         for (const BatchJob& job : batch.jobs) {
             const ProbeResult probe =
-                ProbeService {request.process_executor}.probe(effective_settings.ffprobe_path, job.source_path);
+                ProbeService {request.process_executor}.probe(
+                    path_from_utf8(effective_settings.ffprobe_path), job.source_path);
             if (!probe.ok()) {
                 request.error_output << probe.error_message << "\n";
                 return probe_failure_exit_code();
             }
             if (!job.chapter_config_path.has_value()) {
-                request.error_output << "Resolved batch job is missing a ChapterFile: " << job.source_path.string()
+                request.error_output << "Resolved batch job is missing a ChapterFile: " << path_to_utf8(job.source_path)
                                      << "\n";
                 return CliExitCode::Error;
             }
@@ -172,13 +184,13 @@ auto run_cli(const CliRunRequest& request) -> CliExitCode {
         return CliExitCode::Error;
     }
 
-    request.output << "Input: " << cli_arguments.input_paths.front().string() << "\n";
+    request.output << "Input: " << path_to_utf8(cli_arguments.input_paths.front()) << "\n";
     if (cli_arguments.use_embedded_chapters) {
         request.output << "Config: --embedded\n";
     } else {
-        request.output << "Config: " << cli_arguments.config_paths.front().string() << "\n";
+        request.output << "Config: " << path_to_utf8(cli_arguments.config_paths.front()) << "\n";
     }
-    request.output << "CLI settings: " << settings_paths.cli_settings_path.string() << "\n";
+    request.output << "CLI settings: " << path_to_utf8(settings_paths.cli_settings_path) << "\n";
     request.output << "Settings loaded: CLI=" << (loaded_settings.loaded_cli_settings ? "yes" : "no");
     request.output << ", GUI=" << (loaded_settings.loaded_gui_settings ? "yes" : "no") << "\n";
     request.output << "Effective CRF: " << static_cast<int>(output_plan.jobs.front().settings.x264_crf) << "\n";
@@ -202,17 +214,17 @@ auto run_cli(const CliRunRequest& request) -> CliExitCode {
                     const ResolvedExportJob& job,
                     const PlannedExportSegment& segment) {
                     request.output << "Exporting Job " << job_index << "/" << job_count << ", Chapter " << chapter_index
-                                   << "/" << chapter_count << ": " << job.metadata.source_path.string() << " -> "
-                                   << segment.output_path.string() << "\n";
+                                   << "/" << chapter_count << ": " << path_to_utf8(job.metadata.source_path) << " -> "
+                                   << path_to_utf8(segment.output_path) << "\n";
                 },
             .segment_finished =
                 [&request](const RenderedSegment& segment) {
                     if (segment.ok()) {
                         request.output << "Completed Chapter " << segment.chapter_index + 1 << ": "
-                                       << segment.output_path.string() << "\n";
+                                       << path_to_utf8(segment.output_path) << "\n";
                     } else {
                         request.error_output << "Failed Chapter " << segment.chapter_index + 1 << ": "
-                                             << segment.output_path.string() << ": " << rendered_segment_error(segment)
+                                             << path_to_utf8(segment.output_path) << ": " << rendered_segment_error(segment)
                                              << "\n";
                     }
                 },
@@ -222,14 +234,14 @@ auto run_cli(const CliRunRequest& request) -> CliExitCode {
     const ManifestWriteResult manifests = write_manifests(
         output_plan.jobs, export_result, cli_arguments.aggregate_json_path, cli_arguments.aggregate_csv_path);
     for (const Path& path : manifests.written_paths) {
-        request.output << "Manifest: " << path.string() << "\n";
+        request.output << "Manifest: " << path_to_utf8(path) << "\n";
     }
     for (const std::string& error : manifests.errors) {
         request.error_output << error << "\n";
     }
     if (!manifests.ok()) {
         for (const Path& path : manifests.preserved_media_paths) {
-            request.error_output << "Preserved rendered media: " << path.string() << "\n";
+            request.error_output << "Preserved rendered media: " << path_to_utf8(path) << "\n";
         }
     }
 

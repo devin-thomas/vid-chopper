@@ -3,6 +3,7 @@
 #include "services/export_engine.hpp"
 #include "services/export_planner.hpp"
 #include "services/manifest_writer.hpp"
+#include "qt/path_utils.hpp"
 
 #include <QDir>
 #include <QMetaObject>
@@ -25,7 +26,7 @@ struct ExportCoordinator::TaskState {
 namespace {
 
 [[nodiscard]] auto display_path(const std::filesystem::path& path) -> QString {
-    return QDir::toNativeSeparators(QString::fromStdWString(path.wstring()));
+    return QDir::toNativeSeparators(path_to_qstring(path));
 }
 
 [[nodiscard]] auto segment_error(const RenderedSegment& segment) -> std::string {
@@ -84,7 +85,7 @@ auto ExportCoordinator::start_export(const VideoMetadata& metadata,
     if (!plan.ok()) {
         auto errors = QStringList {};
         for (const std::string& error : plan.errors) {
-            errors.push_back(QString::fromStdString(error));
+            errors.push_back(utf8_to_qstring(error));
         }
         emit finished(false, errors);
         return;
@@ -152,7 +153,7 @@ auto ExportCoordinator::start_export(const VideoMetadata& metadata,
             .segment_finished =
                 [dispatch](const RenderedSegment& segment) {
                     if (!segment.ok()) {
-                        const QString error = QString::fromStdString(segment_error(segment));
+                        const QString error = utf8_to_qstring(segment_error(segment));
                         dispatch([error](ExportCoordinator& receiver) {
                             emit receiver.log_message(LogCategory::Error, error);
                         });
@@ -160,7 +161,7 @@ auto ExportCoordinator::start_export(const VideoMetadata& metadata,
                 },
             .message =
                 [dispatch](const std::string& message) {
-                    const QString text = QString::fromStdString(message);
+                    const QString text = utf8_to_qstring(message);
                     dispatch([text](ExportCoordinator& receiver) {
                         emit receiver.log_message(LogCategory::ExportLifecycle, text);
                     });
@@ -201,16 +202,16 @@ auto ExportCoordinator::complete(
     auto errors = QStringList {};
     for (const ExportJobResult& job : run_result.jobs) {
         if (!job.error_message.empty()) {
-            errors.push_back(QString::fromStdString(job.error_message));
+            errors.push_back(utf8_to_qstring(job.error_message));
         }
         for (const RenderedSegment& segment : job.segments) {
             if (!segment.ok()) {
-                errors.push_back(QString::fromStdString(segment_error(segment)));
+                errors.push_back(utf8_to_qstring(segment_error(segment)));
             }
         }
     }
     for (const std::string& error : manifest_result.errors) {
-        errors.push_back(QString::fromStdString(error));
+        errors.push_back(utf8_to_qstring(error));
     }
 
     emit finished(run_result.ok() && manifest_result.ok(), errors);

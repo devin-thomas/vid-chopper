@@ -2,6 +2,7 @@
 
 #include "core/chapter_plan.hpp"
 #include "core/command_builder.hpp"
+#include "core/path_utils.hpp"
 #include "core/string_utils.hpp"
 
 #include <format>
@@ -22,7 +23,7 @@ struct PlannedOwner {
 }
 
 [[nodiscard]] auto describe_owner(const PlannedOwner& owner) -> std::string {
-    return std::format("source '{}' chapter {}", owner.source_path.string(), owner.chapter_index + 1);
+    return std::format("source '{}' chapter {}", path_to_utf8(owner.source_path), owner.chapter_index + 1);
 }
 
 } // namespace
@@ -46,7 +47,7 @@ auto plan_outputs(const std::vector<OutputPlanInput>& inputs) -> OutputPlanResul
         if (!validation.ok()) {
             for (const ValidationIssue& issue : validation.issues) {
                 result.errors.push_back(std::format("Invalid output plan for source '{}', chapter {}: {}",
-                    input.metadata.source_path.string(),
+                    path_to_utf8(input.metadata.source_path),
                     issue.chapter_index + 1,
                     issue.message));
             }
@@ -89,7 +90,7 @@ auto plan_outputs(const std::vector<OutputPlanInput>& inputs) -> OutputPlanResul
                     .chapter_index = chapter_index,
                 };
                 result.errors.push_back(std::format("Output collision at '{}': {} conflicts with {}.",
-                    output_path.string(),
+                    path_to_utf8(output_path),
                     describe_owner(current_owner),
                     describe_owner(owner->second)));
             }

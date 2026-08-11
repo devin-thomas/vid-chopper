@@ -1,9 +1,11 @@
+#include "core/path_utils.hpp"
 #include "services/export_planner.hpp"
 #include "services/manifest_writer.hpp"
 #include "test_support.hpp"
 
 #include <filesystem>
 #include <fstream>
+#include <iterator>
 #include <string>
 #include <utility>
 #include <vector>
@@ -20,12 +22,12 @@ namespace {
     const auto input = OutputPlanInput {
         .metadata =
             VideoMetadata {
-                .source_path = root / "source.mp4",
+                .source_path = root / path_from_utf8("源 视频 🎬.mp4"),
                 .duration_ms = 2000,
                 .frame_rate = FrameRate {.numerator = 30, .denominator = 1},
                 .source_extension = ".mp4",
             },
-        .chapters = {{.name = "Match", .start_ms = 0, .end_ms = 2000}},
+        .chapters = {{.name = "序章 🎬", .start_ms = 0, .end_ms = 2000}},
         .settings = settings,
     };
     OutputPlanResult plan = plan_outputs({input});
@@ -67,6 +69,13 @@ auto main() -> int {
     test_support::expect_true(!std::filesystem::exists(job.output_directory / "vidchopper-manifest.json.tmp"),
         "successful manifest write should not leave a temporary file");
 
+    auto json_stream = std::ifstream {job.output_directory / "vidchopper-manifest.json", std::ios::binary};
+    const std::string json_text {std::istreambuf_iterator<char> {json_stream}, std::istreambuf_iterator<char> {}};
+    test_support::expect_true(json_text.find(path_to_utf8(job.metadata.source_path)) != std::string::npos,
+        "JSON manifest paths should be serialized as UTF-8");
+    test_support::expect_true(json_text.find("序章 🎬") != std::string::npos,
+        "JSON manifest chapter text should preserve UTF-8");
+
     ResolvedExportJob blocked_job = make_job(root / "blocked");
     std::filesystem::create_directories(blocked_job.output_directory / "vidchopper-manifest.json.tmp");
     const ManifestWriteResult blocked = write_manifests({blocked_job}, successful_run(blocked_job));
@@ -76,7 +85,7 @@ auto main() -> int {
         std::vector<Path> {blocked_job.segments.front().output_path},
         "manifest failure should list already-rendered media paths");
     test_support::expect_true(
-        blocked.errors.front().find(blocked_job.metadata.source_path.string()) != std::string::npos,
+        blocked.errors.front().find(path_to_utf8(blocked_job.metadata.source_path)) != std::string::npos,
         "manifest failure should identify its source job");
 
     std::filesystem::remove_all(root, cleanup_error);

@@ -1,6 +1,7 @@
 #include "qt/services/session_controller.hpp"
 
 #include "core/chapter_plan.hpp"
+#include "qt/path_utils.hpp"
 #include "qt/services/probe_coordinator.hpp"
 
 #include <system_error>
@@ -80,7 +81,7 @@ auto SessionController::reset_output_directory(const ExportSettings& settings) -
 auto SessionController::handle_probe_finished(const ProbeResult& result) -> void {
     std::function<void(bool)> completion = std::move(completion_);
     if (!result.ok()) {
-        emit video_load_failed(QString::fromStdString(result.error_message));
+        emit video_load_failed(utf8_to_qstring(result.error_message));
         if (completion) {
             completion(false);
         }

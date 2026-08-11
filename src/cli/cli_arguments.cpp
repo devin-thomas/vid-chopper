@@ -1,5 +1,7 @@
 #include "cli/cli_arguments.hpp"
 
+#include "core/path_utils.hpp"
+
 #include <charconv>
 #include <cstddef>
 #include <limits>
@@ -18,6 +20,9 @@ constexpr auto flag_help = std::string_view {"--help"};
 constexpr auto short_flag_help = std::string_view {"-h"};
 constexpr auto flag_version = std::string_view {"--version"};
 constexpr auto flag_dry_run = std::string_view {"--dry-run"};
+constexpr auto flag_config = std::string_view {"--config"};
+constexpr auto flag_config_path = std::string_view {"--config-path"};
+constexpr auto flag_portable = std::string_view {"--portable"};
 constexpr auto flag_embedded = std::string_view {"--embedded"};
 constexpr auto flag_use_gui_config = std::string_view {"--use-gui-config"};
 constexpr auto flag_stop_on_first_error = std::string_view {"--stop-on-first-error"};
@@ -79,14 +84,14 @@ constexpr auto flag_aggregate_csv = std::string_view {"--aggregate-csv"};
     return std::string_view {tokens[next_index]};
 }
 
-[[nodiscard]] auto append_positional(CliArguments& arguments, const std::string_view token) -> bool {
+[[nodiscard]] auto append_positional(CliArguments& arguments, const Path& path) -> bool {
     if (arguments.input_paths.empty()) {
-        arguments.input_paths.emplace_back(std::string {token});
+        arguments.input_paths.emplace_back(path);
         return true;
     }
 
     if (arguments.config_paths.empty()) {
-        arguments.config_paths.emplace_back(std::string {token});
+        arguments.config_paths.emplace_back(path);
         return true;
     }
 
@@ -136,6 +141,22 @@ auto parse_cli_arguments(const std::vector<std::string>& tokens) -> CliParseResu
             continue;
         }
 
+        if (token == flag_portable) {
+            arguments.portable_config = true;
+            continue;
+        }
+
+        if (token == flag_config || token == flag_config_path) {
+            const std::optional<std::string_view> value = next_value(tokens, index);
+            if (!value.has_value()) {
+                return failure("Missing value for " + std::string {token} + ".");
+            }
+
+            arguments.settings_path = path_from_utf8(*value);
+            ++index;
+            continue;
+        }
+
         if (token == flag_embedded) {
             arguments.use_embedded_chapters = true;
             continue;
@@ -165,13 +186,13 @@ auto parse_cli_arguments(const std::vector<std::string>& tokens) -> CliParseResu
             }
 
             if (token == flag_aggregate_json) {
-                arguments.aggregate_json_path = Path {*value};
+                arguments.aggregate_json_path = path_from_utf8(*value);
                 ++index;
                 continue;
             }
 
             if (token == flag_aggregate_csv) {
-                arguments.aggregate_csv_path = Path {*value};
+                arguments.aggregate_csv_path = path_from_utf8(*value);
                 ++index;
                 continue;
             }
@@ -198,7 +219,7 @@ auto parse_cli_arguments(const std::vector<std::string>& tokens) -> CliParseResu
             return failure("Unknown option: " + std::string {token});
         }
 
-        if (!append_positional(arguments, token)) {
+        if (!append_positional(arguments, path_from_utf8(token))) {
             return failure("Too many positional arguments. Expected an input video and one chapter config.");
         }
     }
@@ -219,6 +240,8 @@ auto cli_usage() -> std::string {
            "Phase 1 options:\n"
            "  --embedded             Explicitly use chapters embedded in each input video.\n"
            "  --dry-run              Print the planned work without exporting.\n"
+           "  --config <path>        Use this file as the sole CLI settings store.\n"
+           "  --portable             Use the deterministic settings sidecar beside the executable.\n"
            "  --crf <0-51>           Override x264 CRF for this run.\n"
            "  --cq <0-51>            Override NVENC CQ for this run.\n"
            "  --preset <name>        Override encoder preset for this run.\n"
@@ -232,7 +255,7 @@ auto cli_usage() -> std::string {
            "\n"
            "Configuration note:\n"
            "  CLI preferences live in VidChopperCLI.ini. GUI settings are never read unless\n"
-           "  --use-gui-config is passed.\n";
+           "  --use-gui-config is passed. Use --config or --portable for an explicit store.\n";
 }
 
 } // namespace vidchopper

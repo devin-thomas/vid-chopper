@@ -4,6 +4,7 @@
 #include "core/command_builder.hpp"
 #include "core/timecode.hpp"
 #include "qt/app_settings.hpp"
+#include "qt/path_utils.hpp"
 #include "qt/services/export_coordinator.hpp"
 #include "qt/services/gpu_detector.hpp"
 #include "qt/services/session_controller.hpp"
@@ -57,7 +58,7 @@ namespace {
 #endif
 
 auto display_path(const std::filesystem::path& path) -> QString {
-    return QDir::toNativeSeparators(QString::fromStdWString(path.wstring()));
+    return QDir::toNativeSeparators(path_to_qstring(path));
 }
 
 auto demo_window_title() -> QString {
@@ -87,6 +88,8 @@ MainWindow::MainWindow(DemoLaunchOptions demo_options, QWidget* parent)
     const auto settings_store = create_settings_store(this);
     settings_store_ = settings_store.settings;
     config_path_ = settings_store.config_path;
+    settings_store_available_ = settings_store.available;
+    settings_store_error_ = settings_store.error_message;
     const auto loaded_settings = load_app_settings(*settings_store_);
     settings_ = loaded_settings.values.export_settings;
     auto initial_zoom_percent = loaded_settings.values.zoom_percent;
@@ -147,6 +150,9 @@ MainWindow::MainWindow(DemoLaunchOptions demo_options, QWidget* parent)
     });
 
     log_controller_->append(LogCategory::Config, QStringLiteral("Config file: %1").arg(config_path_));
+    if (!settings_store_error_.isEmpty()) {
+        log_controller_->append(LogCategory::Error, settings_store_error_);
+    }
     for (const auto& diagnostic : loaded_settings.diagnostics) {
         log_controller_->append(LogCategory::Error, diagnostic);
     }
@@ -353,7 +359,7 @@ auto MainWindow::open_video() -> void {
         "Video Files (*.mp4 *.mkv *.mov *.m4v *.avi *.webm);;All Files (*.*)");
 
     if (!file_path.isEmpty()) {
-        static_cast<void>(request_video_load(Path {file_path.toStdWString()}));
+        static_cast<void>(request_video_load(qstring_to_path(file_path)));
     }
 }
 
@@ -361,7 +367,7 @@ auto MainWindow::choose_output_directory() -> void {
     const auto directory =
         QFileDialog::getExistingDirectory(this, "Choose output directory", output_directory_edit_->text());
     if (!directory.isEmpty()) {
-        set_output_directory_path(Path {directory.toStdWString()}, true);
+        set_output_directory_path(qstring_to_path(directory), true);
     }
 }
 
@@ -462,7 +468,7 @@ auto MainWindow::open_advanced_settings() -> void {
 }
 
 auto MainWindow::redetect_gpu() -> void {
-    if (!gpu_detector_->detect(QString::fromStdString(settings_.ffmpeg_path))) {
+    if (!gpu_detector_->detect(utf8_to_qstring(settings_.ffmpeg_path))) {
         log_controller_->append(LogCategory::Warning, "GPU detection is already running.");
         return;
     }
@@ -493,7 +499,7 @@ auto MainWindow::start_or_cancel_export() -> void {
     if (!validation.ok()) {
         auto details = QStringList {};
         for (const auto& issue : validation.issues) {
-            details << QString::fromStdString(issue.message);
+            details << utf8_to_qstring(issue.message);
         }
 
         QMessageBox::warning(this, "Invalid chapter plan", details.join('\n'));
@@ -530,7 +536,7 @@ auto MainWindow::request_video_load(const Path& source_path, std::function<void(
     }
 
     statusBar()->showMessage("Inspecting source video...");
-    if (!session_controller_->request_video_load(Path {settings_.ffprobe_path}, source_path, std::move(completion))) {
+    if (!session_controller_->request_video_load(path_from_utf8(settings_.ffprobe_path), source_path, std::move(completion))) {
         statusBar()->showMessage("Source inspection could not start");
         return false;
     }
@@ -580,7 +586,7 @@ auto MainWindow::apply_settings_to_ui() -> void {
 auto MainWindow::refresh_summary() -> void {
     const auto* metadata = current_metadata();
     if (metadata != nullptr) {
-        duration_value_label_->setText(QString::fromStdString(format_millisecond_timecode(metadata->duration_ms)));
+        duration_value_label_->setText(utf8_to_qstring(format_millisecond_timecode(metadata->duration_ms)));
         const auto fps = metadata->frame_rate.as_f64();
         frame_rate_value_label_->setText(fps > 0.0 ? QString::number(fps, 'f', 3) + " fps" : "Unknown");
     } else {
@@ -626,6 +632,11 @@ auto MainWindow::update_export_button_style() -> void {
 }
 
 auto MainWindow::persist_app_settings() -> bool {
+    if (!settings_store_available_) {
+        statusBar()->showMessage("Settings could not be saved");
+        return false;
+    }
+
     const auto result = save_app_settings(*settings_store_,
         AppSettingsSnapshot {
             .export_settings = settings_,
@@ -678,7 +689,7 @@ auto MainWindow::seed_workspace_demo(const bool show_logs) -> bool {
     if (directory_error) {
         log_controller_->append(LogCategory::Error,
             QStringLiteral("Could not create demo output directory '%1': %2")
-                .arg(display_path(output_directory), QString::fromStdString(directory_error.message())));
+                .arg(display_path(output_directory), utf8_to_qstring(directory_error.message())));
         return false;
     }
     set_output_directory_path(output_directory, true);
@@ -748,7 +759,7 @@ auto MainWindow::current_output_directory() const -> std::filesystem::path {
 
 auto MainWindow::resolve_encoder_summary() const -> QString {
     const auto resolved = resolve_encoder(settings_, environment_);
-    auto description = QString::fromStdString(resolved.video_codec);
+    auto description = utf8_to_qstring(resolved.video_codec);
 
     if (settings_.encoder_kind == EncoderKind::Auto) {
         description = QStringLiteral("Auto -> %1").arg(description);

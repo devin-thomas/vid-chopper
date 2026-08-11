@@ -2,6 +2,7 @@
 
 #include "core/chapter_plan.hpp"
 #include "core/ready_marker.hpp"
+#include "qt/path_utils.hpp"
 
 #include <QCoreApplication>
 #include <QTimer>
@@ -77,12 +78,12 @@ auto DemoAutomationController::write_ready_file(const QString& status) -> bool {
         return true;
     }
 
-    const auto result = write_ready_marker(options_.demo_ready_file, status.toStdString());
+    const auto result = write_ready_marker(options_.demo_ready_file, qstring_to_utf8(status));
     if (result.ok()) {
         return true;
     }
 
-    emit automation_error(QString::fromStdString(result.error_message));
+    emit automation_error(utf8_to_qstring(result.error_message));
     return false;
 }
 

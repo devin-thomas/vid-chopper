@@ -1,5 +1,6 @@
 #include "cli/batch_resolver.hpp"
 
+#include "core/path_utils.hpp"
 #include "core/string_utils.hpp"
 
 #include <algorithm>
@@ -92,7 +93,7 @@ constexpr auto chapter_extensions = std::to_array<std::string_view>({".json", ".
 }
 
 [[nodiscard]] auto has_extension(const Path& path, const std::span<const std::string_view> extensions) -> bool {
-    const std::string extension = to_lower_copy(path.extension().string());
+    const std::string extension = to_lower_copy(path_to_utf8(path.extension()));
     return std::ranges::find(extensions, extension) != extensions.end();
 }
 
@@ -109,17 +110,17 @@ constexpr auto chapter_extensions = std::to_array<std::string_view>({".json", ".
     auto error = std::error_code {};
     const bool exists = std::filesystem::exists(path, error);
     if (error) {
-        errors.push_back(std::format("Could not inspect {} path {}: {}.", label, path.string(), error.message()));
+        errors.push_back(std::format("Could not inspect {} path {}: {}.", label, path_to_utf8(path), error.message()));
         return PathKind::Invalid;
     }
     if (!exists) {
-        errors.push_back(std::format("{} path does not exist: {}.", label, path.string()));
+        errors.push_back(std::format("{} path does not exist: {}.", label, path_to_utf8(path)));
         return PathKind::Invalid;
     }
 
     const bool regular_file = std::filesystem::is_regular_file(path, error);
     if (error) {
-        errors.push_back(std::format("Could not inspect {} path {}: {}.", label, path.string(), error.message()));
+        errors.push_back(std::format("Could not inspect {} path {}: {}.", label, path_to_utf8(path), error.message()));
         return PathKind::Invalid;
     }
     if (regular_file) {
@@ -128,14 +129,14 @@ constexpr auto chapter_extensions = std::to_array<std::string_view>({".json", ".
 
     const bool directory = std::filesystem::is_directory(path, error);
     if (error) {
-        errors.push_back(std::format("Could not inspect {} path {}: {}.", label, path.string(), error.message()));
+        errors.push_back(std::format("Could not inspect {} path {}: {}.", label, path_to_utf8(path), error.message()));
         return PathKind::Invalid;
     }
     if (directory) {
         return PathKind::Directory;
     }
 
-    errors.push_back(std::format("{} path is neither a regular file nor a directory: {}.", label, path.string()));
+    errors.push_back(std::format("{} path is neither a regular file nor a directory: {}.", label, path_to_utf8(path)));
     return PathKind::Invalid;
 }
 
@@ -182,15 +183,15 @@ template <typename Predicate>
     for (const DirectoryScanFailure& failure : scan.failures) {
         if (failure.entry_path.has_value()) {
             inventory.errors.push_back(std::format(
-                "Could not inspect {} directory entry {}: {}.", label, failure.entry_path->string(), failure.message));
+                "Could not inspect {} directory entry {}: {}.", label, path_to_utf8(*failure.entry_path), failure.message));
         } else {
             inventory.errors.push_back(
-                std::format("Could not read {} directory {}: {}.", label, directory.string(), failure.message));
+                std::format("Could not read {} directory {}: {}.", label, path_to_utf8(directory), failure.message));
         }
     }
     if (!inventory.complete && inventory.errors.empty()) {
         inventory.errors.push_back(
-            std::format("Could not completely read {} directory {}.", label, directory.string()));
+            std::format("Could not completely read {} directory {}.", label, path_to_utf8(directory)));
     }
     std::ranges::sort(inventory.errors);
 
@@ -203,7 +204,7 @@ template <typename Predicate>
     std::ranges::sort(inventory.files, path_less);
     if (inventory.complete && inventory.files.empty()) {
         inventory.errors.push_back(
-            std::format("No supported {} files found in directory: {}.", label, directory.string()));
+            std::format("No supported {} files found in directory: {}.", label, path_to_utf8(directory)));
     }
     return inventory;
 }
@@ -232,9 +233,9 @@ auto append_duplicate_errors(
             continue;
         }
 
-        auto message = std::format("Duplicate {} stem \"{}\" found:", label, paths.front().stem().string());
+        auto message = std::format("Duplicate {} stem \"{}\" found:", label, path_to_utf8(paths.front().stem()));
         for (const Path& path : paths) {
-            message += "\n- " + path.string();
+            message += "\n- " + path_to_utf8(path);
         }
         errors.push_back(std::move(message));
     }
@@ -256,14 +257,14 @@ auto resolve_directory_pairing(const std::vector<Path>& sources,
     for (const auto& [stem, source_paths] : source_groups) {
         if (!chapter_groups.contains(stem)) {
             for (const Path& source_path : source_paths) {
-                errors.push_back(std::format("Missing ChapterFile for Source: {}.", source_path.string()));
+                errors.push_back(std::format("Missing ChapterFile for Source: {}.", path_to_utf8(source_path)));
             }
         }
     }
     for (const auto& [stem, chapter_paths] : chapter_groups) {
         if (!source_groups.contains(stem)) {
             for (const Path& chapter_path : chapter_paths) {
-                errors.push_back(std::format("Orphan ChapterFile: {}.", chapter_path.string()));
+                errors.push_back(std::format("Orphan ChapterFile: {}.", path_to_utf8(chapter_path)));
             }
         }
     }
@@ -305,13 +306,13 @@ auto resolve_batch(const BatchResolveRequest& request) -> BatchResolution {
 
     if (source_kind == PathKind::File && !is_source_file(request.source_path)) {
         result.errors.push_back(std::format(
-            "Unsupported Source extension: {}. Supported extensions: .mp4, .mkv, .mov.", request.source_path.string()));
+            "Unsupported Source extension: {}. Supported extensions: .mp4, .mkv, .mov.", path_to_utf8(request.source_path)));
     }
     if (!request.use_embedded_chapters && chapter_kind == PathKind::File
         && !is_chapter_file(*request.chapter_source_path)) {
         result.errors.push_back(
             std::format("Unsupported ChapterFile extension: {}. Supported extensions: .json, .yaml, .yml.",
-                request.chapter_source_path->string()));
+                path_to_utf8(*request.chapter_source_path)));
     }
 
     if (source_kind == PathKind::Invalid || (!request.use_embedded_chapters && chapter_kind == PathKind::Invalid)) {
@@ -364,8 +365,8 @@ auto resolve_batch(const BatchResolveRequest& request) -> BatchResolution {
 
     if (source_kind == PathKind::File) {
         result.errors.push_back(std::format("1:N is not supported: Source {} cannot use ChapterFile directory {}.",
-            request.source_path.string(),
-            chapter_source.string()));
+            path_to_utf8(request.source_path),
+            path_to_utf8(chapter_source)));
         return result;
     }
 

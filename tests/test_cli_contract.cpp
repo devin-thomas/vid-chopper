@@ -68,8 +68,10 @@ auto write_chapter_config(const Path& path,
     DirectoryScanner directory_scanner = {}) -> CliRunSnapshot {
     auto output = std::ostringstream {};
     auto error_output = std::ostringstream {};
+    auto effective_arguments = arguments;
+    effective_arguments.emplace_back("--portable");
     const auto request = CliRunRequest {
-        .arguments = arguments,
+        .arguments = std::move(effective_arguments),
         .executable_path = executable_path,
         .output = output,
         .error_output = error_output,

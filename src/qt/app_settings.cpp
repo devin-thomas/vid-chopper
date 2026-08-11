@@ -1,15 +1,16 @@
 #include "qt/app_settings.hpp"
 
 #include "core/enum_utils.hpp"
+#include "qt/path_utils.hpp"
 
 #include <QCoreApplication>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
 #include <QSettings>
-#include <QStandardPaths>
 
 #include <limits>
+#include <utility>
 
 namespace vidchopper {
 
@@ -73,55 +74,95 @@ auto settings_status_message(const QSettings& settings) -> QString {
         .arg(QDir::toNativeSeparators(settings.fileName()));
 }
 
-auto ensure_parent_directory(const QString& file_path) -> void {
+[[nodiscard]] auto settings_options_from_arguments() -> std::pair<ConfigPathOptions, QString> {
+    auto options = ConfigPathOptions {};
+    const QStringList arguments = QCoreApplication::arguments();
+    for (auto index = qsizetype {1}; index < arguments.size(); ++index) {
+        const QString argument = arguments.at(index);
+        if (argument == QStringLiteral("--portable") || argument == QStringLiteral("--portable-config")) {
+            options.portable = true;
+            continue;
+        }
+
+        const bool is_config_flag = argument == QStringLiteral("--config")
+                                  || argument == QStringLiteral("--config-path");
+        QString value;
+        if (is_config_flag) {
+            if (index + 1 >= arguments.size()) {
+                return {options, QStringLiteral("Missing value for --config.")};
+            }
+            value = arguments.at(++index);
+        } else if (argument.startsWith(QStringLiteral("--config="))) {
+            value = argument.sliced(QStringLiteral("--config=").size());
+        } else if (argument.startsWith(QStringLiteral("--config-path="))) {
+            value = argument.sliced(QStringLiteral("--config-path=").size());
+        } else {
+            continue;
+        }
+
+        if (value.isEmpty()) {
+            return {options, QStringLiteral("Explicit config path must not be empty.")};
+        }
+        if (options.explicit_path.has_value()) {
+            return {options, QStringLiteral("Only one explicit config path may be supplied.")};
+        }
+        options.explicit_path = qstring_to_path(value);
+    }
+
+    return {options, {}};
+}
+
+[[nodiscard]] auto prepare_settings_file(const QString& file_path) -> QString {
     const auto parent = QFileInfo {file_path}.dir();
     if (!parent.exists()) {
-        parent.mkpath(".");
+        if (!parent.mkpath(".")) {
+            return QStringLiteral("Could not create the settings directory '%1'. Check the folder permissions.")
+                .arg(QDir::toNativeSeparators(parent.absolutePath()));
+        }
     }
-}
-
-auto try_prepare_settings_file(const QString& file_path) -> bool {
-    ensure_parent_directory(file_path);
 
     auto file = QFile {file_path};
-    if (!file.exists()) {
-        if (!file.open(QIODevice::WriteOnly | QIODevice::Append)) {
-            return false;
-        }
-        file.close();
-        return true;
-    }
-
     if (!file.open(QIODevice::WriteOnly | QIODevice::Append)) {
-        return false;
+        return QStringLiteral("Could not create or open settings file '%1': %2")
+            .arg(QDir::toNativeSeparators(file_path), file.errorString());
     }
-
     file.close();
-    return true;
-}
-
-auto resolve_settings_path() -> QString {
-    auto preferred_path = QDir {QCoreApplication::applicationDirPath()}.filePath("VidChopper.ini");
-    if (try_prepare_settings_file(preferred_path)) {
-        return preferred_path;
-    }
-
-    const auto fallback_directory = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
-    auto fallback_path = QDir {fallback_directory}.filePath("VidChopper.ini");
-    if (try_prepare_settings_file(fallback_path)) {
-        return fallback_path;
-    }
-
-    return preferred_path;
+    return {};
 }
 
 } // namespace
 
 auto create_settings_store(QObject* parent) -> SettingsStore {
-    const auto config_path = resolve_settings_path();
+    const auto [options, options_error] = settings_options_from_arguments();
+    const ConfigResolutionResult resolved = resolve_config_paths(
+        qstring_to_path(QCoreApplication::applicationFilePath()), ConfigStore::Gui, options);
+
+    QString error_message = options_error;
+    Path resolved_path;
+    if (options_error.isEmpty() && resolved.ok()) {
+        resolved_path = resolved.paths.settings_path;
+    } else if (options.explicit_path.has_value() && !options.explicit_path->empty()) {
+        resolved_path = *options.explicit_path;
+        if (error_message.isEmpty()) {
+            error_message = utf8_to_qstring(resolved.error_message);
+        }
+    } else {
+        resolved_path = qstring_to_path(QDir::temp().filePath(QStringLiteral("VidChopper-invalid-config.ini")));
+        if (error_message.isEmpty()) {
+            error_message = utf8_to_qstring(resolved.error_message);
+        }
+    }
+
+    const QString config_path = QDir::toNativeSeparators(path_to_qstring(resolved_path));
+    if (error_message.isEmpty()) {
+        error_message = prepare_settings_file(config_path);
+    }
+
     return SettingsStore {
         .settings = new QSettings {config_path, QSettings::IniFormat, parent},
-        .config_path = QDir::toNativeSeparators(config_path),
+        .config_path = config_path,
+        .available = error_message.isEmpty(),
+        .error_message = std::move(error_message),
     };
 }
 
@@ -129,23 +170,20 @@ auto load_app_settings(QSettings& settings) -> SettingsLoadResult {
     auto result = SettingsLoadResult {};
     auto& values = result.values.export_settings;
 
-    values.ffmpeg_path =
-        settings.value("tools/ffmpegPath", QString::fromStdString(values.ffmpeg_path)).toString().toStdString();
-    values.ffprobe_path =
-        settings.value("tools/ffprobePath", QString::fromStdString(values.ffprobe_path)).toString().toStdString();
+    values.ffmpeg_path = qstring_to_utf8(
+        settings.value("tools/ffmpegPath", utf8_to_qstring(values.ffmpeg_path)).toString());
+    values.ffprobe_path = qstring_to_utf8(
+        settings.value("tools/ffprobePath", utf8_to_qstring(values.ffprobe_path)).toString());
     values.output_folder_pattern =
-        settings.value("output/folderPattern", QString::fromStdString(values.output_folder_pattern))
-            .toString()
-            .toStdString();
+        qstring_to_utf8(settings.value("output/folderPattern", utf8_to_qstring(values.output_folder_pattern)).toString());
     values.naming_pattern =
-        settings.value("output/namingPattern", QString::fromStdString(values.naming_pattern)).toString().toStdString();
+        qstring_to_utf8(settings.value("output/namingPattern", utf8_to_qstring(values.naming_pattern)).toString());
     values.x264_preset =
-        settings.value("encoding/x264Preset", QString::fromStdString(values.x264_preset)).toString().toStdString();
+        qstring_to_utf8(settings.value("encoding/x264Preset", utf8_to_qstring(values.x264_preset)).toString());
     values.nvenc_preset =
-        settings.value("encoding/nvencPreset", QString::fromStdString(values.nvenc_preset)).toString().toStdString();
-    values.extra_ffmpeg_args = settings.value("tools/extraFfmpegArgs", QString::fromStdString(values.extra_ffmpeg_args))
-                                   .toString()
-                                   .toStdString();
+        qstring_to_utf8(settings.value("encoding/nvencPreset", utf8_to_qstring(values.nvenc_preset)).toString());
+    values.extra_ffmpeg_args =
+        qstring_to_utf8(settings.value("tools/extraFfmpegArgs", utf8_to_qstring(values.extra_ffmpeg_args)).toString());
 
     values.encoder_kind =
         load_enum(settings, "encoding/encoderKind", values.encoder_kind, EncoderKind::HevcNvenc, result.diagnostics);
@@ -216,13 +254,13 @@ auto load_app_settings(QSettings& settings) -> SettingsLoadResult {
 
 auto save_app_settings(QSettings& settings, const AppSettingsSnapshot& snapshot) -> SettingsSaveResult {
     const auto& values = snapshot.export_settings;
-    settings.setValue("tools/ffmpegPath", QString::fromStdString(values.ffmpeg_path));
-    settings.setValue("tools/ffprobePath", QString::fromStdString(values.ffprobe_path));
-    settings.setValue("output/folderPattern", QString::fromStdString(values.output_folder_pattern));
-    settings.setValue("output/namingPattern", QString::fromStdString(values.naming_pattern));
-    settings.setValue("encoding/x264Preset", QString::fromStdString(values.x264_preset));
-    settings.setValue("encoding/nvencPreset", QString::fromStdString(values.nvenc_preset));
-    settings.setValue("tools/extraFfmpegArgs", QString::fromStdString(values.extra_ffmpeg_args));
+    settings.setValue("tools/ffmpegPath", utf8_to_qstring(values.ffmpeg_path));
+    settings.setValue("tools/ffprobePath", utf8_to_qstring(values.ffprobe_path));
+    settings.setValue("output/folderPattern", utf8_to_qstring(values.output_folder_pattern));
+    settings.setValue("output/namingPattern", utf8_to_qstring(values.naming_pattern));
+    settings.setValue("encoding/x264Preset", utf8_to_qstring(values.x264_preset));
+    settings.setValue("encoding/nvencPreset", utf8_to_qstring(values.nvenc_preset));
+    settings.setValue("tools/extraFfmpegArgs", utf8_to_qstring(values.extra_ffmpeg_args));
 
     settings.setValue("encoding/encoderKind", static_cast<int>(values.encoder_kind));
     settings.setValue("encoding/audioMode", static_cast<int>(values.audio_mode));

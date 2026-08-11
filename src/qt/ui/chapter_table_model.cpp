@@ -2,6 +2,7 @@
 
 #include "core/string_utils.hpp"
 #include "core/timecode.hpp"
+#include "qt/path_utils.hpp"
 
 #include <QBrush>
 #include <QSet>
@@ -70,7 +71,7 @@ auto ChapterTableModel::data(const QModelIndex& index, const int role) const -> 
     if (role == Qt::DisplayRole || role == Qt::EditRole) {
         switch (index.column()) {
         case Column::Name:
-            return QString::fromStdString(chapter->name);
+            return utf8_to_qstring(chapter->name);
         case Column::Start:
             return format_time(chapter->start_ms);
         case Column::End:
@@ -134,7 +135,7 @@ auto ChapterTableModel::setData(const QModelIndex& index, const QVariant& value,
     auto changed_column = Column::Name;
     switch (index.column()) {
     case Column::Name:
-        chapter.name = trim_copy(value.toString().toStdString());
+        chapter.name = trim_copy(qstring_to_utf8(value.toString()));
         changed_column = Column::Name;
         break;
     case Column::Start: {
@@ -295,13 +296,13 @@ auto ChapterTableModel::chapter_at(const int row) const -> const ChapterSegment*
 
 auto ChapterTableModel::format_time(const u64 milliseconds) const -> QString {
     return display_mode_ == TimestampDisplayMode::Frames
-        ? QString::fromStdString(format_frame_timecode(milliseconds, frame_rate_))
-        : QString::fromStdString(format_millisecond_timecode(milliseconds));
+        ? utf8_to_qstring(format_frame_timecode(milliseconds, frame_rate_))
+        : utf8_to_qstring(format_millisecond_timecode(milliseconds));
 }
 
 auto ChapterTableModel::parse_time(const QString& value) const -> std::optional<u64> {
-    return display_mode_ == TimestampDisplayMode::Frames ? parse_frame_timecode(value.toStdString(), frame_rate_)
-                                                         : parse_millisecond_timecode(value.toStdString());
+    return display_mode_ == TimestampDisplayMode::Frames ? parse_frame_timecode(qstring_to_utf8(value), frame_rate_)
+                                                         : parse_millisecond_timecode(qstring_to_utf8(value));
 }
 
 } // namespace vidchopper

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "core/config_paths.hpp"
 #include "core/models.hpp"
 #include "qt/ui/zoom_policy.hpp"
 
@@ -15,6 +16,8 @@ namespace vidchopper {
 struct SettingsStore {
     QSettings* settings {nullptr};
     QString config_path;
+    bool available {true};
+    QString error_message;
 };
 
 struct AppSettingsSnapshot {

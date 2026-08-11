@@ -1,6 +1,7 @@
 #include "core/command_builder.hpp"
 
 #include "core/encoder_model.hpp"
+#include "core/path_utils.hpp"
 #include "core/string_utils.hpp"
 #include "core/timecode.hpp"
 
@@ -45,7 +46,7 @@ auto append(std::vector<std::string>& command, std::initializer_list<std::string
 auto safe_source_extension(const VideoMetadata& metadata) -> std::string {
     std::string extension = metadata.source_extension;
     if (extension.empty()) {
-        extension = metadata.source_path.extension().string();
+        extension = path_to_utf8(metadata.source_path.extension());
     }
 
     if (extension.empty()) {
@@ -149,7 +150,7 @@ auto output_path_for(const VideoMetadata& metadata,
     }
 
     std::string file_name = replace_all_copy(settings.naming_pattern, "%name%", chapter_name);
-    file_name = replace_all_copy(file_name, "%source%", metadata.source_path.stem().string());
+    file_name = replace_all_copy(file_name, "%source%", path_to_utf8(metadata.source_path.stem()));
 
     const std::string index_text = zero_padded_index(static_cast<u16>(chapter_index + 1), settings.index_padding);
     file_name = replace_all_copy(file_name, "%index%", index_text);
@@ -179,7 +180,7 @@ auto build_ffmpeg_command(const VideoMetadata& metadata,
         append(command, {ffmpeg_arg::seek, start_time});
     }
 
-    append(command, {ffmpeg_arg::input, metadata.source_path.string()});
+    append(command, {ffmpeg_arg::input, path_to_utf8(metadata.source_path)});
 
     if (settings.seek_mode == SeekMode::Accurate) {
         append(command, {ffmpeg_arg::seek, start_time});
@@ -207,7 +208,7 @@ auto build_ffmpeg_command(const VideoMetadata& metadata,
     const std::vector<std::string> extra_arguments = split_quoted_arguments(settings.extra_ffmpeg_args);
     command.insert(command.end(), extra_arguments.begin(), extra_arguments.end());
     append(command, {ffmpeg_arg::progress, "pipe:1", ffmpeg_arg::no_stats});
-    command.emplace_back(output_path.string());
+    command.emplace_back(path_to_utf8(output_path));
 
     return command;
 }

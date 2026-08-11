@@ -1,3 +1,4 @@
+#include "core/path_utils.hpp"
 #include "services/export_engine.hpp"
 #include "services/export_planner.hpp"
 #include "test_support.hpp"
@@ -17,7 +18,7 @@ namespace {
 
 [[nodiscard]] auto make_job(const Path& root, std::vector<ChapterSegment> chapters) -> ResolvedExportJob {
     auto settings = ExportSettings {};
-    settings.ffmpeg_path = R"(C:\Program Files\ffmpeg\ffmpeg.exe)";
+    settings.ffmpeg_path = "/tmp/VidChopper/工具/ffmpeg";
     settings.overwrite_mode = OverwriteMode::Overwrite;
     settings.container_mode = ContainerMode::Mp4;
     settings.stop_on_first_error = false;
@@ -87,7 +88,9 @@ auto main() -> int {
     test_support::expect_eq(first.chapter_name, std::string {"Intro"}, "result should retain chapter name");
     const std::vector<std::string>& expected_command = successful_job.segments.front().command;
     test_support::expect_eq(
-        observed_requests.front().executable, Path {expected_command.front()}, "runner should preserve executable");
+        observed_requests.front().executable,
+        path_from_utf8(expected_command.front()),
+        "runner should preserve UTF-8 executable paths");
     test_support::expect_eq(observed_requests.front().arguments,
         std::vector<std::string> {expected_command.begin() + 1, expected_command.end()},
         "runner should preserve command-builder token order");
@@ -186,7 +189,8 @@ auto main() -> int {
     test_support::expect_eq(
         missing.jobs.front().segments.size(), size_t {3}, "missing tool failures should remain explicit per chapter");
     test_support::expect_true(
-        missing.jobs.front().segments.front().process.error_message.find(R"(C:\Program Files\ffmpeg\ffmpeg.exe)")
+        missing.jobs.front().segments.front().process.error_message.find(
+            path_to_utf8(successful_job.segments.front().command.front()))
             != std::string::npos,
         "missing-tool failure should identify the executable path");
     test_support::expect_true(

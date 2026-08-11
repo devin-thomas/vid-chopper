@@ -1,5 +1,7 @@
 #include "core/ready_marker.hpp"
 
+#include "core/path_utils.hpp"
+
 #include <filesystem>
 #include <fstream>
 #include <system_error>
@@ -22,16 +24,17 @@ auto write_ready_marker(const Path& target, const std::string_view status) -> Re
         if (error) {
             return ReadyMarkerWriteResult {
                 .error_message =
-                    "Could not create ready-marker directory '" + parent.string() + "': " + error.message(),
+                    "Could not create ready-marker directory '" + path_to_utf8(parent) + "': " + error.message(),
             };
         }
     }
 
-    const Path temporary = target.string() + ".tmp";
+    Path temporary = target;
+    temporary += ".tmp";
     auto stream = std::ofstream {temporary, std::ios::binary | std::ios::trunc};
     if (!stream.is_open()) {
         return ReadyMarkerWriteResult {
-            .error_message = "Could not open ready-marker temporary file '" + temporary.string() + "'.",
+            .error_message = "Could not open ready-marker temporary file '" + path_to_utf8(temporary) + "'.",
         };
     }
 
@@ -42,14 +45,14 @@ auto write_ready_marker(const Path& target, const std::string_view status) -> Re
         stream.close();
         std::filesystem::remove(temporary, error);
         return ReadyMarkerWriteResult {
-            .error_message = "Could not completely write ready-marker temporary file '" + temporary.string() + "'.",
+            .error_message = "Could not completely write ready-marker temporary file '" + path_to_utf8(temporary) + "'.",
         };
     }
     stream.close();
     if (stream.fail()) {
         std::filesystem::remove(temporary, error);
         return ReadyMarkerWriteResult {
-            .error_message = "Could not close ready-marker temporary file '" + temporary.string() + "'.",
+            .error_message = "Could not close ready-marker temporary file '" + path_to_utf8(temporary) + "'.",
         };
     }
 
@@ -60,7 +63,7 @@ auto write_ready_marker(const Path& target, const std::string_view status) -> Re
         auto cleanup_error = std::error_code {};
         std::filesystem::remove(temporary, cleanup_error);
         return ReadyMarkerWriteResult {
-            .error_message = "Could not publish ready marker '" + target.string() + "': " + error.message(),
+            .error_message = "Could not publish ready marker '" + path_to_utf8(target) + "': " + error.message(),
         };
     }
 

@@ -74,6 +74,8 @@ private:
     [[nodiscard]] auto resolve_encoder_summary() const -> QString;
 
     QString config_path_;
+    QString settings_store_error_;
+    bool settings_store_available_ {true};
     QSettings* settings_store_ {nullptr};
     ExportSettings settings_;
     EncoderEnvironment environment_;

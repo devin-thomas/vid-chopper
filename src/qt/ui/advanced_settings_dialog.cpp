@@ -1,6 +1,7 @@
 #include "qt/ui/advanced_settings_dialog.hpp"
 
 #include "core/enum_utils.hpp"
+#include "qt/path_utils.hpp"
 
 #include <QDialogButtonBox>
 #include <QFormLayout>
@@ -62,7 +63,7 @@ AdvancedSettingsDialog::AdvancedSettingsDialog(QWidget* parent)
     naming_pattern_edit_ = new QLineEdit {"%index% - %name%", output_tab};
     index_padding_spin_ = new QSpinBox {output_tab};
     index_padding_spin_->setRange(1, 6);
-    sanitize_names_checkbox_ = new QCheckBox {"Sanitize output names for Windows-safe filenames", output_tab};
+    sanitize_names_checkbox_ = new QCheckBox {"Sanitize output names for portable-safe filenames", output_tab};
     open_folder_checkbox_ = new QCheckBox {"Open the output directory when the export finishes", output_tab};
     copy_metadata_checkbox_ = new QCheckBox {"Copy source metadata into each chapter clip", output_tab};
 
@@ -166,13 +167,13 @@ auto AdvancedSettingsDialog::set_settings(const ExportSettings& settings) -> voi
     threads_spin_->setValue(settings.ffmpeg_threads);
     aac_bitrate_spin_->setValue(settings.aac_bitrate_kbps);
 
-    output_folder_pattern_edit_->setText(QString::fromStdString(settings.output_folder_pattern));
-    naming_pattern_edit_->setText(QString::fromStdString(settings.naming_pattern));
-    x264_preset_edit_->setText(QString::fromStdString(settings.x264_preset));
-    nvenc_preset_edit_->setText(QString::fromStdString(settings.nvenc_preset));
-    ffmpeg_path_edit_->setText(QString::fromStdString(settings.ffmpeg_path));
-    ffprobe_path_edit_->setText(QString::fromStdString(settings.ffprobe_path));
-    extra_args_edit_->setText(QString::fromStdString(settings.extra_ffmpeg_args));
+    output_folder_pattern_edit_->setText(utf8_to_qstring(settings.output_folder_pattern));
+    naming_pattern_edit_->setText(utf8_to_qstring(settings.naming_pattern));
+    x264_preset_edit_->setText(utf8_to_qstring(settings.x264_preset));
+    nvenc_preset_edit_->setText(utf8_to_qstring(settings.nvenc_preset));
+    ffmpeg_path_edit_->setText(utf8_to_qstring(settings.ffmpeg_path));
+    ffprobe_path_edit_->setText(utf8_to_qstring(settings.ffprobe_path));
+    extra_args_edit_->setText(utf8_to_qstring(settings.extra_ffmpeg_args));
 
     auto_gpu_checkbox_->setChecked(settings.auto_detect_gpu);
     sanitize_names_checkbox_->setChecked(settings.sanitize_file_names);
@@ -206,13 +207,13 @@ auto AdvancedSettingsDialog::settings() const -> ExportSettings {
     values.ffmpeg_threads = static_cast<u8>(threads_spin_->value());
     values.aac_bitrate_kbps = static_cast<u16>(aac_bitrate_spin_->value());
 
-    values.output_folder_pattern = output_folder_pattern_edit_->text().toStdString();
-    values.naming_pattern = naming_pattern_edit_->text().toStdString();
-    values.x264_preset = x264_preset_edit_->text().toStdString();
-    values.nvenc_preset = nvenc_preset_edit_->text().toStdString();
-    values.ffmpeg_path = ffmpeg_path_edit_->text().toStdString();
-    values.ffprobe_path = ffprobe_path_edit_->text().toStdString();
-    values.extra_ffmpeg_args = extra_args_edit_->text().toStdString();
+    values.output_folder_pattern = qstring_to_utf8(output_folder_pattern_edit_->text());
+    values.naming_pattern = qstring_to_utf8(naming_pattern_edit_->text());
+    values.x264_preset = qstring_to_utf8(x264_preset_edit_->text());
+    values.nvenc_preset = qstring_to_utf8(nvenc_preset_edit_->text());
+    values.ffmpeg_path = qstring_to_utf8(ffmpeg_path_edit_->text());
+    values.ffprobe_path = qstring_to_utf8(ffprobe_path_edit_->text());
+    values.extra_ffmpeg_args = qstring_to_utf8(extra_args_edit_->text());
 
     values.auto_detect_gpu = auto_gpu_checkbox_->isChecked();
     values.sanitize_file_names = sanitize_names_checkbox_->isChecked();

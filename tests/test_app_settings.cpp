@@ -1,4 +1,5 @@
 #include "qt/app_settings.hpp"
+#include "qt/path_utils.hpp"
 #include "test_support.hpp"
 
 #include <QFile>
@@ -32,6 +33,12 @@ auto main() -> int {
     test_support::expect_eq(
         ZoomPolicy::presets().back(), ZoomPolicy::maximum_percent, "presets should end at the maximum zoom");
 
+    const std::string unicode_path_text = "/tmp/VidChopper/媒体 clips/视频 🎬.mp4";
+    const Path unicode_path = path_from_utf8(unicode_path_text);
+    test_support::expect_eq(qstring_to_path(path_to_qstring(unicode_path)),
+        unicode_path,
+        "filesystem paths should round-trip through QString and UTF-8");
+
     auto directory = QTemporaryDir {};
     test_support::expect_true(directory.isValid(), "temporary settings directory should be available");
 
@@ -48,6 +55,8 @@ auto main() -> int {
     largest.export_settings.aac_bitrate_kbps = 512;
     largest.zoom_percent = 300;
     largest.last_screen_size = QSize {7680, 4320};
+    largest.export_settings.ffmpeg_path = unicode_path_text;
+    largest.export_settings.ffprobe_path = "/opt/VidChopper/工具/ffprobe";
 
     const auto saved = save_app_settings(valid_settings, largest);
     test_support::expect_true(saved.success, "valid settings should be persisted successfully");
@@ -58,6 +67,9 @@ auto main() -> int {
         largest.export_settings,
         "largest valid export settings should round-trip");
     test_support::expect_eq(loaded_largest.values.zoom_percent, 300, "largest valid zoom should round-trip");
+    test_support::expect_eq(loaded_largest.values.export_settings.ffmpeg_path,
+        unicode_path_text,
+        "UTF-8 tool paths should round-trip through QSettings");
     test_support::expect_eq(
         loaded_largest.values.last_screen_size, QSize {7680, 4320}, "largest valid screen size should round-trip");
 

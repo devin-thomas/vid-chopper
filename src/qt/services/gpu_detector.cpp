@@ -97,7 +97,7 @@ auto GpuDetector::finish_gpu_detection() -> void {
     }
 
     gpu_timeout_->stop();
-    const auto gpu_names = QString::fromLocal8Bit(gpu_process_->readAllStandardOutput()).toLower();
+    const auto gpu_names = QString::fromUtf8(gpu_process_->readAllStandardOutput()).toLower();
     environment_.has_nvidia_gpu = gpu_names.contains("nvidia");
     gpu_complete_ = true;
     complete_if_ready();
@@ -109,8 +109,8 @@ auto GpuDetector::finish_ffmpeg_detection() -> void {
     }
 
     ffmpeg_timeout_->stop();
-    const auto encoders = QString::fromLocal8Bit(ffmpeg_process_->readAllStandardOutput()).toLower()
-        + QString::fromLocal8Bit(ffmpeg_process_->readAllStandardError()).toLower();
+    const auto encoders = QString::fromUtf8(ffmpeg_process_->readAllStandardOutput()).toLower()
+        + QString::fromUtf8(ffmpeg_process_->readAllStandardError()).toLower();
     environment_.has_hevc_nvenc_encoder = encoders.contains("hevc_nvenc");
     ffmpeg_complete_ = true;
     complete_if_ready();

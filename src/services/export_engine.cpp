@@ -1,5 +1,6 @@
 #include "services/export_engine.hpp"
 
+#include "core/path_utils.hpp"
 #include "services/probe_service.hpp"
 
 #include <algorithm>
@@ -32,7 +33,7 @@ auto record_failure(ExportRunResult& result, const ProcessExitState state) -> vo
     const ExportRunOptions& options,
     std::function<void(std::string_view)> progress_output) -> ProcessRequest {
     return ProcessRequest {
-        .executable = command.front(),
+        .executable = path_from_utf8(command.front()),
         .arguments = {command.begin() + 1, command.end()},
         .timeout = options.process_timeout,
         .stdout_limit_bytes = options.stdout_limit_bytes,
@@ -60,9 +61,9 @@ auto add_failure_context(ProcessResult& process,
     process.error_message = std::format("ffmpeg executable '{}' failed for source '{}', chapter {}, output '{}' ({}, "
                                         "exit code {})",
         segment.command.front(),
-        job.metadata.source_path.string(),
+        path_to_utf8(job.metadata.source_path),
         segment.chapter_index + 1,
-        segment.output_path.string(),
+        path_to_utf8(segment.output_path),
         process_exit_state_name(process.state),
         process.exit_code);
     if (!detail.empty()) {
@@ -156,13 +157,14 @@ struct DurationVerification {
         return {};
     }
 
-    ProbeResult probe = ProbeService {executor}.probe(job.settings.ffprobe_path, segment.output_path, stop_token);
+    ProbeResult probe =
+        ProbeService {executor}.probe(path_from_utf8(job.settings.ffprobe_path), segment.output_path, stop_token);
     if (!probe.ok()) {
         return DurationVerification {
             .success = false,
             .process = std::move(probe.process),
             .error_message = std::format(
-                "Duration verification failed for '{}': {}", segment.output_path.string(), probe.error_message),
+                "Duration verification failed for '{}': {}", path_to_utf8(segment.output_path), probe.error_message),
         };
     }
 
@@ -176,7 +178,7 @@ struct DurationVerification {
             .actual_duration_ms = actual,
             .process = std::move(probe.process),
             .error_message = std::format("Duration verification failed for '{}': expected {} ms, observed {} ms.",
-                segment.output_path.string(),
+                path_to_utf8(segment.output_path),
                 expected,
                 actual),
         };
@@ -304,7 +306,7 @@ auto ExportEngine::run(
             const bool output_exists = std::filesystem::exists(segment.output_path, path_error);
             if (path_error) {
                 job_result.error_message =
-                    "Could not inspect planned output '" + segment.output_path.string() + "': " + path_error.message();
+                    "Could not inspect planned output '" + path_to_utf8(segment.output_path) + "': " + path_error.message();
                 result.exit_code = ExportExitCode::ExportFailure;
                 break;
             }
@@ -318,7 +320,7 @@ auto ExportEngine::run(
                     .skipped = true,
                 };
                 if (options.message) {
-                    options.message("Skipping existing output: " + segment.output_path.string());
+                    options.message("Skipping existing output: " + path_to_utf8(segment.output_path));
                 }
                 job_result.segments.push_back(std::move(skipped));
                 if (options.segment_finished) {
@@ -330,7 +332,7 @@ auto ExportEngine::run(
             }
             if (output_exists && options.message) {
                 options.message(
-                    "Existing output will use the configured overwrite policy: " + segment.output_path.string());
+                    "Existing output will use the configured overwrite policy: " + path_to_utf8(segment.output_path));
             }
 
             auto parser = ProgressParser {[&options, &completed_duration_ms, batch_duration_ms, segment_duration_ms](

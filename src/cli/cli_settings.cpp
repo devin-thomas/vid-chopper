@@ -1,5 +1,6 @@
 #include "cli/cli_settings.hpp"
 
+#include "core/path_utils.hpp"
 #include "core/string_utils.hpp"
 
 #include <charconv>
@@ -13,9 +14,6 @@ namespace vidchopper {
 
 namespace {
 
-constexpr const char* cli_settings_file_name = "VidChopperCLI.ini";
-constexpr const char* gui_settings_file_name = "VidChopper.ini";
-
 constexpr auto default_cli_settings_contents =
     "# VidChopper CLI settings\n"
     "# GUI settings remain in VidChopper.ini and are never read unless --use-gui-config is passed.\n"
@@ -25,24 +23,6 @@ constexpr auto default_cli_settings_contents =
     "nvenc_preset=p5\n"
     "ffmpeg_threads=0\n"
     "stop_on_first_error=false\n";
-
-[[nodiscard]] auto current_directory() -> Path {
-    auto error = std::error_code {};
-    const Path path = std::filesystem::current_path(error);
-    return error ? Path {"."} : path;
-}
-
-[[nodiscard]] auto application_directory_for(const Path& executable_path) -> Path {
-    if (executable_path.empty()) {
-        return current_directory();
-    }
-
-    if (executable_path.has_parent_path()) {
-        return executable_path.parent_path().lexically_normal();
-    }
-
-    return current_directory();
-}
 
 [[nodiscard]] auto path_exists(const Path& path) -> bool {
     auto error = std::error_code {};
@@ -227,12 +207,24 @@ auto apply_setting(ExportSettings& settings, std::string key, const std::string_
 
 } // namespace
 
-auto resolve_cli_settings_paths(const Path& executable_path, const bool use_gui_config) -> CliSettingsPaths {
-    const Path application_directory = application_directory_for(executable_path);
+auto resolve_cli_settings_paths(const Path& executable_path,
+    const bool use_gui_config,
+    const ConfigPathOptions& options) -> CliSettingsPaths {
+    const ConfigResolutionResult resolved = resolve_config_paths(executable_path, ConfigStore::Cli, options);
+    if (!resolved.ok()) {
+        return CliSettingsPaths {
+            .use_gui_config = use_gui_config,
+            .valid = false,
+            .error_message = resolved.error_message,
+        };
+    }
+
     return CliSettingsPaths {
-        .application_directory = application_directory,
-        .cli_settings_path = application_directory / cli_settings_file_name,
-        .gui_settings_path = application_directory / gui_settings_file_name,
+        .application_directory = resolved.paths.application_directory,
+        .config_root = resolved.paths.config_root,
+        .cli_settings_path = resolved.paths.settings_path,
+        .gui_settings_path = resolved.paths.gui_settings_path,
+        .mode = resolved.paths.mode,
         .use_gui_config = use_gui_config,
     };
 }
@@ -265,7 +257,7 @@ auto load_cli_settings(const CliSettingsPaths& paths) -> CliResolvedSettings {
     result.export_settings.overwrite_mode = OverwriteMode::Overwrite;
     result.export_settings.stop_on_first_error = false;
 
-    if (paths.use_gui_config) {
+    if (paths.use_gui_config && paths.mode != ConfigMode::Explicit) {
         result.loaded_gui_settings = apply_settings_file(result.export_settings, paths.gui_settings_path);
     }
 

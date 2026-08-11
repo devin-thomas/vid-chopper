@@ -1,5 +1,7 @@
 #include "services/manifest_writer.hpp"
 
+#include "core/path_utils.hpp"
+
 #include <chrono>
 #include <filesystem>
 #include <fstream>
@@ -32,7 +34,7 @@ using Json = nlohmann::json;
         {"startMs", planned.chapter.start_ms},
         {"endMs", planned.chapter.end_ms},
         {"durationMs", planned.chapter.end_ms - planned.chapter.start_ms},
-        {"outputPath", planned.output_path.string()},
+        {"outputPath", path_to_utf8(planned.output_path)},
         {"plannedCommand", planned.command},
     };
     if (rendered != nullptr) {
@@ -60,12 +62,12 @@ using Json = nlohmann::json;
         {"timestampEpochMs",
             std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch())
                 .count()},
-        {"source", job.metadata.source_path.string()},
+        {"source", path_to_utf8(job.metadata.source_path)},
         {"chapterSource",
             job.uses_embedded_chapters
                 ? Json {"embedded"}
-                : Json {job.chapter_source_path.has_value() ? job.chapter_source_path->string() : "unspecified"}},
-        {"outputDirectory", job.output_directory.string()},
+                : Json {job.chapter_source_path.has_value() ? path_to_utf8(*job.chapter_source_path) : "unspecified"}},
+        {"outputDirectory", path_to_utf8(job.output_directory)},
         {"settings",
             {{"x264Crf", job.settings.x264_crf},
                 {"nvencCq", job.settings.nvenc_cq},
@@ -101,15 +103,16 @@ auto atomic_write(const Path& target, const std::string& text, std::vector<std::
     if (!parent.empty()) {
         std::filesystem::create_directories(parent, error);
         if (error) {
-            errors.push_back("Could not create manifest directory '" + parent.string() + "': " + error.message());
+            errors.push_back("Could not create manifest directory '" + path_to_utf8(parent) + "': " + error.message());
             return false;
         }
     }
 
-    const Path temporary = target.string() + ".tmp";
+    Path temporary = target;
+    temporary += ".tmp";
     auto stream = std::ofstream {temporary, std::ios::binary | std::ios::trunc};
     if (!stream.is_open()) {
-        errors.push_back("Could not open manifest temporary file '" + temporary.string() + "'.");
+        errors.push_back("Could not open manifest temporary file '" + path_to_utf8(temporary) + "'.");
         return false;
     }
     stream.write(text.data(), static_cast<std::streamsize>(text.size()));
@@ -117,13 +120,13 @@ auto atomic_write(const Path& target, const std::string& text, std::vector<std::
     if (!stream.good()) {
         stream.close();
         std::filesystem::remove(temporary, error);
-        errors.push_back("Could not completely write manifest temporary file '" + temporary.string() + "'.");
+        errors.push_back("Could not completely write manifest temporary file '" + path_to_utf8(temporary) + "'.");
         return false;
     }
     stream.close();
     if (stream.fail()) {
         std::filesystem::remove(temporary, error);
-        errors.push_back("Could not close manifest temporary file '" + temporary.string() + "'.");
+        errors.push_back("Could not close manifest temporary file '" + path_to_utf8(temporary) + "'.");
         return false;
     }
 
@@ -132,7 +135,7 @@ auto atomic_write(const Path& target, const std::string& text, std::vector<std::
     if (error || written_size != text.size()) {
         const std::string detail = error ? error.message() : "written size did not match the requested content";
         std::filesystem::remove(temporary, error);
-        errors.push_back("Could not verify complete manifest temporary file '" + temporary.string() + "': " + detail);
+        errors.push_back("Could not verify complete manifest temporary file '" + path_to_utf8(temporary) + "': " + detail);
         return false;
     }
 
@@ -143,7 +146,7 @@ auto atomic_write(const Path& target, const std::string& text, std::vector<std::
     if (error) {
         auto cleanup_error = std::error_code {};
         std::filesystem::remove(temporary, cleanup_error);
-        errors.push_back("Could not replace manifest '" + target.string() + "': " + error.message());
+        errors.push_back("Could not replace manifest '" + path_to_utf8(target) + "': " + error.message());
         return false;
     }
     return true;
@@ -170,7 +173,7 @@ auto write_csv(const Path& target,
             : (!rendered->verification_error.empty() ? rendered->verification_error : rendered->process.error_message);
         text += std::to_string(planned.chapter_index + 1) + "," + csv_escape(planned.chapter.name) + ","
             + std::to_string(planned.chapter.start_ms) + "," + std::to_string(planned.chapter.end_ms) + ","
-            + csv_escape(planned.output_path.string()) + "," + csv_escape(state) + ","
+            + csv_escape(path_to_utf8(planned.output_path)) + "," + csv_escape(state) + ","
             + (rendered != nullptr && rendered->skipped ? "true" : "false") + "," + csv_escape(error) + "\n";
     }
     return atomic_write(target, text, errors);
@@ -200,11 +203,12 @@ auto write_aggregate_csv(const Path& target,
                 ? ""
                 : (!rendered->verification_error.empty() ? rendered->verification_error
                                                          : rendered->process.error_message);
-            text += csv_escape(job.metadata.source_path.string()) + "," + std::to_string(planned.chapter_index + 1)
-                + "," + csv_escape(planned.chapter.name) + "," + std::to_string(planned.chapter.start_ms) + ","
-                + std::to_string(planned.chapter.end_ms) + "," + csv_escape(planned.output_path.string()) + ","
-                + csv_escape(state) + "," + (rendered != nullptr && rendered->skipped ? "true" : "false") + ","
-                + csv_escape(error) + "\n";
+            text += csv_escape(path_to_utf8(job.metadata.source_path)) + ","
+                    + std::to_string(planned.chapter_index + 1) + "," + csv_escape(planned.chapter.name) + ","
+                    + std::to_string(planned.chapter.start_ms) + "," + std::to_string(planned.chapter.end_ms) + ","
+                    + csv_escape(path_to_utf8(planned.output_path)) + "," + csv_escape(state) + ","
+                    + (rendered != nullptr && rendered->skipped ? "true" : "false") + "," + csv_escape(error)
+                    + "\n";
         }
     }
     return atomic_write(target, text, errors);
@@ -259,7 +263,7 @@ auto write_manifests(const std::vector<ResolvedExportJob>& planned_jobs,
         manifest_job.success = manifest_job.errors.empty();
         for (const std::string& error : manifest_job.errors) {
             result.errors.push_back("Manifest failure for job " + std::to_string(index + 1) + " ('"
-                + job.metadata.source_path.string() + "'): " + error);
+                                    + path_to_utf8(job.metadata.source_path) + "'): " + error);
         }
         result.jobs.push_back(std::move(manifest_job));
     }

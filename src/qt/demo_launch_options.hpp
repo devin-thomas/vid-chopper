@@ -1,5 +1,7 @@
 #pragma once
 
+#include "core/path_utils.hpp"
+
 #include <charconv>
 #include <filesystem>
 #include <optional>
@@ -128,7 +130,7 @@ namespace detail {
 
         if (argument.rfind("--demo-source=", 0) == 0) {
             saw_demo_argument = true;
-            result.options.demo_source = std::filesystem::path {std::string {argument.substr(14)}};
+            result.options.demo_source = path_from_utf8(argument.substr(14));
             continue;
         }
 
@@ -147,7 +149,7 @@ namespace detail {
 
         if (argument.rfind("--demo-ready-file=", 0) == 0) {
             saw_demo_argument = true;
-            result.options.demo_ready_file = std::filesystem::path {std::string {argument.substr(18)}};
+            result.options.demo_ready_file = path_from_utf8(argument.substr(18));
             continue;
         }
     }

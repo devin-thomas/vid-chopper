@@ -1,11 +1,12 @@
 #include "cli/chapter_source_policy.hpp"
 
 #include "cli/command_display.hpp"
+#include "core/path_utils.hpp"
 
 namespace vidchopper {
 
 auto embedded_rerun_command(const Path& source_path) -> std::string {
-    return "VidChopperCLI.exe " + quote_command_argument(source_path.string()) + " --embedded";
+    return "VidChopperCLI.exe " + quote_command_argument(path_to_utf8(source_path)) + " --embedded";
 }
 
 auto chapter_source_guidance(const VideoMetadata& metadata) -> std::string {

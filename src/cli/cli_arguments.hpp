@@ -18,6 +18,7 @@ struct CliArguments {
     CliCommand command {CliCommand::Help};
     std::vector<Path> input_paths;
     std::vector<Path> config_paths;
+    std::optional<Path> settings_path;
     std::optional<u8> crf;
     std::optional<u8> cq;
     std::optional<u8> threads;
@@ -25,6 +26,7 @@ struct CliArguments {
     std::optional<Path> aggregate_csv_path;
     std::string preset;
     bool dry_run {false};
+    bool portable_config {false};
     bool use_embedded_chapters {false};
     bool use_gui_config {false};
     bool stop_on_first_error {false};

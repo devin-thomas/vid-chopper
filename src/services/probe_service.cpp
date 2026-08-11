@@ -1,5 +1,7 @@
 #include "services/probe_service.hpp"
 
+#include "core/path_utils.hpp"
+
 #include <nlohmann/json.hpp>
 
 #include <algorithm>
@@ -20,15 +22,6 @@ namespace vidchopper {
 namespace {
 
 using Json = nlohmann::json;
-
-[[nodiscard]] auto path_to_utf8(const Path& path) -> std::string {
-#ifdef _WIN32
-    const std::u8string value = path.u8string();
-    return {value.begin(), value.end()};
-#else
-    return path.string();
-#endif
-}
 
 [[nodiscard]] auto bounded_context(std::string context) -> std::string {
     constexpr auto maximum_bytes = size_t {4096};

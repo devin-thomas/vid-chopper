@@ -1,5 +1,7 @@
 #include "cli/cli_app.hpp"
 
+#include "core/path_utils.hpp"
+
 #include <cstddef>
 #include <iostream>
 #include <string>
@@ -17,7 +19,7 @@ auto main(int argc, char* argv[]) -> int {
 
     const auto request = CliRunRequest {
         .arguments = std::move(arguments),
-        .executable_path = argc > 0 ? Path {argv[0]} : Path {},
+        .executable_path = argc > 0 ? path_from_utf8(argv[0]) : Path {},
         .output = std::cout,
         .error_output = std::cerr,
     };

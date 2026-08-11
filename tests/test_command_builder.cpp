@@ -1,5 +1,6 @@
 #include "core/chapter_plan.hpp"
 #include "core/command_builder.hpp"
+#include "core/path_utils.hpp"
 #include "test_support.hpp"
 
 #include <algorithm>
@@ -53,6 +54,18 @@ auto main() -> int {
         std::ranges::find(command, "-pix_fmt") != command.end(), "extra ffmpeg args should be appended");
     test_support::expect_true(
         command.back().ends_with(".mov"), "source container mode should preserve common source extension");
+
+    const Path unicode_source = path_from_utf8("/tmp/VidChopper/媒体 clips/视频 🎬.mov");
+    auto unicode_metadata = metadata;
+    unicode_metadata.source_path = unicode_source;
+    unicode_metadata.source_extension = ".mov";
+    const Path unicode_output = output_path_for(unicode_metadata, chapter, 0, unicode_source.parent_path(), settings);
+    const auto unicode_command =
+        build_ffmpeg_command(unicode_metadata, chapter, unicode_output, settings, EncoderEnvironment {});
+    const auto input_flag = std::ranges::find(unicode_command, "-i");
+    test_support::expect_true(input_flag != unicode_command.end(), "Unicode command should include the input flag");
+    test_support::expect_eq(*(input_flag + 1), path_to_utf8(unicode_source),
+        "external process arguments should receive UTF-8 path text");
 
     return 0;
 }
