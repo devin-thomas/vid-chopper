@@ -11,6 +11,10 @@ The stable `1.0.0` objective is shipped. The desktop app and CLI use the same Qt
 probe, planning, export, progress, verification, and manifest services. The supported Windows x64
 archive is published and verified from the public download.
 
+The `1.1.0` shared Unix foundation is now shipped. Windows 10/11 x64 remains the only end-user
+binary/support boundary; macOS and Linux source, CI, and GUI smoke results remain internal
+qualification evidence.
+
 Update checks (`VID-10`) and broader test-architecture expansion (`VID-43`) were explicitly canceled
 as 1.0 requirements. Public documentation presentation polish remains separate post-1.0 work.
 
@@ -42,6 +46,7 @@ as 1.0 requirements. Public documentation presentation polish remains separate p
 - `VID-37` through `VID-42`, plus `VID-45`: shared-engine architecture, migration, and hardening - done
 - `VID-44`: package, publish, and remotely verify stable `1.0.0` - done
 - `VID-28`: shared-engine convergence roadmap for stable `1.0.0` - done
+- `VID-57` through `VID-65`, `VID-84`, and `VID-86`: 1.1.0 shared Unix foundation - done
 
 ## Release Milestones
 
@@ -54,6 +59,8 @@ as 1.0 requirements. Public documentation presentation polish remains separate p
 - The TNS 2XKO #36 ChapterBuilder fixture plans and exports all 16 chapters through the packaged CLI.
 - `v1.0.0` puts the GUI and CLI on the shared engine and publishes the verified Windows x64 archive
   from commit `cccbe88b51a3766bb0dd94e1321c2a257d9e07c5`.
+- `v1.1.0` publishes the shared Unix foundation's verified Windows x64 archive from qualified source
+  commit `62ae6792d011e464f3b5553667c7933036971a4e`; Unix binaries remain deferred.
 - The Pages rewrite now publishes a multi-page site that covers the product landing page, release portal, and developer docs surface.
 
 ## Reconciliation Note

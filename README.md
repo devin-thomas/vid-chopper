@@ -10,9 +10,9 @@ The first end-user macOS release is planned for `1.2.0`; the first end-user Linu
 
 ## Windows Download
 
-If you want to run VidChopper on Windows 10/11 x64 without building from source, use the stable `v1.0.0` GitHub release zip:
+If you want to run VidChopper on Windows 10/11 x64 without building from source, use the stable `v1.1.0` GitHub release zip:
 
-- [Download the `v1.0.0` Windows x64 release zip](https://github.com/devin-thomas/vid-chopper/releases/download/v1.0.0/VidChopper-1.0.0-windows-x64.zip)
+- [Download the `v1.1.0` Windows x64 release zip](https://github.com/devin-thomas/vid-chopper/releases/download/v1.1.0/VidChopper-1.1.0-windows-x64.zip)
 - [Browse all GitHub releases](https://github.com/devin-thomas/vid-chopper/releases)
 - [Open the staged canonical documentation route](https://vidchopper.app/docs) (production rollout and live acceptance are tracked separately)
 
@@ -23,7 +23,7 @@ settings dialog.
 
 ### Quick Start
 
-1. Download and unzip `VidChopper-1.0.0-windows-x64.zip`.
+1. Download and unzip `VidChopper-1.1.0-windows-x64.zip`.
 2. Launch `VidChopper.exe`.
 3. Install `ffmpeg` and `ffprobe` separately, or point VidChopper at custom tool paths in Advanced Settings.
 
@@ -39,8 +39,8 @@ The 1.1.0 documentation and evidence boundary covers:
 - A staged test suite split into fast unit-level coverage and slower `ffmpeg` integration coverage
 - A Vite + React + TypeScript + Tailwind site in `docs/` for the canonical product, release, and CLI documentation surface, with GitHub Pages retained as a legacy mirror
 
-The stable `v1.0.0` release remains the currently linked Windows package. It puts the GUI and CLI on one
-shared Qt-free probe/export engine, packages `VidChopperCLI.exe` beside the GUI, and verifies a
+The stable `v1.1.0` release is the currently linked Windows package. It puts the GUI and CLI on one
+shared cross-platform probe/export engine, packages `VidChopperCLI.exe` beside the GUI, and verifies a
 ChapterBuilder-produced ChapterFile through dry-run, export, and clean release-archive smoke testing.
 Linear's
 [vid-chopper project](https://linear.app/devin-main/project/vid-chopper-d0e76dad962c) is the

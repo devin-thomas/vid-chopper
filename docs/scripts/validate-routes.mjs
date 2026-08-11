@@ -890,39 +890,32 @@ try {
     `Frozen ${packageMetadata.version} flag contract drifted from cli_arguments.cpp.`,
   );
 
-  let releasedFlags = currentFlags;
-  const cmakeSource = await readFile(
-    path.join(repositoryRoot, "CMakeLists.txt"),
-    "utf8",
-  );
-  const displayVersion = cmakeSource.match(
-    /VIDCHOPPER_DISPLAY_VERSION\s+"([^"]+)"/,
-  )?.[1];
-  if (displayVersion && displayVersion !== packageMetadata.version) {
-    const stableSkillManifest = JSON.parse(
-      await readFile(
-        path.join(
-          repositoryRoot,
-          "packaging",
-          "releases",
-          "agent-skills",
-          `v${packageMetadata.version}`,
-          "manifest.json",
-        ),
-        "utf8",
+  // The application release version and the offline agent-skill contract have
+  // independent version streams. Keep the stable skill route pinned until its
+  // own compatibility contract advances.
+  const stableSkillVersion = "1.0.0";
+  const stableSkillManifest = JSON.parse(
+    await readFile(
+      path.join(
+        repositoryRoot,
+        "packaging",
+        "releases",
+        "agent-skills",
+        `v${stableSkillVersion}`,
+        "manifest.json",
       ),
-    );
-    releasedFlags = new Set(stableSkillManifest.cliFlags);
-  }
-
+      "utf8",
+    ),
+  );
+  const releasedFlags = new Set(stableSkillManifest.cliFlags);
   const stableSkillRoute = "/agents/vidchopper-cli/SKILL.md";
   const stableSkillManifestRoute = "/agents/vidchopper-cli/manifest.json";
   const versionedSkillRoute =
-    `/agents/vidchopper-cli/v${packageMetadata.version}/SKILL.md`;
+    `/agents/vidchopper-cli/v${stableSkillVersion}/SKILL.md`;
   const versionedSkillManifestRoute =
-    `/agents/vidchopper-cli/v${packageMetadata.version}/manifest.json`;
+    `/agents/vidchopper-cli/v${stableSkillVersion}/manifest.json`;
   const skillArchiveRoute =
-    `/agents/vidchopper-cli/v${packageMetadata.version}/vidchopper-cli.zip`;
+    `/agents/vidchopper-cli/v${stableSkillVersion}/vidchopper-cli.zip`;
   const skillIndexRoute = "/.well-known/agent-skills/index.json";
   for (const route of [
     stableSkillRoute,
@@ -956,7 +949,7 @@ try {
   );
   assert(
     skillManifest.skillContractVersion === 1 &&
-      skillManifest.cliVersion === packageMetadata.version &&
+      skillManifest.cliVersion === stableSkillVersion &&
       skillManifest.chapterFileSchemaVersion === schemaVersion &&
       skillManifest.exportManifestSchemaVersion === 1,
     "Agent skill compatibility tuple drifted.",

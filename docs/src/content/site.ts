@@ -4,12 +4,12 @@ export const siteUrl = "https://vidchopper.app";
 export const docsUrl = `${siteUrl}/docs`;
 export const chapterFileSchemaUrl = `${siteUrl}/schemas/chapter-config/v1/schema.json`;
 export const chapterFileSampleUrl = `${siteUrl}/samples/chapter-config/v1/chapter-config.json`;
-export const releaseMetadataUrl = `${siteUrl}/releases/v1.0.0/manifest.json`;
+export const releaseMetadataUrl = `${siteUrl}/releases/v1.1.0/manifest.json`;
 export const agentSkillUrl = `${siteUrl}/agents/vidchopper-cli/SKILL.md`;
 export const agentOnboardingPrompt = `Follow ${agentSkillUrl}. Inspect my video and chapter inputs, show me a dry-run, and ask before exporting, overwriting, uploading, publishing, or deleting anything.`;
-export const releaseVersion = "v1.0.0";
+export const releaseVersion = "v1.1.0";
 export const releaseZipUrl =
-  "https://github.com/devin-thomas/vid-chopper/releases/download/v1.0.0/VidChopper-1.0.0-windows-x64.zip";
+  "https://github.com/devin-thomas/vid-chopper/releases/download/v1.1.0/VidChopper-1.1.0-windows-x64.zip";
 
 export const docsLinks = [
   {
@@ -45,7 +45,7 @@ export const docsLinks = [
   {
     title: "Release metadata",
     description:
-      "Version, source commit, package URL, size, checksum, and schema compatibility for v1.0.0.",
+      "Version, source commit, package URL, size, checksum, and schema compatibility for v1.1.0.",
     href: releaseMetadataUrl,
   },
   {
@@ -181,7 +181,7 @@ export const roadmap = [
     status: "Shipped",
   },
   {
-    item: "Converge GUI and CLI on one shared engine for stable v1.0.0",
+    item: "Converge GUI and CLI on one shared engine for stable v1.1.0",
     status: "Shipped",
   },
 ] as const;
@@ -194,7 +194,7 @@ export const docsGuideposts = [
     summary:
       "Install the portable Windows package and verify the local tools before reading or changing user media.",
     points: [
-      "Use the v1.0.0 Windows x64 ZIP from the verified stable GitHub release.",
+      "Use the v1.1.0 Windows x64 ZIP from the verified stable GitHub release.",
       "VidChopperCLI.exe and the GUI are bundled; ffmpeg and ffprobe are installed or configured separately.",
       "Keep the source video, ChapterFile, manifests, and clips local. The documentation site never receives them.",
     ],

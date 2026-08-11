@@ -176,7 +176,8 @@ function Invoke-VersionChecks {
     } else {
         ""
     }
-    if ($hasPublicationStatus -and $publicationStatus -ne "candidate-pending") {
+    $publishedRelease = $publicationStatus -eq "published"
+    if ($hasPublicationStatus -and $publicationStatus -notin @("candidate-pending", "published")) {
         throw "Unsupported release publicationStatus '$publicationStatus'."
     }
     $candidatePending = $publicationStatus -eq "candidate-pending"
@@ -191,6 +192,17 @@ function Invoke-VersionChecks {
             }
         }
         Write-Host "Windows release metadata remains candidate-pending; no Windows qualification is claimed."
+    } elseif ($publishedRelease) {
+        if (([string]$releaseManifest.publishedAt) -notmatch '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$' -or
+            ([string]$releaseManifest.sourceCommit) -notmatch '^[a-f0-9]{40}$') {
+            throw "Published release metadata must contain a canonical UTC timestamp and full source commit."
+        }
+        foreach ($asset in $assets) {
+            if ([int64]$asset.size -le 0 -or [string]$asset.sha256 -notmatch '^[a-f0-9]{64}$') {
+                throw "Published release assets must contain positive sizes and SHA-256 digests."
+            }
+        }
+        Write-Host "Published Windows release metadata is finalized and hash-qualified."
     }
 
     if ([string]$docsPackage.version -ne $displayVersion) {

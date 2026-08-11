@@ -9,15 +9,15 @@ reconstructing the codebase from scratch.
 ## Current State
 
 - Primary branch: `main`
-- Latest published stable release: [`v1.0.0`](https://github.com/devin-thomas/vid-chopper/releases/tag/v1.0.0)
-- Public release asset: [`VidChopper-1.0.0-windows-x64.zip`](https://github.com/devin-thomas/vid-chopper/releases/download/v1.0.0/VidChopper-1.0.0-windows-x64.zip)
-- Tagged release commit: `cccbe88b51a3766bb0dd94e1321c2a257d9e07c5`
+- Latest published stable release: [`v1.1.0`](https://github.com/devin-thomas/vid-chopper/releases/tag/v1.1.0)
+- Public release asset: [`VidChopper-1.1.0-windows-x64.zip`](https://github.com/devin-thomas/vid-chopper/releases/download/v1.1.0/VidChopper-1.1.0-windows-x64.zip)
+- Qualified source commit: `62ae6792d011e464f3b5553667c7933036971a4e`
 - Completed beta roadmap: Linear [`VID-27`](https://linear.app/devin-main/issue/VID-27), containing
   the complete Qt-free CLI and release safety gates
 - Completed compatibility gate: [`VID-47`](https://linear.app/devin-main/issue/VID-47), proving a
   ChapterBuilder-produced file through dry-run, export, and packaged CLI verification
 - Completed stable roadmap: Linear [`VID-28`](https://linear.app/devin-main/issue/VID-28), which moved
-  the GUI and CLI onto one shared engine and shipped `1.0.0`
+  the GUI and CLI onto one cross-platform shared engine and shipped `1.1.0`
 - Explicitly deferred from 1.0: update checks (`VID-10`) and broader test-architecture expansion
   (`VID-43`); public documentation polish is separate post-1.0 work
 - Last reconciled with Linear and `main`: 2026-08-11

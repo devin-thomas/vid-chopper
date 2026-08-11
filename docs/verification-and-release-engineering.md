@@ -213,9 +213,10 @@ sequence is authoritative:
 | `0.1.x-alpha`, `0.2.0-alpha` | prerelease | Early desktop/product experiments |
 | `0.3.0-beta` | prerelease | First complete portable GUI+CLI beta |
 | `1.0.0` | stable release | Windows 10/11 x64 stable boundary on the shared engine |
+| `1.1.0` | stable release | Windows 10/11 x64 release with the shared Unix foundation |
 
 Do not relabel history to fit obsolete shorthand. The release workflow now publishes through the
-protected stable path without `--prerelease` and asserts `isPrerelease == false` for `1.0.0`.
+protected stable path without `--prerelease` and asserts `isPrerelease == false` for stable releases.
 
 ### Version-bump checklist
 
@@ -252,7 +253,7 @@ protected stable path without `--prerelease` and asserts `isPrerelease == false`
 2. Obtain explicit human approval inside the paused job for that same run's commit, version, channel,
    candidate digest, and clean-runner evidence. Do not redispatch and rebuild after approval.
 3. Approve the protected publish job (or promote the immutable artifact by run/artifact ID).
-4. For `1.0.0`, verify the stable workflow path omits `--prerelease` and checks non-draft,
+4. For every stable release, verify the stable workflow path omits `--prerelease` and checks non-draft,
    non-prerelease metadata.
 5. Record the tag, commit, release URL, asset URL, checksum URL, and workflow run in Linear and the knowledge
    publishing record.

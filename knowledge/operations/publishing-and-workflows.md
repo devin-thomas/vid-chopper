@@ -6,14 +6,13 @@ The detailed local-to-release evidence contract is the
 ## Current Published State
 
 - Branch: `main`
-- Current stable tag: `v1.0.0`
-- Release URL: `https://github.com/devin-thomas/vid-chopper/releases/tag/v1.0.0`
-- Release asset: `https://github.com/devin-thomas/vid-chopper/releases/download/v1.0.0/VidChopper-1.0.0-windows-x64.zip`
-- Checksum asset: `https://github.com/devin-thomas/vid-chopper/releases/download/v1.0.0/VidChopper-1.0.0-windows-x64.zip.sha256`
-- Release commit: `cccbe88b51a3766bb0dd94e1321c2a257d9e07c5`
-- Release workflow: `https://github.com/devin-thomas/vid-chopper/actions/runs/31461059345`
-- Archive SHA-256: `ca8639c7f9482f6abac0d4954326593632630afcb43da0f2ed7889b8380e43ac`
-- Checksum-file SHA-256: `4d41363a1388099b0f79d64412cdb720507ae62ebcb8c767e6adb72d074da85b`
+- Current stable tag: `v1.1.0`
+- Release URL: `https://github.com/devin-thomas/vid-chopper/releases/tag/v1.1.0`
+- Release asset: `https://github.com/devin-thomas/vid-chopper/releases/download/v1.1.0/VidChopper-1.1.0-windows-x64.zip`
+- Checksum asset: `https://github.com/devin-thomas/vid-chopper/releases/download/v1.1.0/VidChopper-1.1.0-windows-x64.zip.sha256`
+- Qualified source commit: `62ae6792d011e464f3b5553667c7933036971a4e`
+- Release asset SHA-256: `00efaac3ecd8cb7486f2386e79fff67f8c7110146bbe9923e2e0f7d58d60951d`
+- Checksum-file SHA-256: `bc49b8150e0bf3a19b456205f07250ad4e2b9205272a58db5ee1bc65d67642c9`
 - Canonical docs URL: `https://vidchopper.app/docs`
 - Clean-runner proof: the downloaded public archive started the GUI, kept the CLI Qt-free, retained
   the offline skill integrity tuple, and planned, exported, and duration-verified all 16

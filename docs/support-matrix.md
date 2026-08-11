@@ -16,7 +16,7 @@ platform an end-user supported platform.
 
 Unix CI may retain internal build artifacts for debugging and evidence. Those artifacts are not release
 assets, installable packages, or a support claim. `1.1.0` publishes only the passed Windows candidate;
-the release must not contain a macOS or Linux binary package.
+the release contains no macOS or Linux binary package.
 
 ## Qualification lanes
 
@@ -48,5 +48,4 @@ fails, while an explicit hardware selection fails visibly.
 ## Deliberate non-claims
 
 This matrix does not provide macOS installation instructions or Linux package installation instructions.
-It does not rename the current release metadata, change the release workflow, or create a Unix package.
-Those changes belong to the release/package work owned by VCU-111 and later platform-release tickets.
+It does not create a Unix package; those changes belong to later platform-release tickets.
