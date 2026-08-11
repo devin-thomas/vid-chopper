@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "version": "1.1.0",
+  "tag": "v1.1.0",
+  "channel": "stable",
+  "publicationStatus": "candidate-pending",
+  "publishedAt": null,
+  "sourceCommit": null,
+  "releaseUrl": "https://github.com/devin-thomas/vid-chopper/releases/tag/v1.1.0",
+  "docsUrl": "https://vidchopper.app/docs",
+  "cliVersion": "1.1.0",
+  "chapterFileSchemaVersion": 1,
+  "exportManifestSchemaVersion": 1,
+  "assets": [
+    {
+      "name": "VidChopper-1.1.0-windows-x64.zip",
+      "url": "https://github.com/devin-thomas/vid-chopper/releases/download/v1.1.0/VidChopper-1.1.0-windows-x64.zip",
+      "size": null,
+      "sha256": null,
+      "status": "pending-windows-qualification"
+    },
+    {
+      "name": "VidChopper-1.1.0-windows-x64.zip.sha256",
+      "url": "https://github.com/devin-thomas/vid-chopper/releases/download/v1.1.0/VidChopper-1.1.0-windows-x64.zip.sha256",
+      "size": null,
+      "sha256": null,
+      "status": "pending-windows-qualification"
+    }
+  ]
+}

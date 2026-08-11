@@ -269,6 +269,22 @@ function Invoke-VersionChecks {
     if (-not $displayVersion.StartsWith([string]$vcpkgManifest.'version-semver', [System.StringComparison]::Ordinal)) {
         throw "vcpkg version '$($vcpkgManifest.'version-semver')' does not match display version '$displayVersion'."
     }
+
+    $releaseManifestPath = Join-Path $repoRoot "packaging\releases\$displayVersion.json"
+    if (-not (Test-Path -LiteralPath $releaseManifestPath -PathType Leaf)) {
+        throw "Release manifest is missing: $releaseManifestPath"
+    }
+    $releaseManifest = Get-Content -Raw -LiteralPath $releaseManifestPath | ConvertFrom-Json
+    if ([string]$releaseManifest.version -ne $displayVersion -or
+        [string]$releaseManifest.cliVersion -ne $displayVersion) {
+        throw "Release manifest version tuple does not match display version '$displayVersion'."
+    }
+    $expectedAsset = "VidChopper-$displayVersion-windows-x64.zip"
+    $assetNames = @($releaseManifest.assets | ForEach-Object { [string]$_.name })
+    $expectedChecksum = "$($expectedAsset).sha256"
+    if ($expectedAsset -notin $assetNames -or $expectedChecksum -notin $assetNames) {
+        throw "Release manifest is missing the Windows ZIP/checksum asset pair for '$displayVersion'."
+    }
 }
 
 function Invoke-ReleaseTier {

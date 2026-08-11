@@ -6,7 +6,7 @@ on:
       version:
         description: Release version without the v prefix
         required: true
-        default: 1.0.0
+        default: 1.1.0
         type: string
       publish:
         description: Publish the stable release after the clean archive smoke test passes
@@ -52,6 +52,14 @@ jobs:
           $docsVersion = (Get-Content -Raw docs/package.json | ConvertFrom-Json).version
           if ($docsVersion -ne $env:VERSION) {
             throw "Docs version '$docsVersion' does not match '$env:VERSION'."
+          }
+          $releaseManifestPath = Join-Path "packaging/releases" "$($env:VERSION).json"
+          if (-not (Test-Path -LiteralPath $releaseManifestPath -PathType Leaf)) {
+            throw "Release manifest is missing: $releaseManifestPath"
+          }
+          $releaseManifest = Get-Content -Raw $releaseManifestPath | ConvertFrom-Json
+          if ($releaseManifest.version -ne $env:VERSION -or $releaseManifest.cliVersion -ne $env:VERSION) {
+            throw "Release manifest version tuple does not match '$env:VERSION'."
           }
 
       - name: Set up CMake
