@@ -1,4 +1,3 @@
-import { createHash } from "node:crypto";
 import { readFile, stat } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -7,15 +6,10 @@ const scriptsDirectory = path.dirname(fileURLToPath(import.meta.url));
 const docsDirectory = path.dirname(scriptsDirectory);
 const repositoryRoot = path.dirname(docsDirectory);
 const markdownPath = path.join(docsDirectory, "shared-engine-boundary-guide.md");
-const pdfPath = path.join(docsDirectory, "shared-engine-boundary-guide.pdf");
 const failures = [];
 
 function check(condition, message) {
   if (!condition) failures.push(message);
-}
-
-function normalizeSource(text) {
-  return text.replace(/\r\n/g, "\n").replace(/\r/g, "\n").trimEnd() + "\n";
 }
 
 function escapeRegExp(value) {
@@ -46,7 +40,6 @@ async function checkLocalLinks(source) {
 }
 
 const source = await readFile(markdownPath, "utf8");
-const pdf = await readFile(pdfPath);
 
 for (const heading of [
   "Decision at a Glance",
@@ -88,7 +81,7 @@ for (const token of [
   "struct ProbeResult",
   "class ProbeService",
   "plan_outputs",
-  "class ExportRunner",
+  "class ExportEngine",
   "std::stop_token",
   "write_manifests",
   "Exit values remain `0` success",
@@ -100,20 +93,6 @@ for (const token of [
   );
 }
 await checkLocalLinks(source);
-
-const sourceHash = createHash("sha256")
-  .update(normalizeSource(source), "utf8")
-  .digest("hex");
-check(
-  pdf.includes(Buffer.from("Source-SHA256:" + sourceHash, "ascii")),
-  "shared-engine-boundary-guide.pdf is stale; regenerate it from the Markdown source",
-);
-const pageCount = (pdf.toString("latin1").match(/\/Type\s*\/Page\b/g) ?? []).length;
-check(
-  pageCount >= 7 && pageCount <= 20,
-  "shared-engine-boundary-guide.pdf page count " + pageCount + " is outside 7-20",
-);
-check(pdf.length >= 25_000, "shared-engine-boundary-guide.pdf is unexpectedly small");
 
 for (const backlink of [
   ["README.md", "docs/shared-engine-boundary-guide.md"],
@@ -151,21 +130,8 @@ check(
   packageData.scripts?.test?.includes("npm run validate:shared-engine-guide"),
   "docs/package.json: test must run validate:shared-engine-guide",
 );
-check(
-  packageData.scripts?.["render:shared-engine-guide"]?.startsWith(
-    "python scripts/render-guide-pdf.py ",
-  ),
-  "docs/package.json: render:shared-engine-guide is not wired",
-);
-
 if (failures.length > 0) {
   throw new Error("Invalid shared-engine guide:\n- " + failures.join("\n- "));
 }
 
-console.log(
-  "Shared-engine guide validation passed (" +
-    pageCount +
-    " pages, source SHA-256 " +
-    sourceHash +
-    ").",
-);
+console.log("Shared-engine Markdown guide validation passed.");

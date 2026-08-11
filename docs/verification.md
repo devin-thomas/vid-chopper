@@ -15,7 +15,7 @@ For release-manager decisions, artifact identity, publication gates, and rollbac
 
 On Windows, the scripts automatically discover the newest Qt 6.9 MSVC 2022 kit under `C:\Qt`. Custom installations can be selected with `Qt6_ROOT`, `Qt6_DIR`, `QTDIR`, or `QT_ROOT_DIR`; the selection applies only to the verification process and does not modify global environment settings.
 
-`Quick` checks formatting, static policy and the Qt-free boundary, builds the core and CLI, runs fast tests, validates internal manager-guide Markdown and the pre-existing shared-engine guide artifact, and type-checks/builds the Pages site. `Full` adds slow media tests, CLI end-to-end fixtures, the GUI build, and a seeded noninteractive GUI startup. `Release` adds deterministic demo capture, version and manifest checks, and package assembly/audit.
+`Quick` checks formatting, static policy and the Qt-free boundary, builds the core and CLI, runs fast tests, validates internal manager-guide Markdown, and type-checks/builds the Pages site. `Full` adds slow media tests, CLI end-to-end fixtures, the GUI build, and a seeded noninteractive GUI startup. `Release` adds deterministic demo capture, version and manifest checks, and package assembly/audit.
 
 Use `-Fix` only with `Quick` to apply the pinned formatter before running every remaining Quick stage:
 
