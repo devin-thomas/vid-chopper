@@ -9,14 +9,6 @@ using namespace vidchopper;
 
 namespace {
 
-[[nodiscard]] auto fixture_path(const std::string_view filename) -> std::string {
-#ifdef _WIN32
-    return std::string {"C:\\capture\\"} + std::string {filename};
-#else
-    return std::string {"/tmp/capture/"} + std::string {filename};
-#endif
-}
-
 auto expect_parse_success(const DemoLaunchOptionsParseResult& result) -> void {
     test_support::expect_true(result.success, "demo option parsing should succeed");
 }
