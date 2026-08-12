@@ -79,6 +79,10 @@ namespace {
 
 [[nodiscard]] auto path_entries(const std::string_view value) -> std::vector<Path> {
     auto entries = std::vector<Path> {};
+    if (value.empty()) {
+        return entries;
+    }
+
     size_t begin = 0;
     while (begin <= value.size()) {
         const size_t end = value.find(path_delimiter(), begin);
@@ -160,6 +164,13 @@ auto add_tool_candidate(std::vector<Candidate>& candidates,
 [[nodiscard]] auto default_homebrew_paths() -> std::vector<Path> {
 #ifdef _WIN32
     return {};
+#elif defined(__APPLE__)
+    // Finder-launched GUI processes often do not inherit the shell PATH. Keep the
+    // Apple Silicon prefix first, then cover an unlinked formula and Intel Macs.
+    return {Path {"/opt/homebrew/bin"},
+        Path {"/opt/homebrew/opt/ffmpeg/bin"},
+        Path {"/usr/local/bin"},
+        Path {"/opt/local/bin"}};
 #else
     return {Path {"/opt/homebrew/bin"}, Path {"/usr/local/bin"}, Path {"/home/linuxbrew/.linuxbrew/bin"}};
 #endif
@@ -168,6 +179,8 @@ auto add_tool_candidate(std::vector<Candidate>& candidates,
 [[nodiscard]] auto default_standard_paths() -> std::vector<Path> {
 #ifdef _WIN32
     return {};
+#elif defined(__APPLE__)
+    return {Path {"/usr/local/bin"}, Path {"/usr/bin"}, Path {"/bin"}, Path {"/opt/local/bin"}, Path {"/sw/bin"}};
 #else
     return {Path {"/usr/local/bin"}, Path {"/usr/bin"}, Path {"/bin"}};
 #endif
@@ -183,7 +196,7 @@ auto add_tool_candidate(std::vector<Candidate>& candidates,
     strict_configured_path = has_configured_path && has_path_component(configured_path);
     const Path name = has_configured_path ? configured_path.filename() : executable_name(kind);
 
-    if (has_configured_path) {
+    if (strict_configured_path) {
         add_tool_candidate(candidates, seen, configured_path, ToolDiscoverySource::ConfiguredPath);
     }
 
@@ -253,12 +266,44 @@ auto add_tool_candidate(std::vector<Candidate>& candidates,
     return parent.filename() == "bin" ? parent.parent_path() : parent;
 }
 
-auto append_failure(ToolResolution& result, const std::string_view reason) -> void {
-    result.failure_reason = std::format("{} '{}' failed: {} {}",
+[[nodiscard]] auto reject_candidate(ToolResolution& result,
+    ToolCandidateDiagnostic diagnostic,
+    std::string reason,
+    const bool strict_configured_path) -> bool {
+    diagnostic.reason = std::move(reason);
+    result.diagnostics.push_back(std::move(diagnostic));
+    if (!strict_configured_path) {
+        return false;
+    }
+
+    result.failure_reason = std::format("{} '{}' failed: {}. {} {}",
         tool_kind_name(result.kind),
-        path_to_text(result.selected_path.empty() ? Path {} : result.selected_path),
-        reason,
-        supported_range_text());
+        path_to_text(result.diagnostics.back().candidate),
+        result.diagnostics.back().reason,
+        supported_range_text(),
+        platform_guidance());
+    return true;
+}
+
+auto set_no_tool_failure(ToolResolution& result) -> void {
+    if (result.diagnostics.empty()) {
+        result.failure_reason = std::format("Unable to find a supported {} executable: no candidates were checked. {} {}",
+            tool_kind_name(result.kind),
+            supported_range_text(),
+            platform_guidance());
+        return;
+    }
+
+    const ToolCandidateDiagnostic& last = result.diagnostics.back();
+    result.failure_reason = std::format("Unable to find a supported {} executable after checking {} candidate(s). "
+                                        "Last candidate '{}' ({}, {}). {} {}",
+        tool_kind_name(result.kind),
+        result.diagnostics.size(),
+        path_to_text(last.candidate),
+        tool_discovery_source_name(last.source),
+        last.reason,
+        supported_range_text(),
+        platform_guidance());
 }
 
 } // namespace
@@ -348,15 +393,10 @@ auto MediaToolResolver::resolve(const ToolKind kind, const Path& configured_path
         auto error = std::error_code {};
         diagnostic.exists = std::filesystem::exists(candidate.path, error) && !error;
         if (!diagnostic.exists) {
-            diagnostic.reason = error ? error.message() : "does not exist";
-            result.diagnostics.push_back(std::move(diagnostic));
-            if (strict_configured_path) {
-                result.failure_reason = std::format("{} '{}' {}. {} {}",
-                    tool_kind_name(kind),
-                    path_to_text(candidate.path),
-                    result.diagnostics.back().reason,
-                    supported_range_text(),
-                    platform_guidance());
+            if (reject_candidate(result,
+                    std::move(diagnostic),
+                    error ? error.message() : "does not exist",
+                    strict_configured_path)) {
                 return result;
             }
             continue;
@@ -365,15 +405,10 @@ auto MediaToolResolver::resolve(const ToolKind kind, const Path& configured_path
         diagnostic.executable =
             std::filesystem::is_regular_file(candidate.path, error) && !error && is_executable(candidate.path);
         if (!diagnostic.executable) {
-            diagnostic.reason = error ? error.message() : "is not executable";
-            result.diagnostics.push_back(std::move(diagnostic));
-            if (strict_configured_path) {
-                result.failure_reason = std::format("{} '{}' {}. {} {}",
-                    tool_kind_name(kind),
-                    path_to_text(candidate.path),
-                    result.diagnostics.back().reason,
-                    supported_range_text(),
-                    platform_guidance());
+            if (reject_candidate(result,
+                    std::move(diagnostic),
+                    error ? error.message() : "is not executable",
+                    strict_configured_path)) {
                 return result;
             }
             continue;
@@ -381,9 +416,8 @@ auto MediaToolResolver::resolve(const ToolKind kind, const Path& configured_path
 
         result.selected_path = candidate.path;
         if (!options_.executor) {
-            diagnostic.reason = "no process executor is configured";
-            result.diagnostics.push_back(std::move(diagnostic));
-            append_failure(result, result.diagnostics.back().reason);
+            static_cast<void>(reject_candidate(
+                result, std::move(diagnostic), "no process executor is configured", true));
             return result;
         }
         const ProcessResult process = options_.executor(ProcessRequest {
@@ -394,27 +428,32 @@ auto MediaToolResolver::resolve(const ToolKind kind, const Path& configured_path
             .stderr_limit_bytes = 64 * 1024,
         });
         if (!process.ok()) {
-            diagnostic.reason = std::format("-version returned {}{}",
+            const std::string reason = std::format("-version returned {}{}",
                 process_exit_state_name(process.state),
                 process.error_message.empty() ? "" : ": " + process.error_message);
-            result.diagnostics.push_back(std::move(diagnostic));
-            append_failure(result, result.diagnostics.back().reason);
-            return result;
+            if (reject_candidate(result, std::move(diagnostic), reason, strict_configured_path)) {
+                return result;
+            }
+            continue;
         }
 
         const std::optional<ToolVersion> version = parse_tool_version(output_for_version(process), kind);
         if (!version.has_value()) {
-            diagnostic.reason = "-version output has no parseable version";
-            result.diagnostics.push_back(std::move(diagnostic));
-            append_failure(result, result.diagnostics.back().reason);
-            return result;
+            if (reject_candidate(result,
+                    std::move(diagnostic),
+                    "-version output has no parseable version",
+                    strict_configured_path)) {
+                return result;
+            }
+            continue;
         }
         result.version = *version;
         if (!is_supported_tool_version(result.version)) {
-            diagnostic.reason = std::format("reports unsupported version {}", format_tool_version(result.version));
-            result.diagnostics.push_back(std::move(diagnostic));
-            append_failure(result, result.diagnostics.back().reason);
-            return result;
+            const std::string reason = std::format("reports unsupported version {}", format_tool_version(result.version));
+            if (reject_candidate(result, std::move(diagnostic), reason, strict_configured_path)) {
+                return result;
+            }
+            continue;
         }
 
         diagnostic.reason = std::format("selected version {}", format_tool_version(result.version));
@@ -424,14 +463,7 @@ auto MediaToolResolver::resolve(const ToolKind kind, const Path& configured_path
         return result;
     }
 
-    const std::string checked = result.diagnostics.empty()
-        ? "no candidates were checked"
-        : std::format("checked {} candidate(s)", result.diagnostics.size());
-    result.failure_reason = std::format("Unable to find a supported {} executable: {}. {} {}",
-        tool_kind_name(kind),
-        checked,
-        supported_range_text(),
-        platform_guidance());
+    set_no_tool_failure(result);
     return result;
 }
 

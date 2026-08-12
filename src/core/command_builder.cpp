@@ -73,6 +73,21 @@ auto append_audio_arguments(std::vector<std::string>& command, const ExportSetti
     append(command, {ffmpeg_arg::audio_bitrate, bitrate});
 }
 
+[[nodiscard]] auto effective_encoder_platform(const EncoderEnvironment& environment) noexcept -> EncoderPlatform {
+    return environment.platform == EncoderPlatform::Unknown ? current_encoder_platform() : environment.platform;
+}
+
+[[nodiscard]] auto videotoolbox_auto_candidate(const EncoderEnvironment& environment) noexcept -> bool {
+    if (effective_encoder_platform(environment) != EncoderPlatform::MacOs) {
+        return false;
+    }
+
+    // Command construction only consumes a capability result that has already
+    // been established by the service layer. It must not guess hardware
+    // support from the host build before that probe has completed.
+    return environment.has_hevc_videotoolbox_encoder;
+}
+
 } // namespace
 
 auto resolve_encoder(const ExportSettings& settings,
@@ -87,9 +102,13 @@ auto resolve_encoder(const ExportSettings& settings,
         const bool legacy_nvenc_available = environment.has_nvidia_gpu && environment.has_hevc_nvenc_encoder;
         const bool platform_allows_nvenc = environment.platform == EncoderPlatform::Unknown
             || environment.platform == EncoderPlatform::Windows || environment.platform == EncoderPlatform::Linux;
-        selected_kind = settings.auto_detect_gpu && legacy_nvenc_available && platform_allows_nvenc
-            ? EncoderKind::HevcNvenc
-            : EncoderKind::X264;
+        if (settings.auto_detect_gpu && videotoolbox_auto_candidate(environment)) {
+            selected_kind = EncoderKind::HevcVideoToolbox;
+        } else {
+            selected_kind = settings.auto_detect_gpu && legacy_nvenc_available && platform_allows_nvenc
+                ? EncoderKind::HevcNvenc
+                : EncoderKind::X264;
+        }
     }
 
     if (!encoder_kind_is_known(selected_kind) || selected_kind == EncoderKind::Auto) {

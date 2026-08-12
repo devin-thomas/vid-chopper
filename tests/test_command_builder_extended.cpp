@@ -106,6 +106,55 @@ auto main() -> int {
         test_support::expect_eq(encoder.kind, EncoderKind::HevcNvenc, "encoder kind should be HevcNvenc");
     }
 
+    // resolve_encoder: explicit VideoToolbox settings use the portable quality mapping
+    {
+        auto settings = ExportSettings {};
+        settings.encoder_kind = EncoderKind::HevcVideoToolbox;
+        settings.video_toolbox_quality = 73;
+        settings.video_toolbox_preset = "ignored-by-videotoolbox";
+        const auto environment = EncoderEnvironment {
+            .has_hevc_videotoolbox_encoder = true,
+            .platform = EncoderPlatform::MacOs,
+        };
+        const auto encoder = resolve_encoder(settings, environment);
+        test_support::expect_eq(encoder.kind,
+            EncoderKind::HevcVideoToolbox,
+            "explicit VideoToolbox should select the enabled macOS backend");
+        test_support::expect_eq(encoder.video_codec,
+            std::string {"hevc_videotoolbox"},
+            "VideoToolbox should select the HEVC VideoToolbox codec");
+        test_support::expect_eq(encoder.arguments,
+            std::vector<std::string> {"-b:v", "0", "-q:v", "73"},
+            "VideoToolbox should emit explicit quality-based VBR arguments");
+        test_support::expect_true(
+            !contains(encoder.arguments, "-preset"), "VideoToolbox should not receive an x264 or NVENC preset");
+
+        const auto command = build_ffmpeg_command(
+            make_metadata(), make_chapter(), std::filesystem::path {"output.mp4"}, settings, environment);
+        const auto codec = std::find(command.begin(), command.end(), "hevc_videotoolbox");
+        const auto bitrate = std::find(command.begin(), command.end(), "-b:v");
+        const auto quality = std::find(command.begin(), command.end(), "-q:v");
+        test_support::expect_true(codec != command.end(), "built command should expose VideoToolbox codec selection");
+        test_support::expect_true(bitrate != command.end(), "built command should expose VideoToolbox rate control");
+        test_support::expect_true(quality != command.end(), "built command should expose VideoToolbox quality");
+        test_support::expect_eq(*(bitrate + 1), std::string {"0"}, "VideoToolbox bitrate should select quality mode");
+        test_support::expect_eq(*(quality + 1), std::string {"73"}, "VideoToolbox quality should be preserved");
+    }
+
+    // resolve_encoder: Auto consumes VideoToolbox only after the environment reports a passed capability probe
+    {
+        auto settings = ExportSettings {};
+        settings.encoder_kind = EncoderKind::Auto;
+        settings.auto_detect_gpu = true;
+        const auto encoder = resolve_encoder(settings,
+            EncoderEnvironment {
+                .has_hevc_videotoolbox_encoder = true,
+                .platform = EncoderPlatform::MacOs,
+            });
+        test_support::expect_eq(
+            encoder.kind, EncoderKind::HevcVideoToolbox, "Auto should prefer a passed VideoToolbox capability on macOS");
+    }
+
     // resolve_encoder: Auto without GPU falls back to x264
     {
         auto settings = ExportSettings {};

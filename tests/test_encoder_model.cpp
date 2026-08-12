@@ -56,7 +56,7 @@ auto main() -> int {
     test_support::expect_eq(videotoolbox.quality_minimum, u8 {1}, "VideoToolbox minimum quality");
     test_support::expect_eq(videotoolbox.quality_maximum, u8 {100}, "VideoToolbox maximum quality");
     test_support::expect_true(
-        !videotoolbox.enabled_in_release, "VideoToolbox must remain disabled before the 1.2.0 backend release");
+        videotoolbox.enabled_in_release, "VideoToolbox must be enabled in the 1.2.0 backend release");
 
     auto diagnostic = std::string {};
     test_support::expect_eq(encoder_kind_from_persisted_value(0, EncoderKind::Auto, diagnostic),
@@ -72,10 +72,9 @@ auto main() -> int {
         "persisted NVENC value must retain its meaning");
     expect_no_diagnostic(diagnostic, "valid NVENC value should not diagnose");
     test_support::expect_eq(encoder_kind_from_persisted_value(3, EncoderKind::Auto, diagnostic),
-        EncoderKind::Auto,
-        "future VideoToolbox value must not be enabled by the 1.1 loader");
-    test_support::expect_true(diagnostic.find("Unknown persisted encoder value 3") != std::string::npos,
-        "future encoder values should produce a migration diagnostic");
+        EncoderKind::HevcVideoToolbox,
+        "persisted VideoToolbox value must be enabled in the 1.2 loader");
+    expect_no_diagnostic(diagnostic, "valid VideoToolbox value should not diagnose");
     test_support::expect_eq(encoder_kind_from_persisted_value(-1, EncoderKind::Auto, diagnostic),
         EncoderKind::Auto,
         "negative persisted values must use the safe fallback");
@@ -104,8 +103,9 @@ auto main() -> int {
     test_support::expect_eq(encoder_arguments_for(settings, EncoderKind::HevcNvenc),
         std::vector<std::string> {"-preset", "p7", "-cq", "37", "-rc", "vbr_hq"},
         "NVENC arguments must preserve CQ semantics and ordering");
-    test_support::expect_true(encoder_arguments_for(settings, EncoderKind::HevcVideoToolbox).empty(),
-        "disabled VideoToolbox must not generate an enabled release command");
+    test_support::expect_eq(encoder_arguments_for(settings, EncoderKind::HevcVideoToolbox),
+        std::vector<std::string> {"-b:v", "0", "-q:v", "82"},
+        "VideoToolbox arguments must use explicit quality-based VBR without a backend preset");
 
     const ResolvedEncoder resolved_nvenc =
         resolve_encoder(settings, EncoderEnvironment {.has_nvidia_gpu = true, .has_hevc_nvenc_encoder = true});
@@ -114,13 +114,25 @@ auto main() -> int {
     test_support::expect_eq(resolved_nvenc.quality_value, u8 {37}, "resolved NVENC quality value");
     test_support::expect_eq(resolved_nvenc.preset, std::string {"p7"}, "resolved NVENC preset");
 
-    const ResolvedEncoder resolved_videotoolbox =
-        resolve_encoder(ExportSettings {.encoder_kind = EncoderKind::HevcVideoToolbox}, EncoderEnvironment {});
+    auto videotoolbox_settings = ExportSettings {.encoder_kind = EncoderKind::HevcVideoToolbox};
+    videotoolbox_settings.video_toolbox_quality = 82;
+    videotoolbox_settings.video_toolbox_preset = "ignored-by-videotoolbox";
+    const ResolvedEncoder resolved_videotoolbox = resolve_encoder(videotoolbox_settings,
+        EncoderEnvironment {
+            .has_hevc_videotoolbox_encoder = true,
+            .platform = EncoderPlatform::MacOs,
+        });
     test_support::expect_eq(resolved_videotoolbox.kind,
-        EncoderKind::X264,
-        "disabled VideoToolbox must resolve to a visible safe fallback for command construction");
-    test_support::expect_true(
-        resolved_videotoolbox.used_fallback, "disabled VideoToolbox command construction should mark its fallback");
+        EncoderKind::HevcVideoToolbox,
+        "enabled VideoToolbox should remain selected on macOS");
+    test_support::expect_eq(resolved_videotoolbox.video_codec,
+        std::string {"hevc_videotoolbox"},
+        "resolved VideoToolbox should expose its codec");
+    test_support::expect_eq(resolved_videotoolbox.quality_value,
+        u8 {82},
+        "resolved VideoToolbox should preserve its quality setting");
+    test_support::expect_true(!resolved_videotoolbox.used_fallback,
+        "available VideoToolbox should not be marked as a fallback");
 
     return 0;
 }

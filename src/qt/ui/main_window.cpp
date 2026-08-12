@@ -780,6 +780,12 @@ auto MainWindow::resolve_encoder_summary() const -> QString {
         description += " | ffmpeg NVENC unavailable";
     }
 
+    if (environment_.has_hevc_videotoolbox_encoder) {
+        description += " | ffmpeg VideoToolbox available";
+    } else if (environment_.platform == EncoderPlatform::MacOs) {
+        description += " | ffmpeg VideoToolbox unavailable";
+    }
+
     return description;
 }
 

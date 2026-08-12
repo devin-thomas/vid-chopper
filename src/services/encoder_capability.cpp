@@ -112,11 +112,16 @@ namespace {
     return environment.platform == EncoderPlatform::Unknown ? current_encoder_platform() : environment.platform;
 }
 
-[[nodiscard]] auto automatic_candidate(const ExportSettings& settings, const EncoderPlatform platform) -> EncoderKind {
+[[nodiscard]] auto automatic_candidate(
+    const ExportSettings& settings, const EncoderEnvironment& environment) -> EncoderKind {
     if (!settings.auto_detect_gpu) {
         return EncoderKind::X264;
     }
-    if (platform == EncoderPlatform::MacOs) {
+
+    const EncoderPlatform platform = selection_platform(environment);
+    const bool apple_silicon_videotoolbox = platform == EncoderPlatform::MacOs
+        && (environment.has_hevc_videotoolbox_encoder || current_encoder_is_apple_silicon());
+    if (apple_silicon_videotoolbox) {
         return EncoderKind::HevcVideoToolbox;
     }
     if (platform == EncoderPlatform::Windows || platform == EncoderPlatform::Linux) {
@@ -162,12 +167,13 @@ auto EncoderCapabilityService::test(const ExportSettings& settings,
 
     if (!encoder_kind_is_known(backend) || backend == EncoderKind::Auto) {
         result.status = EncoderCapabilityStatus::Unsupported;
-        result.rejection_reason = "The requested encoder value is unknown; choose Auto, x264, or HEVC NVENC.";
+        result.rejection_reason =
+            "The requested encoder value is unknown; choose Auto, x264, HEVC NVENC, or HEVC VideoToolbox.";
         return result;
     }
     if (!descriptor.enabled_in_release) {
         result.status = EncoderCapabilityStatus::Unsupported;
-        result.rejection_reason = "HEVC VideoToolbox is reserved for the 1.2.0 backend release and is not enabled.";
+        result.rejection_reason = "The requested encoder is not enabled in this release.";
         return result;
     }
 
@@ -204,8 +210,11 @@ auto EncoderCapabilityService::test(const ExportSettings& settings,
         return result;
     }
 
-    result.rejection_reason =
-        std::format("{} minimal encode failed ({}).", descriptor.display_name, result.process_summary);
+    result.rejection_reason = std::format(
+        "{} ({}) minimal encode failed ({}).",
+        descriptor.display_name,
+        descriptor.codec_name,
+        result.process_summary);
     return result;
 }
 
@@ -236,7 +245,7 @@ auto EncoderCapabilityService::select(const ExportSettings& settings,
         return result;
     }
 
-    const EncoderKind candidate = automatic_candidate(settings, selection_platform(environment));
+    const EncoderKind candidate = automatic_candidate(settings, environment);
     EncoderCapabilityResult candidate_result = test(settings, candidate, environment, options);
     result.capability_results.push_back(candidate_result);
     if (candidate_result.ok()) {

@@ -4,6 +4,7 @@
 
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 using namespace vidchopper;
@@ -13,7 +14,9 @@ namespace {
 struct CapabilityFixture {
     std::vector<ProcessRequest> requests;
     bool fail_nvenc {false};
+    bool fail_videotoolbox {false};
     bool list_nvenc {true};
+    bool list_videotoolbox {true};
 };
 
 [[nodiscard]] auto contains_argument(const std::vector<std::string>& arguments, const std::string_view value) -> bool {
@@ -29,9 +32,16 @@ struct CapabilityFixture {
     return [&fixture](const ProcessRequest& request) -> ProcessResult {
         fixture.requests.push_back(request);
         if (contains_argument(request.arguments, "-encoders")) {
+            auto listed_encoders = std::string {"libx264"};
+            if (fixture.list_nvenc) {
+                listed_encoders += " hevc_nvenc";
+            }
+            if (fixture.list_videotoolbox) {
+                listed_encoders += " hevc_videotoolbox";
+            }
             return ProcessResult {
                 .state = ProcessExitState::Success,
-                .standard_output = fixture.list_nvenc ? "libx264 hevc_nvenc" : "libx264",
+                .standard_output = std::move(listed_encoders),
             };
         }
         if (fixture.fail_nvenc && contains_argument(request.arguments, "hevc_nvenc")) {
@@ -39,6 +49,13 @@ struct CapabilityFixture {
                 .state = ProcessExitState::NonzeroExit,
                 .exit_code = 1,
                 .standard_error = "encoder unavailable on this fixture host",
+            };
+        }
+        if (fixture.fail_videotoolbox && contains_argument(request.arguments, "hevc_videotoolbox")) {
+            return ProcessResult {
+                .state = ProcessExitState::NonzeroExit,
+                .exit_code = 1,
+                .standard_error = "VideoToolbox encoder unavailable on this fixture host",
             };
         }
         return ProcessResult {.state = ProcessExitState::Success};
@@ -120,6 +137,100 @@ auto main() -> int {
         EncoderKind::HevcNvenc,
         "capability failure should not mutate the persisted encoder preference");
 
+    auto videotoolbox_settings = settings;
+    videotoolbox_settings.encoder_kind = EncoderKind::HevcVideoToolbox;
+    videotoolbox_settings.video_toolbox_quality = 77;
+    CapabilityFixture videotoolbox_fixture {};
+    const EncoderCapabilityResult videotoolbox = EncoderCapabilityService {fixture_executor(videotoolbox_fixture)}.test(
+        videotoolbox_settings,
+        EncoderKind::HevcVideoToolbox,
+        EncoderEnvironment {
+            .has_hevc_videotoolbox_encoder = true,
+            .platform = EncoderPlatform::MacOs,
+        });
+    test_support::expect_true(videotoolbox.available(), "VideoToolbox should pass its real minimal encode probe");
+    test_support::expect_eq(
+        videotoolbox_fixture.requests.size(), size_t {1}, "the minimal VideoToolbox probe should run one process");
+    test_support::expect_true(contains_argument(videotoolbox.command, "-f"), "probe should use a lavfi input");
+    test_support::expect_true(
+        contains_argument(videotoolbox.command, "color=c=black:s=16x16:r=1"),
+        "probe should encode a generated one-frame source");
+    test_support::expect_true(
+        contains_argument(videotoolbox.command, "hevc_videotoolbox"),
+        "probe should test the requested VideoToolbox codec");
+    test_support::expect_true(
+        contains_argument(videotoolbox.command, "-q:v"),
+        "probe should use the VideoToolbox quality mapping");
+    test_support::expect_true(
+        contains_argument(videotoolbox.command, "-b:v"),
+        "probe should make quality-based rate control explicit");
+    test_support::expect_true(
+        videotoolbox.command_summary.find("hevc_videotoolbox") != std::string::npos,
+        "probe summary should expose the selected backend");
+
+    auto auto_videotoolbox_settings = videotoolbox_settings;
+    auto_videotoolbox_settings.encoder_kind = EncoderKind::Auto;
+    CapabilityFixture auto_videotoolbox_fixture {};
+    const EncoderSelectionResult auto_videotoolbox =
+        EncoderCapabilityService {fixture_executor(auto_videotoolbox_fixture)}.select(
+            auto_videotoolbox_settings,
+            EncoderEnvironment {
+                .has_hevc_videotoolbox_encoder = true,
+                .platform = EncoderPlatform::MacOs,
+            });
+    test_support::expect_true(
+        auto_videotoolbox.ok(), "Auto should select VideoToolbox only after its capability probe succeeds");
+    test_support::expect_eq(auto_videotoolbox.selection.resolved_kind,
+        EncoderKind::HevcVideoToolbox,
+        "successful Apple Silicon Auto selection should resolve to VideoToolbox");
+    test_support::expect_eq(auto_videotoolbox.capability_results.size(),
+        size_t {1},
+        "successful Auto VideoToolbox selection should record the capability probe");
+
+    CapabilityFixture auto_fallback_videotoolbox_fixture {.fail_videotoolbox = true};
+    const EncoderSelectionResult auto_fallback_videotoolbox =
+        EncoderCapabilityService {fixture_executor(auto_fallback_videotoolbox_fixture)}.select(
+            auto_videotoolbox_settings,
+            EncoderEnvironment {
+                .has_hevc_videotoolbox_encoder = true,
+                .platform = EncoderPlatform::MacOs,
+            });
+    test_support::expect_true(
+        auto_fallback_videotoolbox.ok(), "Auto should fall back to x264 after VideoToolbox probe failure");
+    test_support::expect_eq(auto_fallback_videotoolbox.selection.resolved_kind,
+        EncoderKind::X264,
+        "failed Auto VideoToolbox selection should resolve to x264");
+    test_support::expect_true(
+        auto_fallback_videotoolbox.selection.used_fallback,
+        "VideoToolbox capability failure should be recorded as an Auto fallback");
+    test_support::expect_eq(auto_fallback_videotoolbox.capability_results.size(),
+        size_t {2},
+        "Auto VideoToolbox fallback should record hardware and x264 probes");
+    test_support::expect_true(
+        auto_fallback_videotoolbox.summary.find("hevc_videotoolbox") != std::string::npos,
+        "Auto fallback summary should preserve the rejected VideoToolbox backend");
+
+    auto explicit_videotoolbox_failure_settings = videotoolbox_settings;
+    CapabilityFixture explicit_videotoolbox_failure_fixture {.fail_videotoolbox = true};
+    const EncoderSelectionResult explicit_videotoolbox_failure =
+        EncoderCapabilityService {fixture_executor(explicit_videotoolbox_failure_fixture)}.select(
+            explicit_videotoolbox_failure_settings,
+            EncoderEnvironment {
+                .has_hevc_videotoolbox_encoder = true,
+                .platform = EncoderPlatform::MacOs,
+            });
+    test_support::expect_true(
+        !explicit_videotoolbox_failure.ok(), "an explicit failed VideoToolbox backend should block export");
+    test_support::expect_eq(explicit_videotoolbox_failure.capability_results.size(),
+        size_t {1},
+        "explicit VideoToolbox failure should not silently try x264");
+    test_support::expect_true(
+        explicit_videotoolbox_failure.error_message.find("stored encoder preference") != std::string::npos,
+        "explicit VideoToolbox failure should explain that the stored preference remains unchanged");
+    test_support::expect_eq(explicit_videotoolbox_failure_settings.encoder_kind,
+        EncoderKind::HevcVideoToolbox,
+        "VideoToolbox capability failure should not mutate the persisted encoder preference");
+
     CapabilityFixture mac_fixture {};
     const EncoderCapabilityResult mac_nvenc = EncoderCapabilityService {fixture_executor(mac_fixture)}.test(
         settings, EncoderKind::HevcNvenc, EncoderEnvironment {.platform = EncoderPlatform::MacOs});
@@ -128,11 +239,11 @@ auto main() -> int {
     test_support::expect_true(
         mac_fixture.requests.empty(), "an ineligible backend should not launch a capability process");
 
-    const EncoderCapabilityResult disabled_videotoolbox = EncoderCapabilityService {fixture_executor(mac_fixture)}.test(
-        settings, EncoderKind::HevcVideoToolbox, EncoderEnvironment {.platform = EncoderPlatform::MacOs});
-    test_support::expect_eq(disabled_videotoolbox.status,
+    const EncoderCapabilityResult linux_videotoolbox = EncoderCapabilityService {fixture_executor(mac_fixture)}.test(
+        settings, EncoderKind::HevcVideoToolbox, EncoderEnvironment {.platform = EncoderPlatform::Linux});
+    test_support::expect_eq(linux_videotoolbox.status,
         EncoderCapabilityStatus::Unsupported,
-        "disabled VideoToolbox should remain policy-ineligible in the 1.1 release");
+        "VideoToolbox should remain policy-ineligible outside macOS");
 
     return 0;
 }

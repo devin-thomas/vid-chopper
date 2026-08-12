@@ -72,7 +72,7 @@ constexpr auto platform_all = u8 {platform_windows | platform_linux | platform_m
         .quality_maximum = 100,
         .platform_mask = platform_macos,
         .hardware_accelerated = true,
-        .enabled_in_release = false,
+        .enabled_in_release = true,
     };
 }
 
@@ -144,6 +144,14 @@ auto current_encoder_platform() noexcept -> EncoderPlatform {
 #endif
 }
 
+auto current_encoder_is_apple_silicon() noexcept -> bool {
+#if defined(__APPLE__) && (defined(__arm64__) || defined(__aarch64__))
+    return true;
+#else
+    return false;
+#endif
+}
+
 auto encoder_platform_eligible(const EncoderDescriptor& descriptor, const EncoderPlatform platform) noexcept -> bool {
     if (platform == EncoderPlatform::Unknown) {
         return true;
@@ -182,13 +190,14 @@ auto encoder_kind_from_name(const std::string_view name) -> std::optional<Encode
 
 auto encoder_kind_from_persisted_value(
     const i64 raw_value, const EncoderKind fallback, std::string& diagnostic) -> EncoderKind {
-    if (raw_value >= static_cast<i64>(EncoderKind::Auto) && raw_value <= static_cast<i64>(EncoderKind::HevcNvenc)) {
+    if (raw_value >= static_cast<i64>(EncoderKind::Auto)
+        && raw_value <= static_cast<i64>(EncoderKind::HevcVideoToolbox)) {
         return static_cast<EncoderKind>(raw_value);
     }
 
     diagnostic = "Unknown persisted encoder value " + std::to_string(raw_value) + "; using "
         + std::string {encoder_kind_name(fallback)}
-        + ". Supported 1.1 values are 0 (auto), 1 (x264), and 2 (hevc_nvenc).";
+        + ". Supported 1.2 values are 0 (auto), 1 (x264), 2 (hevc_nvenc), and 3 (hevc_videotoolbox).";
     return fallback;
 }
 
@@ -201,7 +210,10 @@ auto encoder_arguments_for(const ExportSettings& settings, const EncoderKind kin
     const std::string preset = std::string {encoder_preset_value(settings, kind)};
     const std::string quality = std::to_string(encoder_quality_value(settings, kind));
     if (kind == EncoderKind::HevcVideoToolbox) {
-        return {std::string {descriptor.quality_argument}, quality};
+        // FFmpeg's VideoToolbox encoder selects quality-based VBR through the
+        // generic qscale option. A zero bitrate keeps the rate-control mode
+        // explicit across the supported FFmpeg 6.1 through 8.x range.
+        return {"-b:v", "0", std::string {descriptor.quality_argument}, quality};
     }
 
     auto arguments = std::vector<std::string> {"-preset", preset, std::string {descriptor.quality_argument}, quality};
