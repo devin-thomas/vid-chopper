@@ -8,6 +8,10 @@ VidChopper is a local desktop application for turning one source video into chap
 
 The first end-user macOS release is planned for `1.2.0`; the first end-user Linux release is planned for `1.3.0`. See the [1.1.0 support matrix](docs/support-matrix.md), [source-build guide](docs/build-from-source.md), and [foundation evidence record](docs/1.1.0-foundation-evidence.md) for the exact boundary and required evidence.
 
+## Local macOS 1.2.0 Candidate
+
+This local branch includes the unpublished macOS arm64 candidate so it can be used on the current Apple Silicon Mac without remote chopping. From the repository root, run `./script/build_and_run.sh --verify` to build, deploy, install at `~/Applications/VidChopper.app`, and launch it. The [local macOS install guide](docs/local-macos-install.md) covers the optional CLI install and ad-hoc disk-image packaging. `ffmpeg` and `ffprobe` remain separate local dependencies; this branch does not publish a `1.2.0` release.
+
 ## Windows Download
 
 If you want to run VidChopper on Windows 10/11 x64 without building from source, use the stable `v1.1.0` GitHub release zip:

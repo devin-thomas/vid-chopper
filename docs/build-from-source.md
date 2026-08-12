@@ -17,6 +17,22 @@ they do not describe supported Unix installation or public Unix packages.
 The full GUI build is optional for the core/CLI source lane. Keep the checkout and all generated build
 directories local.
 
+## Local macOS 1.2.0 candidate
+
+The unpublished macOS arm64 candidate has a project-local build and install entrypoint. On the current
+Apple Silicon Mac, bootstrap the prerequisites above and run:
+
+```sh
+./script/build_and_run.sh --verify
+```
+
+This installs the deployed bundle at `~/Applications/VidChopper.app` and launches it. Use
+`./script/build_and_run.sh --no-launch` to stage without opening the app. For the full local workflow,
+including the optional CLI install and disk-image checksum, see [Local macOS 1.2.0 Candidate](local-macos-install.md).
+
+This is a local development candidate only. It does not change the `1.1.0` public support boundary,
+publish a release, or bundle `ffmpeg`/`ffprobe`.
+
 ## Bootstrap dependencies
 
 On Windows, use the repository bootstrap and set `VCPKG_ROOT` in the same PowerShell session:

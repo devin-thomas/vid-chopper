@@ -1,0 +1,32 @@
+Local package trust guidance
+============================
+
+This is a local, non-publishing package. Its checksum proves that a file
+matches the file that was hashed; it does not prove who built the file or that
+the application is notarized.
+
+Signing
+-------
+The packaging script signs only when --sign is requested. That default signing
+mode is ad-hoc signing, which does not identify a developer and does not
+provide Apple notarization. An unsigned or ad-hoc-signed package can therefore
+produce an unidentified-developer or first-open warning.
+
+Before opening
+--------------
+1. Confirm the DMG checksum using the local .sha256 file.
+2. Confirm that the DMG came from the person or build machine you expect.
+3. Inspect the package contents and the included notices.
+4. If macOS asks for approval, use the normal Finder/System Settings flow only
+   after you have independently decided to trust this local artifact.
+
+The packaging script does not disable Gatekeeper, remove com.apple.quarantine,
+register an exception with spctl, or use any other quarantine bypass. Do not
+copy bypass commands from untrusted instructions. If the provenance or
+checksum is unexpected, do not open the package.
+
+Runtime tools
+-------------
+ffmpeg and ffprobe are intentionally outside this package. Treat separately
+installed media tools as separate software with separate trust and licensing
+decisions.
