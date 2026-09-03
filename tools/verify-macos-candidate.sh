@@ -160,6 +160,11 @@ audit_macho_dependencies() {
             install_id="$(otool -D "$file_path" 2>/dev/null | sed -n '2p')"
             printf '%s:\n' "$file_path" >> "$audit_path"
             while IFS= read -r dependency_line; do
+                # Fat Mach-O output inserts an architecture header between
+                # dependency lists. Only indented lines are load commands.
+                if [[ "$dependency_line" != [[:space:]]* ]]; then
+                    continue
+                fi
                 dependency_path="${dependency_line%% (*}"
                 dependency_path="${dependency_path#${dependency_path%%[![:space:]]*}}"
                 if [[ "$dependency_path" != "$install_id" ]]; then
