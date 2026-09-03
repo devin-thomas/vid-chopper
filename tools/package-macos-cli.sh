@@ -76,11 +76,11 @@ if ! command -v codesign >/dev/null 2>&1; then
     echo "Missing required command: codesign" >&2
     exit 1
 fi
-if ! file "$CLI_BINARY" | rg -q 'arm64'; then
+if ! file "$CLI_BINARY" | grep -Eq 'arm64'; then
     echo "CLI executable is not arm64: $CLI_BINARY" >&2
     exit 1
 fi
-if otool -L "$CLI_BINARY" | rg -qi 'ffmpeg|ffprobe'; then
+if otool -L "$CLI_BINARY" | grep -Eqi 'ffmpeg|ffprobe'; then
     echo "CLI unexpectedly links to ffmpeg or ffprobe; those tools must remain external." >&2
     exit 1
 fi
