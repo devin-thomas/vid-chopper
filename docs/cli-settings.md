@@ -1,7 +1,7 @@
 # VidChopper CLI settings
 
 The command-line app has its own settings file so CLI preferences do not mutate or depend on GUI
-preferences. The `1.1.0` foundation keeps this separation on every platform.
+preferences. The `1.2.0` release keeps this separation on every supported platform.
 
 ## Native locations
 
@@ -147,8 +147,8 @@ HEVC NVENC = 2
 
 Auto selection is capability-driven. A real minimal encode is the final proof; an encoder listing is only
 an inexpensive prefilter. Windows and Linux use HEVC NVENC when a supported NVIDIA path passes the test,
-then x264. Other systems use x264 in the `1.1.0` boundary. VideoToolbox is reserved for `1.2.0` and is
-not a `1.1.0` end-user backend.
+then x264. On Apple Silicon in 1.2.0, Auto prefers HEVC VideoToolbox after a real capability test and
+falls back to x264 before export when that probe fails.
 
 If Auto hardware capability fails, record the reason, resolve to x264 before export, and show the resolved
 backend in CLI/GUI summaries and manifests where encoder data is present. If an explicit hardware backend
@@ -169,7 +169,7 @@ Windows packaged CLI:
   --use-gui-config --crf 20 --dry-run
 ```
 
-Unix source-build CLI qualification:
+macOS packaged or source-build CLI:
 
 ```sh
 ./VidChopperCLI \
@@ -178,5 +178,5 @@ Unix source-build CLI qualification:
   --dry-run
 ```
 
-The Unix example is a source/CI qualification command for `1.1.0`, not an end-user distribution or
-support instruction.
+The macOS example applies to the standalone 1.2.0 CLI archive. Linux remains a source/CI qualification
+environment rather than an end-user distribution or release asset.

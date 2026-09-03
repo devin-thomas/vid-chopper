@@ -111,9 +111,9 @@ The current schema exposes quality/preset values, not encoder selection:
 | `encoder.threads` | FFmpeg thread count, range `0..255`; `0` uses the FFmpeg default |
 
 `--crf` and `--cq` tune a selected backend; neither flag selects an encoder. Auto hardware selection is
-resolved by a real capability test. In the `1.1.0` boundary, failed Auto hardware capability resolves to
-x264 before export, while an explicit hardware failure blocks export without changing the stored
-preference. VideoToolbox is deferred to `1.2.0`.
+resolved by a real capability test. Failed Auto hardware capability resolves to x264 before export,
+while an explicit hardware failure blocks export without changing the stored preference. The 1.2.0
+Apple Silicon package supports HEVC VideoToolbox after a successful capability probe.
 
 The platform support boundary and native settings roots are documented in
 [`docs/cli-settings.md`](cli-settings.md) and [`docs/support-matrix.md`](support-matrix.md).

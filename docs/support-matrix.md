@@ -1,51 +1,36 @@
-# 1.1.0 Support Matrix
+# 1.2.0 Support Matrix
 
-`1.1.0` is a shared Unix foundation release, not a Unix binary release. A source build or a CI GUI
-smoke proves that the code compiles and starts in a qualification environment; it does not make that
-platform an end-user supported platform.
+`1.2.0` is the first Apple Silicon macOS end-user release and remains a cumulative Windows release. The public support change takes effect only after the exact candidates pass the automated and physical gates in the [1.2.0 evidence record](1.2.0-release-evidence.md). Until that publication occurs, 1.1.0 remains the current stable download.
 
 ## End-user boundary
 
-| Platform and architecture | 1.1.0 source/CI evidence | Public binary in 1.1.0 | End-user support in 1.1.0 | First planned support release |
-| --- | --- | --- | --- | --- |
-| Windows 10/11 x64 | Core, CLI, GUI, fast/slow/Qt tests, and Windows package regression | Yes: Windows portable ZIP and adjacent checksum | Yes | 1.1.0 |
-| macOS 15 arm64 | Native core/CLI tests and GUI compile/launch smoke | No | No | 1.2.0 |
-| macOS 26 arm64 | Native core/CLI tests and GUI compile/launch smoke when a hosted runner is available, or an equivalent documented runner | No | No | 1.2.0 |
-| Ubuntu 24.04 x86-64 | Native core/CLI tests and GUI compile/launch smoke | No | No | 1.3.0 |
-| Ubuntu 26.04 x86-64 | Native core/CLI tests and GUI compile/launch smoke | No | No | 1.3.0 |
+| Platform and architecture | Qualification evidence | Public binary in 1.2.0 | End-user support in 1.2.0 |
+| --- | --- | --- | --- |
+| Windows 10/11 x64 | Core, CLI, GUI, fast/slow/Qt tests, package regression, and exact clean-archive smoke | Windows portable ZIP and adjacent checksum | Yes |
+| macOS 15+ arm64 | Hosted builds and exact-candidate smoke plus full journeys on physical M1 Air and M4 Pro | DMG, standalone CLI archive, and adjacent checksums | Yes |
+| Intel macOS | None | No | No |
+| Ubuntu 24.04/26.04 x86-64 | Native core/CLI tests and GUI compile/launch smoke | No | No; planned for 1.3.0 |
+| Linux arm64 | Source compatibility only; separate 1.3.0 qualification is pending | No | No; planned for 1.3.0 |
 
-Unix CI may retain internal build artifacts for debugging and evidence. Those artifacts are not release
-assets, installable packages, or a support claim. `1.1.0` publishes only the passed Windows candidate;
-the release contains no macOS or Linux binary package.
+Linux build and CI results prove source portability only. They are not release assets, installation packages, or an end-user support claim.
+
+## macOS package and trust contract
+
+- The DMG contains the arm64 app, an Applications link, notices, trust guidance, and the standalone CLI directory.
+- The CLI archive installs to `~/.local/bin/vidchopper` without `sudo` and does not edit shell startup files.
+- The app and CLI are ad-hoc signed. They are not Developer ID signed or notarized.
+- Browser-downloaded copies can require the documented per-app Finder/System Settings approval flow. VidChopper never disables Gatekeeper globally or removes quarantine metadata.
+- FFmpeg and ffprobe remain external and are supported from 6.1 through major 9.x for the 1.2.0 boundary.
+- Auto uses HEVC VideoToolbox on supported Apple Silicon after a real capability encode and otherwise resolves to x264 before export.
 
 ## Qualification lanes
 
-The required `1.1.0` evidence lanes are:
+Publication requires one source commit and exact hashes across every lane:
 
-- Windows x64: core, CLI, GUI, fast/slow/Qt tests, packaging regression, exact candidate smoke, and
-  checksum verification.
-- macOS 15 arm64: core/CLI tests plus GUI compile/launch smoke.
-- macOS 26 arm64: the same gate when hosted capacity exists; otherwise record the approved equivalent
-  runner and its outcome.
-- Ubuntu 24.04 x86-64: core/CLI tests plus GUI compile/launch smoke.
-- Ubuntu 26.04 x86-64: core/CLI tests plus GUI compile/launch smoke.
+- Windows x64 Release tier plus a second-runner archive smoke.
+- macOS candidate build plus a second-runner checksum, signature, dependency, relocated-launch, CLI, x264, manifest, and VideoToolbox capability smoke.
+- Physical M1 Air and M4 Pro journeys for installation/relaunch, probing, embedded/default chapter editing, x264 and VideoToolbox exports, cancellation without orphan processes, manifests, output-folder opening, settings/error paths, and direct/installed CLI use.
+- A browser-downloaded quarantine and per-app first-launch approval journey on at least one physical Mac.
+- A protected promotion that downloads the retained candidate set, checks all evidence and hashes, publishes six unchanged assets, and compares every remote download byte-for-byte.
 
-Every assigned failure blocks publication. The evidence record must bind each outcome to one source
-commit, workflow/run identifier, dependency versions, and exact artifact identity where an artifact
-exists.
-
-## Build and tooling contract
-
-Use the [clean-checkout source-build guide](build-from-source.md). All platforms use C++20, CMake 3.28+
-and the pinned vcpkg manifest. FFmpeg and ffprobe remain external and are supported from 6.1 through
-major 8.x after executable and `-version` validation. No platform auto-installs or downloads FFmpeg.
-
-The CLI and GUI keep separate settings files. Native roots, explicit GUI import, ChapterFile precedence,
-and the current flags are documented in [CLI settings](cli-settings.md) and the [ChapterFile schema](cli-config-schema.md).
-Hardware encoders require a real capability test; Auto falls back to x264 before export when that test
-fails, while an explicit hardware selection fails visibly.
-
-## Deliberate non-claims
-
-This matrix does not provide macOS installation instructions or Linux package installation instructions.
-It does not create a Unix package; those changes belong to later platform-release tickets.
+Any failed or missing assigned check blocks publication. Building a replacement after qualification creates a new candidate and requires requalification.

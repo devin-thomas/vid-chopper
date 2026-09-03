@@ -4,28 +4,27 @@
 
 **Authority:** repository commands and workflows on the release commit
 
-**Supported release host:** Windows 10/11 x64
+**Supported release hosts:** Windows 10/11 x64 and Apple Silicon macOS 15+
 
 This guide defines how VidChopper changes move from a local checkout to a verified release. Run the
 repository-owned commands first, diagnose the first failing stage, and preserve evidence that ties every
 claim to one commit and one candidate artifact. GitHub Actions confirms a clean runner; it does not
 replace local diagnosis.
 
-## 1.1.0 Support Boundary
+## 1.2.0 Support Boundary
 
-`1.1.0` publishes Windows 10/11 x64 binaries only. macOS and Linux source builds, native core/CLI tests,
-and Unix GUI compile/launch smoke are foundation evidence; they are not end-user support and do not
-produce public Unix packages. The first planned end-user macOS release is `1.2.0`, and the first planned
-end-user Linux release is `1.3.0`.
+`1.2.0` publishes cumulative Windows 10/11 x64 and Apple Silicon macOS binaries after exact-candidate
+physical qualification. Linux source builds, native core/CLI tests, and GUI compile/launch smoke do not
+produce public Linux packages. The first planned end-user Linux release is `1.3.0`.
 
-The required foundation lanes are Windows x64, macOS 15 arm64, macOS 26 arm64 when hosted or its
-documented equivalent, Ubuntu 24.04 x86-64, and Ubuntu 26.04 x86-64. A failure in an assigned lane blocks
-publication. Use the [support matrix](support-matrix.md) for the platform table and the
-[1.1.0 evidence record](1.1.0-foundation-evidence.md) for candidate identity and lane fields.
+The required release lanes are Windows x64, hosted macOS arm64, physical M1 Air and M4 Pro, and the
+existing Ubuntu source/CI lanes. A failure in an assigned lane blocks publication. Use the
+[support matrix](support-matrix.md) for the platform table and the
+[1.2.0 evidence record](1.2.0-release-evidence.md) for candidate identity and gate fields.
 
-The release/package implementation remains deliberately separate from this documentation change. This
-branch does not modify release workflows, CMake/vcpkg version metadata, release manifests, or generated
-package artifacts; VCU-111 owns the Windows candidate and publication path.
+The release workflow qualifies Windows and aggregates an already-passed Mac candidate run from the same
+source commit. Its protected publish mode promotes that retained set only after the committed two-Mac
+physical evidence matches every candidate hash.
 
 Canonical domain terms come from [`CONTEXT.md`](../CONTEXT.md). Accepted architecture boundaries are
 recorded in the [ADR index](../knowledge/architecture/decisions/README.md).
@@ -36,9 +35,9 @@ recorded in the [ADR index](../knowledge/architecture/decisions/README.md).
 |---|---|---|
 | Is a change ready for review? | Relevant local tier or CI lane, focused tests, and a clean diff | Any unexplained failure or missing prerequisite |
 | Is a PR ready to merge? | Required PR jobs green for the reviewed head commit | Superseded, canceled, skipped-required, or red jobs |
-| Is a package a release candidate? | Release tier, candidate ZIP digest, and clean-runner archive smoke | Candidate bytes differ between stages |
-| Is publication authorized? | Human approval, final commit, release notes, and rollback plan | Missing approval or mutable/unknown artifact identity |
-| Is a release complete? | Tag, commit, release URL, asset URL, remote digest, and supported Windows smoke | Remote asset or metadata does not match the proven candidate |
+| Is a package a release candidate? | Windows and Mac automated evidence, one source SHA, and all six file hashes | Candidate bytes differ between stages |
+| Is publication authorized? | Both physical Macs passed, human approval, final metadata, notes, and rollback plan | Missing approval/evidence or mutable artifact identity |
+| Is a release complete? | Tag, commit, release URL, all remote digests, Windows smoke, and Mac physical evidence | Remote asset or metadata does not match the proven candidate |
 
 ## Bootstrap Policy
 
@@ -63,7 +62,7 @@ tool or version is missing.
 | Node.js | 22 or newer | `tools/verification-common.ps1` |
 | Python | 3.12 for CI quality tooling | `.github/workflows/ci.yml` |
 | clang-format / clang-tidy | exactly 18.1.8 | `tools/verification-requirements.txt` |
-| ffmpeg / ffprobe | 6.1 through major 8.x for the foundation; record the exact pair, with 7.1.1 currently pinned for Windows release evidence | `tools/verification-common.ps1` and the 1.1.0 evidence record |
+| ffmpeg / ffprobe | 6.1 through major 9.x for 1.2.0; record the exact pair, with 7.1.1 pinned for hosted evidence | `tools/verification-common.ps1` and the 1.2.0 evidence record |
 | nlohmann-json / yaml-cpp | vcpkg manifest plus pinned baseline | `vcpkg.json` and ADR 0002 |
 
 Do not silently substitute a global clang tool or a different dependency baseline. If bootstrap finds a
@@ -175,8 +174,9 @@ canceled by the workflow concurrency group. Never treat a canceled older run as 
 | Pages `deploy` | `pwsh -NoProfile -File tools/verify.ps1 -CiLane Docs` reproduces its build/audit | Pages upload, environment, and deployment identity are remote-only |
 | Cloudflare `authorize` | No local substitute; inspect the workflow input, ref, and environment configuration | GitHub environment authorization is intentionally remote-only |
 | Cloudflare `deploy` | `pwsh -NoProfile -File tools/verify.ps1 -CiLane Docs` reproduces pre-deploy checks | Credential preflight, mutation, identity correlation, and HTTPS acceptance are remote-only |
-| Release `package-candidate` | `pwsh -NoProfile -File tools/verify.ps1 -Tier Release` | Clean Windows packaging and immutable artifact upload |
-| Release `smoke-clean-archive` | `pwsh -NoProfile -File tools/verify-release-archive.ps1 -Version <version> -ArchivePath <zip>` | A second clean Windows runner and retained JSON evidence |
+| Release `package-windows-candidate` | `pwsh -NoProfile -File tools/verify.ps1 -Tier Release` | Clean Windows packaging and immutable artifact upload |
+| Release `smoke-windows-candidate` | `pwsh -NoProfile -File tools/verify-release-archive.ps1 -Version <version> -ArchivePath <zip>` | A second clean Windows runner and retained JSON evidence |
+| Release `aggregate-candidates` | Verify all three checksum pairs and both source SHAs locally | One retained six-asset candidate set and cumulative automated evidence |
 | macOS Candidate `smoke-exact-candidates` | `tools/verify-macos-candidate.sh --version <version> --dmg <dmg> --cli-archive <archive> --evidence <json>` | A second Apple Silicon runner, exact DMG/CLI hashes, relocated app and real export smoke, and retained JSON evidence |
 | Release publish job | No local substitute; verify metadata/digest inputs before approving the protected job | GitHub tag/release mutation and remote asset re-download |
 
@@ -215,6 +215,7 @@ sequence is authoritative:
 | `0.3.0-beta` | prerelease | First complete portable GUI+CLI beta |
 | `1.0.0` | stable release | Windows 10/11 x64 stable boundary on the shared engine |
 | `1.1.0` | stable release | Windows 10/11 x64 release with the shared Unix foundation |
+| `1.2.0` | stable release | Cumulative Windows plus Apple Silicon macOS GUI and CLI release |
 
 Do not relabel history to fit obsolete shorthand. The release workflow now publishes through the
 protected stable path without `--prerelease` and asserts `isPrerelease == false` for stable releases.
@@ -239,21 +240,20 @@ protected stable path without `--prerelease` and asserts `isPrerelease == false`
 1. Confirm every non-canceled roadmap blocker is Done on `main` and record any explicit deferral.
 2. Confirm the checkout is clean and `HEAD` is the reviewed release commit.
 3. Run `tools/bootstrap.ps1 -CheckOnly`, then `tools/verify.ps1 -Tier Release`.
-4. An optional `publish=false` dispatch is a rehearsal of the commit and workflow only. Record its
-   evidence, but do not approve its ZIP for a later run because a new ZIP can have different bytes.
-5. Before the real stable dispatch, VID-44 must put the publish job behind a protected
-   `release-environment` approval (or add a separate promotion workflow that accepts an immutable
-   source run/artifact identity). The current automatic publish path is not an acceptable stable gate.
-6. Dispatch the real run once. Let that run package and smoke the candidate, then pause before
-   publication. Record its artifact name, SHA-256, clean-runner evidence, and release commit.
-7. Compare the clean-runner archive identity with the package artifact from that same run.
+4. Dispatch `macOS Candidate` from `main` and record its successful run ID.
+5. Dispatch `Release` in `qualify` mode with that Mac run ID. The workflow rejects a source-SHA mismatch,
+   builds and requalifies Windows, and retains one cumulative six-asset candidate set.
+6. Download those exact candidates to the M1 Air and M4 Pro and complete every journey in the 1.2.0
+   physical evidence record, including browser quarantine on at least one Mac.
+7. Finalize the six asset sizes and hashes in the release manifest, set it to `release-ready`, and commit
+   the two-Mac physical evidence without rebuilding either platform.
 
 ### Publication checklist
 
 1. Confirm the target tag and GitHub release do not already exist; never overwrite release history.
-2. Obtain explicit human approval inside the paused job for that same run's commit, version, channel,
-   candidate digest, and clean-runner evidence. Do not redispatch and rebuild after approval.
-3. Approve the protected publish job (or promote the immutable artifact by run/artifact ID).
+2. Dispatch `Release` in `publish` mode with the passed cumulative and macOS candidate run IDs.
+3. Approve the protected `release-environment` job only after it validates the committed physical record,
+   candidate source commit, all six hashes, and cumulative evidence. Promotion never rebuilds.
 4. For every stable release, verify the stable workflow path omits `--prerelease` and checks non-draft,
    non-prerelease metadata.
 5. Record the tag, commit, release URL, asset URL, checksum URL, and workflow run in Linear and the knowledge
@@ -261,10 +261,10 @@ protected stable path without `--prerelease` and asserts `isPrerelease == false`
 
 ### Remote acceptance checklist
 
-1. Download the ZIP and `.sha256` from the release URL, not from the local workspace.
-2. Verify the downloaded SHA-256 equals the proven candidate digest.
-3. Run `tools/verify-release-archive.ps1` against the downloaded archive on clean supported Windows.
-4. Confirm the GUI seeded startup, Qt-free CLI, version/help/direct/chop modes, ChapterBuilder export,
+1. Download all three binaries and their `.sha256` files from the release URL, not from the workspace.
+2. Verify every remote byte stream equals the retained candidate and every adjacent checksum passes.
+3. Run `tools/verify-release-archive.ps1` against the downloaded ZIP on clean supported Windows.
+4. Confirm the Windows GUI seeded startup, Qt-free CLI, version/help/direct/chop modes, ChapterBuilder export,
    manifests, and ffprobe output evidence.
 5. Verify public download links resolve to the stable tag and asset, then cache-bust the live download checks.
    Public documentation presentation at `vidchopper.app/docs` remains separate post-1.0 work.
