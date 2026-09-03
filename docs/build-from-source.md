@@ -1,8 +1,7 @@
-# Build from Source for the 1.1.0 Foundation
+# Build VidChopper 1.2.0 from Source
 
-This guide is for source and CI qualification. `1.1.0` publishes Windows 10/11 x64 binaries only.
-macOS and Linux commands below establish native core/CLI builds and GUI compile/launch smoke evidence;
-they do not describe supported Unix installation or public Unix packages.
+This guide covers supported Windows and Apple Silicon macOS builds plus Linux source/CI qualification.
+The 1.2.0 release does not publish or support an end-user Linux package.
 
 ## Prerequisites
 
@@ -11,16 +10,15 @@ they do not describe supported Unix installation or public Unix packages.
 - The repository-pinned vcpkg baseline from `vcpkg.json`, with `nlohmann-json` and `yaml-cpp` installed
   through the manifest.
 - Qt 6.9 for GUI compilation. The GUI smoke lane supplies the appropriate offscreen environment.
-- External `ffmpeg` and `ffprobe`. The foundation contract supports versions 6.1 through major 8.x;
+- External `ffmpeg` and `ffprobe`. The 1.2.0 contract supports versions 6.1 through major 9.x;
   neither tool is bundled or auto-installed.
 
 The full GUI build is optional for the core/CLI source lane. Keep the checkout and all generated build
 directories local.
 
-## Local macOS 1.2.0 candidate
+## Apple Silicon macOS
 
-The unpublished macOS arm64 candidate has a project-local build and install entrypoint. On the current
-Apple Silicon Mac, bootstrap the prerequisites above and run:
+On an Apple Silicon Mac, bootstrap the prerequisites above and run:
 
 ```sh
 ./script/build_and_run.sh --verify
@@ -28,10 +26,7 @@ Apple Silicon Mac, bootstrap the prerequisites above and run:
 
 This installs the deployed bundle at `~/Applications/VidChopper.app` and launches it. Use
 `./script/build_and_run.sh --no-launch` to stage without opening the app. For the full local workflow,
-including the optional CLI install and disk-image checksum, see [Local macOS 1.2.0 Candidate](local-macos-install.md).
-
-This is a local development candidate only. It does not change the `1.1.0` public support boundary,
-publish a release, or bundle `ffmpeg`/`ffprobe`.
+including the published DMG trust flow and optional CLI install, see [macOS 1.2.0 Installation](local-macos-install.md).
 
 ## Bootstrap dependencies
 
@@ -109,9 +104,9 @@ add their platform-appropriate offscreen setting, start the GUI, wait for the re
 cleanly. Do not add a new GUI command-line flag to reproduce that smoke test; the lane wrapper is the
 source of truth.
 
-A successful macOS or Linux GUI compile/smoke lane is evidence that the shared shell can build and start
-in the qualification environment. It is not a packaged application, an installation path, or an
-end-user support promise for `1.1.0`.
+A successful source GUI compile/smoke lane is not a substitute for the exact packaged-candidate gate.
+Linux results remain source/CI evidence only; macOS end-user support requires the published, physically
+qualified 1.2.0 candidates.
 
 ## Tool and encoder checks
 
@@ -126,7 +121,7 @@ The resolver checks an explicit configured executable first, then `PATH`, common
 as `/opt/homebrew/bin` and `/usr/local/bin`, and standard Unix locations such as `/usr/local/bin` and
 `/usr/bin`. It normalizes duplicate candidates, verifies executability, runs `-version`, parses the
 version, and blocks versions below 6.1 or at major 10 and above. The current 1.2.0 source accepts major
-9.x; the published 1.1.0 foundation remains qualified through major 8.x. A supported ffmpeg/ffprobe
+9.x. A supported ffmpeg/ffprobe
 version mismatch remains a visible warning with both paths and versions.
 
 Auto encoder selection must use a real minimal capability encode before hardware export. Auto chooses
@@ -138,8 +133,7 @@ changes the stored preference.
 ## Evidence boundary
 
 Record the source commit, OS/version/architecture, compiler, Qt version, FFmpeg and ffprobe paths and
-versions, lane outcome, and any failure or retest note in the [1.1.0 foundation evidence record](1.1.0-foundation-evidence.md).
+versions, lane outcome, and any failure or retest note in the [1.2.0 release evidence record](1.2.0-release-evidence.md).
 
-This page intentionally omits macOS installation, Linux package installation, release-workflow changes,
-and packaging version metadata. Those are outside this documentation branch; Windows candidate packaging
-and publication ownership remains with VCU-111.
+Linux package installation remains intentionally absent because public Linux packages are out of scope
+until 1.3.0.

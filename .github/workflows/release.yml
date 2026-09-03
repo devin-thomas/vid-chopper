@@ -6,19 +6,32 @@ on:
       version:
         description: Release version without the v prefix
         required: true
-        default: 1.1.0
+        default: 1.2.0
         type: string
-      publish:
-        description: Publish only a finalized stable release after the clean archive smoke test passes
+      mode:
+        description: Qualify immutable candidates or promote a passed candidate run
         required: true
-        default: false
-        type: boolean
+        default: qualify
+        type: choice
+        options:
+          - qualify
+          - publish
+      macos_candidate_run_id:
+        description: Passed macOS Candidate workflow run containing the exact DMG and CLI archive
+        required: true
+        type: string
+      release_candidate_run_id:
+        description: Passed Release qualify run to promote; required only in publish mode
+        required: false
+        default: ""
+        type: string
 
 permissions:
+  actions: read
   contents: read
 
 concurrency:
-  group: release-${{ inputs.version }}
+  group: release-${{ inputs.version }}-${{ inputs.mode }}
   cancel-in-progress: false
 
 env:
@@ -28,12 +41,12 @@ env:
   VCPKG_COMMIT: 03e366fb91e38b9432ebd5f8cc79f7c8f55e96ab
 
 jobs:
-  package-candidate:
+  package-windows-candidate:
+    if: ${{ inputs.mode == 'qualify' }}
     runs-on: windows-2022
     timeout-minutes: 60
     env:
       VERSION: ${{ inputs.version }}
-      PUBLISH: ${{ inputs.publish }}
       VCPKG_DEFAULT_TRIPLET: x64-windows
       VCPKG_DEFAULT_HOST_TRIPLET: x64-windows
 
@@ -43,84 +56,28 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Validate release metadata
+      - name: Validate candidate metadata
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
-          $publishRequested = [string]::Equals($env:PUBLISH, "true", [StringComparison]::OrdinalIgnoreCase)
           if ($env:GITHUB_REF_NAME -ne "main") {
             throw "Release candidates must run from main, not $env:GITHUB_REF_NAME."
           }
+          if ($env:VERSION -notmatch '^\d+\.\d+\.\d+$') {
+            throw "Release version must be a numeric semantic version."
+          }
           $cmake = Get-Content -Raw -LiteralPath "CMakeLists.txt"
-          if ($cmake -notmatch 'VIDCHOPPER_DISPLAY_VERSION "([^"]+)"') {
-            throw "VIDCHOPPER_DISPLAY_VERSION is missing."
+          if ($cmake -notmatch 'VIDCHOPPER_DISPLAY_VERSION "([^"]+)"' -or $Matches[1] -ne $env:VERSION) {
+            throw "CMake display version does not match '$env:VERSION'."
           }
-          if ($Matches[1] -ne $env:VERSION) {
-            throw "CMake version '$($Matches[1])' does not match '$env:VERSION'."
-          }
-          $docsVersion = (Get-Content -Raw -LiteralPath "docs/package.json" | ConvertFrom-Json).version
-          $releaseManifestPath = Join-Path "packaging/releases" "${env:VERSION}.json"
-          if (-not (Test-Path -LiteralPath $releaseManifestPath -PathType Leaf)) {
-            throw "Release manifest is missing: $releaseManifestPath"
-          }
-          $releaseManifest = Get-Content -Raw -LiteralPath $releaseManifestPath | ConvertFrom-Json
-          if ([string]$releaseManifest.version -ne $env:VERSION -or
-              [string]$releaseManifest.cliVersion -ne $env:VERSION -or
-              [string]$releaseManifest.tag -ne "v$($env:VERSION)" -or
-              [string]$releaseManifest.channel -ne "stable") {
-            throw "Release manifest version tuple does not match '$env:VERSION'."
-          }
-          $expectedAsset = "VidChopper-$($env:VERSION)-windows-x64.zip"
-          $expectedChecksum = "${expectedAsset}.sha256"
-          $assets = @($releaseManifest.assets)
-          $assetNames = @($assets | ForEach-Object { [string]$_.name })
-          if ($assets.Count -ne 2 -or
-              (($assetNames | Sort-Object) -join "|") -ne ((@($expectedAsset, $expectedChecksum) | Sort-Object) -join "|")) {
-            throw "Release manifest must contain exactly the Windows ZIP/checksum asset pair."
-          }
-          $expectedUrls = @(
-            "https://github.com/devin-thomas/vid-chopper/releases/download/v$($env:VERSION)/$expectedAsset",
-            "https://github.com/devin-thomas/vid-chopper/releases/download/v$($env:VERSION)/$expectedChecksum"
-          )
-          for ($index = 0; $index -lt $assets.Count; $index++) {
-            if ([string]$assets[$index].url -ne $expectedUrls[$index]) {
-              throw "Release manifest asset URL drifted for '$($assets[$index].name)'."
-            }
-          }
-          $publicationStatus = [string]$releaseManifest.publicationStatus
-          $candidatePending = $publicationStatus -eq "candidate-pending"
-          if ($candidatePending) {
-            if ($publishRequested) {
-              throw "Refusing to publish '$($env:VERSION)': the manifest is still candidate-pending Windows qualification."
-            }
-            if ($null -ne $releaseManifest.publishedAt -or $null -ne $releaseManifest.sourceCommit) {
-              throw "Pending release candidates must not contain publication time or source commit metadata."
-            }
-            foreach ($asset in $assets) {
-              if ($null -ne $asset.size -or $null -ne $asset.sha256 -or
-                  [string]$asset.status -ne "pending-windows-qualification") {
-                throw "Pending release candidate assets must remain unqualified and unhashed."
-              }
-            }
-            Write-Host "Windows release metadata remains candidate-pending; no Windows qualification is claimed."
-          } elseif ($publishRequested) {
-            if ($null -eq $releaseManifest.publishedAt -or
-                [string]$releaseManifest.sourceCommit -notmatch '^[a-f0-9]{40}$') {
-              throw "Publishing requires finalized release timestamp and source commit metadata."
-            }
-            foreach ($asset in $assets) {
-              if ([int64]$asset.size -le 0 -or [string]$asset.sha256 -notmatch '^[a-f0-9]{64}$') {
-                throw "Publishing requires finalized ZIP and checksum asset metadata."
-              }
-            }
-          } elseif ($publicationStatus -ne "") {
-            throw "Unsupported release publicationStatus '$publicationStatus'."
-          }
-          if ([string]$docsVersion -ne $env:VERSION) {
-            if (-not $candidatePending) {
-              throw "Docs version '$docsVersion' does not match '$env:VERSION'."
-            }
-            Write-Host "Docs remain on stable version '$docsVersion' during candidate qualification for '$env:VERSION'."
+          $manifestPath = Join-Path "packaging/releases" "$($env:VERSION).json"
+          $manifest = Get-Content -Raw -LiteralPath $manifestPath | ConvertFrom-Json
+          if ([string]$manifest.version -ne $env:VERSION -or
+              [string]$manifest.cliVersion -ne $env:VERSION -or
+              [string]$manifest.tag -ne "v$($env:VERSION)" -or
+              [string]$manifest.channel -ne "stable" -or
+              [string]$manifest.publicationStatus -ne "candidate-pending") {
+            throw "Release candidate metadata is not the expected pending stable tuple."
           }
 
       - name: Set up CMake
@@ -185,7 +142,7 @@ jobs:
             Tee-Object -FilePath artifacts/release-qualification.log
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-      - name: Upload release candidate
+      - name: Upload immutable Windows candidate
         uses: actions/upload-artifact@v4
         with:
           name: vidchopper-windows-x64-${{ inputs.version }}
@@ -193,10 +150,20 @@ jobs:
             artifacts/release/VidChopper-${{ inputs.version }}-windows-x64.zip
             artifacts/release/VidChopper-${{ inputs.version }}-windows-x64.zip.sha256
           if-no-files-found: error
-          retention-days: 1
+          retention-days: 30
 
-  smoke-clean-archive:
-    needs: package-candidate
+      - name: Upload Windows qualification failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-release-failure-${{ inputs.version }}-${{ github.run_attempt }}
+          path: artifacts/**
+          if-no-files-found: warn
+          retention-days: 14
+
+  smoke-windows-candidate:
+    needs: package-windows-candidate
+    if: ${{ inputs.mode == 'qualify' }}
     runs-on: windows-2022
     timeout-minutes: 45
     env:
@@ -208,7 +175,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Download exact release candidate
+      - name: Download exact Windows candidate
         uses: actions/download-artifact@v4
         with:
           name: vidchopper-windows-x64-${{ inputs.version }}
@@ -226,112 +193,399 @@ jobs:
           Write-Error "ffmpeg install failed after $attempts attempts"
           exit 1
 
-      - name: Verify candidate checksum
+      - name: Verify exact archive on clean Windows
         shell: pwsh
         run: |
           $zip = "artifacts/candidate/VidChopper-$($env:VERSION)-windows-x64.zip"
           $checksum = "${zip}.sha256"
-          $checksumLine = (Get-Content -Raw -LiteralPath $checksum).Trim()
           $actual = (Get-FileHash -Algorithm SHA256 -LiteralPath $zip).Hash.ToLowerInvariant()
           $expectedLine = "$actual *$(Split-Path -Leaf $zip)"
-          if ($checksumLine -ne $expectedLine) {
-            throw "Candidate checksum line mismatch: expected '$expectedLine', got '$checksumLine'."
+          if ((Get-Content -Raw -LiteralPath $checksum).Trim() -ne $expectedLine) {
+            throw "Windows candidate checksum line does not match the archive."
           }
-
-      - name: Verify extracted archive on clean Windows
-        shell: pwsh
-        run: |
           pwsh -NoProfile -File tools/verify-release-archive.ps1 `
             -Version $env:VERSION `
-            -ArchivePath "artifacts/candidate/VidChopper-$env:VERSION-windows-x64.zip" `
-            -EvidencePath "artifacts/evidence/release-candidate-evidence.json"
+            -ArchivePath $zip `
+            -EvidencePath "artifacts/evidence/windows-candidate-evidence.json"
 
-      - name: Upload clean-runner evidence
+      - name: Upload clean-runner Windows evidence
         uses: actions/upload-artifact@v4
         with:
-          name: vidchopper-release-evidence-${{ inputs.version }}
-          path: artifacts/evidence/release-candidate-evidence.json
+          name: vidchopper-windows-evidence-${{ inputs.version }}
+          path: artifacts/evidence/windows-candidate-evidence.json
           if-no-files-found: error
-          retention-days: 7
+          retention-days: 30
 
-  publish-release:
-    needs: smoke-clean-archive
-    if: ${{ inputs.publish }}
-    permissions:
-      contents: write
+  aggregate-candidates:
+    needs: smoke-windows-candidate
+    if: ${{ inputs.mode == 'qualify' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    environment: release-environment
     env:
       GH_TOKEN: ${{ github.token }}
       VERSION: ${{ inputs.version }}
+      MACOS_CANDIDATE_RUN_ID: ${{ inputs.macos_candidate_run_id }}
 
     steps:
-      - name: Checkout release notes
+      - name: Checkout release verification contract
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Download proven release candidate
+      - name: Validate macOS candidate run identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ ! "$MACOS_CANDIDATE_RUN_ID" =~ ^[0-9]+$ ]]; then
+            echo "macos_candidate_run_id must be a GitHub Actions run number." >&2
+            exit 1
+          fi
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$MACOS_CANDIDATE_RUN_ID" > artifacts-macos-run.json
+          jq -e --arg sha "$GITHUB_SHA" '
+            .name == "macOS Candidate" and
+            .event == "workflow_dispatch" and
+            .status == "completed" and
+            .conclusion == "success" and
+            .head_branch == "main" and
+            .head_sha == $sha
+          ' artifacts-macos-run.json >/dev/null
+
+      - name: Download exact Windows candidate
         uses: actions/download-artifact@v4
         with:
           name: vidchopper-windows-x64-${{ inputs.version }}
           path: artifacts/candidate
 
-      - name: Confirm finalized release metadata
+      - name: Download Windows evidence
+        uses: actions/download-artifact@v4
+        with:
+          name: vidchopper-windows-evidence-${{ inputs.version }}
+          path: artifacts/evidence/windows
+
+      - name: Download exact macOS candidates
+        uses: actions/download-artifact@v4
+        with:
+          name: vidchopper-macos-arm64-${{ inputs.version }}
+          path: artifacts/candidate
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: ${{ inputs.macos_candidate_run_id }}
+
+      - name: Download macOS automated evidence
+        uses: actions/download-artifact@v4
+        with:
+          pattern: vidchopper-macos-evidence-${{ inputs.version }}-*
+          path: artifacts/evidence/macos
+          merge-multiple: true
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: ${{ inputs.macos_candidate_run_id }}
+
+      - name: Verify and record the cumulative candidate set
         shell: bash
         run: |
           set -euo pipefail
-          jq -e --arg version "$VERSION" '
+          windows="VidChopper-${VERSION}-windows-x64.zip"
+          dmg="VidChopper-${VERSION}-macos-arm64.dmg"
+          cli="VidChopper-${VERSION}-macos-arm64-cli.tar.gz"
+          binaries=("$windows" "$dmg" "$cli")
+          assets=("$windows" "${windows}.sha256" "$dmg" "${dmg}.sha256" "$cli" "${cli}.sha256")
+
+          for binary in "${binaries[@]}"; do
+            checksum="artifacts/candidate/${binary}.sha256"
+            expected="$(awk 'NR == 1 { print $1 }' "$checksum")"
+            recorded="$(awk 'NR == 1 { print $2 }' "$checksum")"
+            actual="$(sha256sum "artifacts/candidate/$binary" | awk '{ print $1 }')"
+            [[ "$expected" == "$actual" && "${recorded#\*}" == "$binary" ]]
+          done
+
+          mac_evidence="artifacts/evidence/macos/macos-candidate-evidence.json"
+          jq -e --arg version "$VERSION" --arg sha "$GITHUB_SHA" --arg run "$MACOS_CANDIDATE_RUN_ID" '
+            .productVersion == $version and
+            .sourceCommit == $sha and
+            (.workflow.runId | tostring) == $run and
+            .outcome == "passed" and
+            .physicalAcceptanceRequired == true and
+            all(.tests[];
+              .outcome == "passed" or
+              (.name == "videotoolbox-runner-capability" and .outcome == "unavailable-physical-required")
+            )
+          ' "$mac_evidence" >/dev/null
+          for binary in "$dmg" "$cli"; do
+            actual="$(sha256sum "artifacts/candidate/$binary" | awk '{ print $1 }')"
+            jq -e --arg name "$binary" --arg sha "$actual" '
+              any(.artifacts[]; .name == $name and .sha256 == $sha)
+            ' "$mac_evidence" >/dev/null
+          done
+
+          mkdir -p artifacts/evidence/cumulative
+          for asset in "${assets[@]}"; do
+            path="artifacts/candidate/$asset"
+            jq -n \
+              --arg name "$asset" \
+              --arg sha256 "$(sha256sum "$path" | awk '{ print $1 }')" \
+              --argjson size "$(stat -c '%s' "$path")" \
+              '{name: $name, size: $size, sha256: $sha256}'
+          done | jq -s '.' > artifacts/evidence/cumulative/assets.json
+
+          jq -n \
+            --arg version "$VERSION" \
+            --arg sourceCommit "$GITHUB_SHA" \
+            --arg releaseCandidateRunId "$GITHUB_RUN_ID" \
+            --arg macosCandidateRunId "$MACOS_CANDIDATE_RUN_ID" \
+            --arg timestamp "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" \
+            --slurpfile assets artifacts/evidence/cumulative/assets.json \
+            --slurpfile windows artifacts/evidence/windows/windows-candidate-evidence.json \
+            --slurpfile macos "$mac_evidence" \
+            '{
+              schemaVersion: 1,
+              productVersion: $version,
+              sourceCommit: $sourceCommit,
+              workflow: {
+                releaseCandidateRunId: $releaseCandidateRunId,
+                macosCandidateRunId: $macosCandidateRunId
+              },
+              artifacts: $assets[0],
+              automatedEvidence: {windows: $windows[0], macos: $macos[0]},
+              physicalAcceptanceRequired: true,
+              timestamp: $timestamp,
+              outcome: "passed"
+            }' > artifacts/evidence/cumulative/release-candidate-evidence.json
+
+          jq \
+            --arg sourceCommit "$GITHUB_SHA" \
+            --arg version "$VERSION" \
+            --slurpfile assets artifacts/evidence/cumulative/assets.json \
+            '.publicationStatus = "release-ready" |
+             .publishedAt = null |
+             .sourceCommit = $sourceCommit |
+             .assets = [$assets[0][] | . + {
+               url: ("https://github.com/devin-thomas/vid-chopper/releases/download/v" + $version + "/" + .name),
+               status: "qualified"
+             }]' \
+            "packaging/releases/${VERSION}.json" \
+            > artifacts/evidence/cumulative/release-ready-manifest.json
+
+          jq \
+            --arg sourceCommit "$GITHUB_SHA" \
+            --arg macosCandidateRunId "$MACOS_CANDIDATE_RUN_ID" \
+            --slurpfile assets artifacts/evidence/cumulative/assets.json \
+            '.sourceCommit = $sourceCommit |
+             .macosCandidateRunId = $macosCandidateRunId |
+             .artifacts = [$assets[0][] |
+               select(.name | test("macos-arm64\\.(dmg|tar\\.gz)$")) |
+               {name: .name, sha256: .sha256}
+             ]' \
+            packaging/releases/macos-physical-evidence.example.json \
+            > artifacts/evidence/cumulative/macos-physical-evidence.pending.json
+
+      - name: Upload immutable cumulative candidates
+        uses: actions/upload-artifact@v4
+        with:
+          name: vidchopper-release-candidates-${{ inputs.version }}
+          path: artifacts/candidate/**
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload cumulative automated evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: vidchopper-release-evidence-${{ inputs.version }}
+          path: artifacts/evidence/**
+          if-no-files-found: error
+          retention-days: 30
+
+  publish-release:
+    if: ${{ inputs.mode == 'publish' }}
+    permissions:
+      actions: read
+      contents: write
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: release-environment
+    env:
+      GH_TOKEN: ${{ github.token }}
+      VERSION: ${{ inputs.version }}
+      RELEASE_CANDIDATE_RUN_ID: ${{ inputs.release_candidate_run_id }}
+      MACOS_CANDIDATE_RUN_ID: ${{ inputs.macos_candidate_run_id }}
+
+    steps:
+      - name: Checkout release record and notes
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate promotion inputs and candidate run
+        shell: bash
+        run: |
+          set -euo pipefail
+          for run_id in "$RELEASE_CANDIDATE_RUN_ID" "$MACOS_CANDIDATE_RUN_ID"; do
+            if [[ ! "$run_id" =~ ^[0-9]+$ ]]; then
+              echo "Publish mode requires numeric candidate run IDs." >&2
+              exit 1
+            fi
+          done
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ || "$GITHUB_REF_NAME" != main ]]; then
+            echo "Publish mode requires a numeric semantic version dispatched from main." >&2
+            exit 1
+          fi
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$RELEASE_CANDIDATE_RUN_ID" > artifacts-release-run.json
+          jq -e '
+            .name == "Release" and
+            .event == "workflow_dispatch" and
+            .status == "completed" and
+            .conclusion == "success" and
+            .head_branch == "main"
+          ' artifacts-release-run.json >/dev/null
+
+      - name: Download proven cumulative candidates
+        uses: actions/download-artifact@v4
+        with:
+          name: vidchopper-release-candidates-${{ inputs.version }}
+          path: artifacts/candidate
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: ${{ inputs.release_candidate_run_id }}
+
+      - name: Download cumulative automated evidence
+        uses: actions/download-artifact@v4
+        with:
+          name: vidchopper-release-evidence-${{ inputs.version }}
+          path: artifacts/evidence
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: ${{ inputs.release_candidate_run_id }}
+
+      - name: Enforce release and two-Mac physical evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          manifest="packaging/releases/${VERSION}.json"
+          physical="packaging/releases/${VERSION}-macos-physical-evidence.json"
+          cumulative="artifacts/evidence/cumulative/release-candidate-evidence.json"
+          source_sha="$(jq -r '.head_sha' artifacts-release-run.json)"
+          [[ -f "$physical" ]]
+          jq -e --arg version "$VERSION" --arg source "$source_sha" '
             .version == $version and
             .cliVersion == $version and
-            .publicationStatus != "candidate-pending" and
-            (.publishedAt | type == "string") and
-            (.sourceCommit | type == "string" and test("^[a-f0-9]{40}$")) and
-            (.assets | length == 2) and
-            all(.assets[]; (.size | type == "number" and . > 0) and (.sha256 | test("^[a-f0-9]{64}$")))
-          ' "packaging/releases/${VERSION}.json" >/dev/null
+            .tag == ("v" + $version) and
+            .channel == "stable" and
+            .publicationStatus == "release-ready" and
+            .publishedAt == null and
+            .sourceCommit == $source and
+            (.assets | length == 6) and
+            all(.assets[]; .status == "qualified" and (.size | type == "number" and . > 0) and (.sha256 | test("^[a-f0-9]{64}$")))
+          ' "$manifest" >/dev/null
+          jq -e --arg version "$VERSION" --arg source "$source_sha" --arg relrun "$RELEASE_CANDIDATE_RUN_ID" --arg macrun "$MACOS_CANDIDATE_RUN_ID" '
+            .productVersion == $version and
+            .sourceCommit == $source and
+            (.workflow.releaseCandidateRunId | tostring) == $relrun and
+            (.workflow.macosCandidateRunId | tostring) == $macrun and
+            .physicalAcceptanceRequired == true and
+            .outcome == "passed"
+          ' "$cumulative" >/dev/null
+          jq -e --arg version "$VERSION" --arg source "$source_sha" --arg macrun "$MACOS_CANDIDATE_RUN_ID" '
+            .productVersion == $version and
+            .sourceCommit == $source and
+            (.macosCandidateRunId | tostring) == $macrun and
+            .outcome == "passed" and
+            ([.machines[].role] | sort) == ["m1-air", "m4-pro"] and
+            all(.machines[];
+              .outcome == "passed" and
+              ([.hardwareModel, .cpuModel, .osVersion, .osBuild, .ffmpegVersion, .ffprobeVersion, .tester, .timestamp] |
+                all(.[]; type == "string" and length > 0))
+            ) and
+            (.firstLaunch.machineRole == "m1-air" or .firstLaunch.machineRole == "m4-pro") and
+            .firstLaunch.browserDownloaded == true and
+            .firstLaunch.quarantineObserved == true and
+            .firstLaunch.perAppApproval == true and
+            .firstLaunch.globalGatekeeperChanged == false
+          ' "$physical" >/dev/null
 
-      - name: Publish proven stable release
+          required_tests=(
+            checksum-pairs app-install-and-relaunch source-probe embedded-chapters default-chapters
+            chapter-editing x264-export videotoolbox-export cancellation-no-orphans manifest-verification
+            output-folder-open native-settings-persistence explicit-portable-config-error cli-archive
+            cli-installer-no-sudo cli-installed-new-shell cli-dry-run cli-real-export
+          )
+          for role in m1-air m4-pro; do
+            for test_name in "${required_tests[@]}"; do
+              jq -e --arg role "$role" --arg test "$test_name" '
+                any(.machines[]; .role == $role and any(.tests[]; .name == $test and .outcome == "passed"))
+              ' "$physical" >/dev/null
+            done
+          done
+
+          while IFS= read -r name; do
+            path="artifacts/candidate/$name"
+            [[ -f "$path" ]]
+            actual="$(sha256sum "$path" | awk '{ print $1 }')"
+            size="$(stat -c '%s' "$path")"
+            url="https://github.com/${GITHUB_REPOSITORY}/releases/download/v${VERSION}/${name}"
+            jq -e --arg name "$name" --arg sha "$actual" --arg url "$url" --argjson size "$size" '
+              any(.assets[]; .name == $name and .url == $url and .sha256 == $sha and .size == $size)
+            ' "$manifest" >/dev/null
+            jq -e --arg name "$name" --arg sha "$actual" --argjson size "$size" '
+              any(.artifacts[]; .name == $name and .sha256 == $sha and .size == $size)
+            ' "$cumulative" >/dev/null
+          done < <(jq -r '.assets[].name' "$manifest")
+          for name in \
+            "VidChopper-${VERSION}-macos-arm64.dmg" \
+            "VidChopper-${VERSION}-macos-arm64-cli.tar.gz"; do
+            actual="$(sha256sum "artifacts/candidate/$name" | awk '{ print $1 }')"
+            jq -e --arg name "$name" --arg sha "$actual" '
+              any(.artifacts[]; .name == $name and .sha256 == $sha)
+            ' "$physical" >/dev/null
+          done
+
+      - name: Publish unchanged stable candidates
         shell: bash
         run: |
           set -euo pipefail
           tag="v${VERSION}"
-          asset="artifacts/candidate/VidChopper-${VERSION}-windows-x64.zip"
-          checksum="${asset}.sha256"
           if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             echo "Release already exists: $tag" >&2
             exit 1
           fi
-          gh release create "$tag" "$asset" "$checksum" \
+          mapfile -t assets < <(jq -r '.assets[].name | "artifacts/candidate/" + .' "packaging/releases/${VERSION}.json")
+          gh release create "$tag" "${assets[@]}" \
             --repo "$GITHUB_REPOSITORY" \
             --target "$GITHUB_SHA" \
             --title "VidChopper ${VERSION}" \
             --notes-file "packaging/releases/${VERSION}.md"
 
-      - name: Verify remote stable release and asset
+      - name: Verify every remote release byte
         shell: bash
         run: |
           set -euo pipefail
           tag="v${VERSION}"
-          asset_name="VidChopper-${VERSION}-windows-x64.zip"
-          checksum_name="${asset_name}.sha256"
+          mkdir -p artifacts/remote
           gh release view "$tag" --repo "$GITHUB_REPOSITORY" \
             --json tagName,isDraft,isPrerelease,url,assets > artifacts/release.json
-          jq -e --arg tag "$tag" --arg asset "$asset_name" --arg checksum "$checksum_name" '
+          jq -e --arg tag "$tag" --argjson count "$(jq '.assets | length' "packaging/releases/${VERSION}.json")" '
             .tagName == $tag and
             .isDraft == false and
             .isPrerelease == false and
-            any(.assets[]; .name == $asset) and
-            any(.assets[]; .name == $checksum)
+            (.assets | length) == $count
           ' artifacts/release.json >/dev/null
-          mkdir -p artifacts/remote
-          gh release download "$tag" --repo "$GITHUB_REPOSITORY" \
-            --pattern "$asset_name" --dir artifacts/remote
-          gh release download "$tag" --repo "$GITHUB_REPOSITORY" \
-            --pattern "$checksum_name" --dir artifacts/remote
-          cmp "artifacts/candidate/$checksum_name" "artifacts/remote/$checksum_name"
-          expected="$(cut -d ' ' -f 1 "artifacts/remote/$checksum_name")"
-          actual="$(sha256sum "artifacts/remote/$asset_name" | cut -d ' ' -f 1)"
-          test "$expected" = "$actual"
+          while IFS= read -r name; do
+            gh release download "$tag" --repo "$GITHUB_REPOSITORY" --pattern "$name" --dir artifacts/remote
+            cmp "artifacts/candidate/$name" "artifacts/remote/$name"
+          done < <(jq -r '.assets[].name' "packaging/releases/${VERSION}.json")
+          for binary in \
+            "VidChopper-${VERSION}-windows-x64.zip" \
+            "VidChopper-${VERSION}-macos-arm64.dmg" \
+            "VidChopper-${VERSION}-macos-arm64-cli.tar.gz"; do
+            expected="$(awk 'NR == 1 { print $1 }' "artifacts/remote/${binary}.sha256")"
+            actual="$(sha256sum "artifacts/remote/$binary" | awk '{ print $1 }')"
+            [[ "$expected" == "$actual" ]]
+          done
           cat artifacts/release.json
+
+      - name: Upload remote verification record
+        uses: actions/upload-artifact@v4
+        with:
+          name: vidchopper-published-release-${{ inputs.version }}
+          path: artifacts/release.json
+          if-no-files-found: error
+          retention-days: 90

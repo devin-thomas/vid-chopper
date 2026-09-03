@@ -1,9 +1,8 @@
 VidChopper 1.2.0 for macOS
 ==========================
 
-This folder contains a locally assembled VidChopper application image. It is
-intended for local testing and controlled hand-off, not for an automatic
-update channel or a hosted release.
+This disk image contains the Apple Silicon VidChopper application and the
+standalone command-line package for the 1.2.0 release.
 
 Install
 -------
@@ -25,16 +24,15 @@ separately.
 
 Optional CLI
 ------------
-When a CLI input is supplied to the local packaging script, the disk image
-also contains a VidChopperCLI directory. The CLI and its non-FFmpeg runtime
-files remain local to that directory.
+The VidChopperCLI directory contains the standalone command-line archive
+contents and a no-sudo user-local installer.
 
-Local trust
------------
-Read TRUST_GUIDANCE.txt before opening a locally built package. A package
-created with the script's --sign option is ad-hoc signed, not notarized, and
-may cause macOS to display an unidentified-developer warning. Verify the
-checksum supplied beside the disk image and only approve a package whose
-provenance you understand.
+Trust and first launch
+----------------------
+Read TRUST_GUIDANCE.txt before opening the package. The release is ad-hoc
+signed, not Developer ID signed or notarized, and may cause macOS to display
+an unidentified-developer warning. Verify the checksum supplied beside the
+disk image and only use the per-app Finder/System Settings approval flow for
+a package whose provenance you understand. Never disable Gatekeeper globally.
 
 See THIRD_PARTY_NOTICES.txt and LICENSE for licensing information.

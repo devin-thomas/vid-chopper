@@ -1,8 +1,8 @@
-# Local macOS 1.2.0 Candidate
+# macOS 1.2.0 Installation
 
-This checkout contains the unpublished `1.2.0` macOS candidate for local use on
-Apple Silicon. It is built and installed on the current Mac; it is not a GitHub
-release, notarized package, or support claim for the public `1.1.0` boundary.
+VidChopper 1.2.0 supports Apple Silicon Macs running macOS 15 or newer. The
+public release remains gated until the exact candidates pass both physical
+Macs; until then, use retained candidate artifacts only for qualification.
 
 ## Requirements
 
@@ -14,7 +14,26 @@ release, notarized package, or support claim for the public `1.1.0` boundary.
 The current qualification Mac used macOS `26.5.2`, Apple Silicon, CMake
 `4.4.2`, Qt `6.11.1`, and FFmpeg/ffprobe `9.0.1`.
 
-## Build and install
+## Install the release DMG
+
+Download the DMG and its adjacent `.sha256` file from the same GitHub release.
+Verify the bytes before opening the image:
+
+```sh
+shasum -a 256 -c VidChopper-1.2.0-macos-arm64.dmg.sha256
+```
+
+Open the DMG, drag `VidChopper.app` to the Applications link, eject the image,
+and launch VidChopper from `/Applications`.
+
+The application is ad-hoc signed. It is not Developer ID signed or notarized.
+For a browser-downloaded copy, macOS may require a one-app approval: try to
+open VidChopper once, then open System Settings > Privacy & Security and choose
+Open Anyway for VidChopper. Confirm the named app in the macOS dialog and
+relaunch it from Applications. Do not disable Gatekeeper globally, run a global
+`spctl` command, or remove quarantine metadata.
+
+## Build and install from source
 
 From the repository root:
 
@@ -34,9 +53,22 @@ installed executable's link set. The local install is ad-hoc signed after
 deployment so its nested framework signatures are consistent; it is not
 notarized and does not identify a developer.
 
-## CLI and disk image
+## Standalone CLI
 
-The Qt-free CLI can be installed locally and packaged for controlled hand-off:
+For the published CLI archive, verify the adjacent checksum and extract it:
+
+```sh
+shasum -a 256 -c VidChopper-1.2.0-macos-arm64-cli.tar.gz.sha256
+tar -xzf VidChopper-1.2.0-macos-arm64-cli.tar.gz
+./VidChopperCLI/VidChopperCLI --version
+```
+
+Double-click `Install CLI.command` or run it from Terminal. It installs
+`~/.local/bin/vidchopper` without `sudo`, preserves an existing command as a
+timestamped previous copy, and prints PATH guidance without modifying shell
+startup files.
+
+To build the same package shapes from source:
 
 ```sh
 ./tools/package-macos-cli.sh --install
@@ -56,9 +88,9 @@ them through configured paths, `PATH`, and the documented macOS defaults. The
 to x264 before export if the capability test fails. An explicit hardware
 encoder failure remains visible and does not silently change the preference.
 
-## Scope boundary
+## Support boundary
 
-This local candidate intentionally does not push a branch, create a tag, alter
-the published release, or claim physical qualification on another Mac model.
-The remaining roadmap work for hosted CI and release publication stays in
-Linear for a later decision.
+The 1.2.0 release supports the GUI and standalone CLI on Apple Silicon only;
+Intel Macs are not qualified. Windows 10/11 x64 remains supported by the
+cumulative Windows ZIP. Linux remains source- and CI-compatible but has no
+supported end-user package until 1.3.0.

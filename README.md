@@ -2,15 +2,15 @@
 
 VidChopper is a local desktop application for turning one source video into chapter clips with `ffmpeg`. It is built in modern C++ on Qt 6 Widgets, with fast native execution, a dark-first interface, GPU-aware encoder selection, and a testable core that stays usable even when the full Qt SDK is not installed locally.
 
-## 1.1.0 Support Boundary
+## 1.2.0 Release Boundary
 
-`1.1.0` is the shared Unix foundation release. It publishes Windows 10/11 x64 binaries only. macOS and Linux builds are source and CI evidence: core/CLI builds and Unix GUI compile/launch smoke prove portability work, but they are not end-user support and do not create public Unix packages.
+`1.2.0` is the first Apple Silicon macOS end-user release and a cumulative Windows 10/11 x64 release. It publishes a Windows ZIP, a macOS DMG, a standalone Mac CLI archive, and adjacent checksums after the exact candidates pass both physical Macs. Intel Macs are not qualified. Linux remains source- and CI-compatible without a supported end-user package until 1.3.0.
 
-The first end-user macOS release is planned for `1.2.0`; the first end-user Linux release is planned for `1.3.0`. See the [1.1.0 support matrix](docs/support-matrix.md), [source-build guide](docs/build-from-source.md), and [foundation evidence record](docs/1.1.0-foundation-evidence.md) for the exact boundary and required evidence.
+Until that promotion gate passes, `v1.1.0` remains the current public stable download. See the [1.2.0 support matrix](docs/support-matrix.md), [macOS installation guide](docs/local-macos-install.md), and [release evidence record](docs/1.2.0-release-evidence.md) for the exact boundary.
 
-## Local macOS 1.2.0 Candidate
+## Apple Silicon macOS Candidate
 
-This local branch includes the unpublished macOS arm64 candidate so it can be used on the current Apple Silicon Mac without remote chopping. From the repository root, run `./script/build_and_run.sh --verify` to build, deploy, install at `~/Applications/VidChopper.app`, and launch it. The [local macOS install guide](docs/local-macos-install.md) covers the optional CLI install and ad-hoc disk-image packaging. `ffmpeg` and `ffprobe` remain separate local dependencies; this branch does not publish a `1.2.0` release.
+The release source builds an arm64 app and Qt-free CLI without remote media processing. From the repository root, run `./script/build_and_run.sh --verify` to build, deploy, install at `~/Applications/VidChopper.app`, and launch it. The [macOS installation guide](docs/local-macos-install.md) covers the public DMG trust flow, optional CLI install, and local packaging. `ffmpeg` and `ffprobe` remain separate local dependencies.
 
 ## Windows Download
 
@@ -31,19 +31,20 @@ settings dialog.
 2. Launch `VidChopper.exe`.
 3. Install `ffmpeg` and `ffprobe` separately, or point VidChopper at custom tool paths in Advanced Settings.
 
-## Project Status - 1.1.0 Foundation
+## Project Status - 1.2.0 Release Candidate
 
-The 1.1.0 documentation and evidence boundary covers:
+The 1.2.0 documentation and evidence boundary covers:
 
-- A Windows 10/11 x64 end-user binary candidate; Unix build outputs remain internal evidence
+- Cumulative Windows 10/11 x64 and Apple Silicon macOS candidates tied to one source commit
 - A Qt 6 desktop shell for loading a video, importing embedded chapters, editing chapter timing and names, choosing output locations, and exporting clips
 - A C++ core library for chapter validation, timestamp parsing and formatting, file naming, output planning, and `ffmpeg` command construction
 - Cross-platform source and CI contracts for native configuration, external FFmpeg/ffprobe tools, and backend-neutral encoder resolution
-- Automatic preference for HEVC NVENC only after a usable capability test, with x264 as the universal fallback
+- Automatic preference for HEVC NVENC on Windows/Linux and HEVC VideoToolbox on Apple Silicon only after a usable capability test, with x264 as the universal fallback
 - A staged test suite split into fast unit-level coverage and slower `ffmpeg` integration coverage
 - A Vite + React + TypeScript + Tailwind site in `docs/` for the canonical product, release, and CLI documentation surface, with GitHub Pages retained as a legacy mirror
 
-The stable `v1.1.0` release is the currently linked Windows package. It puts the GUI and CLI on one
+The stable `v1.1.0` release remains the currently linked Windows package until the 1.2.0 physical and
+promotion gates pass. It puts the GUI and CLI on one
 shared cross-platform probe/export engine, packages `VidChopperCLI.exe` beside the GUI, and verifies a
 ChapterBuilder-produced ChapterFile through dry-run, export, and clean release-archive smoke testing.
 Linear's
@@ -93,8 +94,8 @@ start with [`knowledge/README.md`](knowledge/README.md).
 - Qt 6.9 desktop libraries for the full GUI compile; Unix GUI smoke uses the CI/offscreen lane
 
 Follow [`docs/build-from-source.md`](docs/build-from-source.md) for clean-checkout commands on Windows,
-macOS, and Linux. A successful Unix source build is compile/smoke evidence for `1.1.0`, not an end-user
-support claim.
+macOS, and Linux. A source build is not a substitute for the exact packaged-candidate and physical
+acceptance gates described in the support matrix.
 
 ### Local Core-Only Validation
 
@@ -173,11 +174,11 @@ ctest --test-dir build/windows-gui-release -C Release -L qt --output-on-failure
 
 The manually triggered release workflow:
 
-- builds the `windows-gui-release` preset on `windows-2022`
-- runs `windeployqt` to bundle the required Qt runtime and VC++ runtime beside `VidChopper.exe`
-- zips the portable folder as `VidChopper-<version>-windows-x64.zip`
-- verifies the extracted archive in a second clean Windows runner
-- pauses at the protected release environment, then publishes the stable release only after the archive smoke test passes
+- builds and smoke-tests the Windows ZIP on separate Windows 2022 runners
+- imports a passed macOS Candidate run only when it has the same source commit
+- aggregates and retains all six candidate/checksum files with machine-readable evidence
+- promotes a named prior candidate run without rebuilding after both physical Macs pass
+- pauses at the protected release environment, publishes the unchanged candidates, and compares every remote byte stream
 
 That release asset is the intended end-user download. Building from source is only necessary for development, debugging, or local modification work.
 
@@ -211,8 +212,8 @@ Auto, x264, and HEVC NVENC retain their existing persisted meanings. `--crf` cha
 `--cq` changes NVENC quality only when that backend is selected; neither flag selects an encoder.
 Automatic hardware selection requires a real capability test. If Auto hardware probing fails, the run
 records the reason and resolves to x264 before export. An explicit hardware selection fails visibly
-instead of silently changing the stored preference. VideoToolbox is a `1.2.0` backend, not a `1.1.0`
-end-user feature.
+instead of silently changing the stored preference. HEVC VideoToolbox is supported on qualified Apple
+Silicon Macs in 1.2.0.
 
 ## Design Notes
 
@@ -231,7 +232,7 @@ Chapter boundaries can fall between keyframes. Re-encoding with x264 or HEVC NVE
 ## Current Limitations
 
 - The GUI build depends on a Qt 6 SDK; the repository can validate the core without Qt, but not the full GUI executable
-- `1.1.0` does not support macOS or Linux end users and does not publish Unix packages; their GUI builds are compile/launch smoke evidence only
+- Intel macOS and end-user Linux packages are not supported in 1.2.0; Linux builds remain source/CI evidence only
 - Export currently runs sequentially, which is simpler and safer for accurate progress tracking than concurrent multi-process encoding
 - Frame-mode editing uses the probed video frame rate rounded to a whole-number display FPS for the table editor
 - Existing embedded chapters are imported as editable start/end segments, but advanced source metadata mapping is intentionally conservative
@@ -245,8 +246,8 @@ Chapter boundaries can fall between keyframes. Re-encoding with x264 or HEVC NVE
 - `src/qt/`: Qt application shell, settings persistence, chapter table model, queued probe adapter, GPU detection, and export coordination
 - `tests/`: staged native tests
 - `docs/`: canonical Vite + React + TypeScript + Tailwind product/docs site and legacy Pages build
-- `docs/support-matrix.md`: 1.1.0 platform boundary and CI evidence matrix
-- `docs/1.1.0-foundation-evidence.md`: candidate identity and gate record owned jointly with the Windows package work
+- `docs/support-matrix.md`: 1.2.0 Windows/macOS support boundary and Linux non-claim
+- `docs/1.2.0-release-evidence.md`: exact candidate, physical Mac, promotion, and remote verification gate
 - `packaging/windows/`: bundled release notes and third-party runtime notices for the portable zip
 - `.github/workflows/`: CI and release packaging definitions
 
