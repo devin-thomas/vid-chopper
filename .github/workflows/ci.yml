@@ -176,6 +176,10 @@ jobs:
           cmakeVersion: ${{ env.CMAKE_VERSION }}
           ninjaVersion: ${{ env.NINJA_VERSION }}
 
+      - name: Prepare vcpkg binary cache
+        shell: pwsh
+        run: New-Item -ItemType Directory -Force '${{ runner.temp }}/vcpkg-binary-cache/windows-x64-msvc-${{ env.VCPKG_COMMIT }}' | Out-Null
+
       - name: Set up cached vcpkg dependencies
         uses: lukka/run-vcpkg@v11
         with:
@@ -288,6 +292,10 @@ jobs:
         with:
           cmakeVersion: ${{ env.CMAKE_VERSION }}
           ninjaVersion: ${{ env.NINJA_VERSION }}
+
+      - name: Prepare vcpkg binary cache
+        shell: pwsh
+        run: New-Item -ItemType Directory -Force '${{ runner.temp }}/vcpkg-binary-cache/windows-x64-msvc-${{ env.VCPKG_COMMIT }}' | Out-Null
 
       - name: Set up cached vcpkg dependencies
         uses: lukka/run-vcpkg@v11
@@ -479,6 +487,10 @@ jobs:
         with:
           cmakeVersion: ${{ env.CMAKE_VERSION }}
           ninjaVersion: ${{ env.NINJA_VERSION }}
+
+      - name: Prepare vcpkg binary cache
+        shell: bash
+        run: mkdir -p '${{ runner.temp }}/vcpkg-binary-cache/${{ matrix.platform }}-${{ matrix.architecture }}-${{ matrix.compiler }}-${{ matrix.vcpkg_triplet }}-${{ env.VCPKG_COMMIT }}'
 
       - name: Set up cached vcpkg dependencies
         uses: lukka/run-vcpkg@v11
@@ -755,6 +767,10 @@ jobs:
         with:
           cmakeVersion: ${{ env.CMAKE_VERSION }}
           ninjaVersion: ${{ env.NINJA_VERSION }}
+
+      - name: Prepare vcpkg binary cache
+        shell: bash
+        run: mkdir -p '${{ runner.temp }}/vcpkg-binary-cache/${{ matrix.platform }}-${{ matrix.architecture }}-${{ matrix.compiler }}-${{ matrix.vcpkg_triplet }}-${{ env.VCPKG_COMMIT }}'
 
       - name: Set up cached vcpkg dependencies
         uses: lukka/run-vcpkg@v11
