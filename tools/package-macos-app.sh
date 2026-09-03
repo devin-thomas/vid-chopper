@@ -83,8 +83,25 @@ ditto "$APP_INPUT" "$PACKAGE_APP"
 
 if command -v macdeployqt >/dev/null 2>&1 \
     && [[ ! -d "$PACKAGE_APP/Contents/Frameworks/QtCore.framework" ]]; then
-    macdeployqt "$PACKAGE_APP" -always-overwrite
+    macdeployqt "$PACKAGE_APP" -always-overwrite -no-codesign
 fi
+
+# Some Qt distributions expose optional plugins even when the framework that
+# backs the plugin is not installed. Keep only plugins whose @rpath framework
+# can be satisfied by the deployed bundle.
+OPTIONAL_PLUGIN_REQUIREMENTS=(
+    "PlugIns/iconengines/libqsvgicon.dylib:QtSvg.framework"
+    "PlugIns/imageformats/libqpdf.dylib:QtPdf.framework"
+    "PlugIns/platforminputcontexts/libqtvirtualkeyboardplugin.dylib:QtVirtualKeyboard.framework"
+)
+for requirement in "${OPTIONAL_PLUGIN_REQUIREMENTS[@]}"; do
+    plugin_path="${requirement%%:*}"
+    framework_name="${requirement#*:}"
+    if [[ -e "$PACKAGE_APP/Contents/$plugin_path" \
+        && ! -d "$PACKAGE_APP/Contents/Frameworks/$framework_name" ]]; then
+        rm -f "$PACKAGE_APP/Contents/$plugin_path"
+    fi
+done
 
 if ((DO_SIGN == 1)); then
     codesign --force --deep --sign - "$PACKAGE_APP"
@@ -134,7 +151,8 @@ if [[ -e "$CHECKSUM_PATH" ]]; then
     mv "$CHECKSUM_PATH" "$CHECKSUM_PATH.previous.$(date +%Y%m%d-%H%M%S)"
 fi
 hdiutil create -volname "VidChopper 1.2.0" -srcfolder "$IMAGE_ROOT" -format UDZO -ov "$DMG_PATH"
-shasum -a 256 "$DMG_PATH" > "$CHECKSUM_PATH"
+dmg_hash="$(shasum -a 256 "$DMG_PATH" | awk '{ print $1 }')"
+printf '%s *%s\n' "$dmg_hash" "$(basename "$DMG_PATH")" > "$CHECKSUM_PATH"
 
 echo "Created $DMG_PATH"
 echo "Checksum: $CHECKSUM_PATH"

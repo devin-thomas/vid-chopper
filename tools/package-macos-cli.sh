@@ -114,7 +114,8 @@ if [[ -e "$CHECKSUM_PATH" ]]; then
     mv "$CHECKSUM_PATH" "$CHECKSUM_PATH.previous.$(date +%Y%m%d-%H%M%S)"
 fi
 tar -C "$STAGE_DIR" -czf "$ARCHIVE_PATH" VidChopperCLI
-shasum -a 256 "$ARCHIVE_PATH" > "$CHECKSUM_PATH"
+archive_hash="$(shasum -a 256 "$ARCHIVE_PATH" | awk '{ print $1 }')"
+printf '%s *%s\n' "$archive_hash" "$(basename "$ARCHIVE_PATH")" > "$CHECKSUM_PATH"
 
 if ((DO_INSTALL == 1)); then
     mkdir -p "$INSTALL_DIR"

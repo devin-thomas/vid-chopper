@@ -1,0 +1,228 @@
+name: macOS Candidate
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Candidate version without the v prefix
+        required: true
+        default: 1.2.0
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: macos-candidate-${{ inputs.version }}
+  cancel-in-progress: false
+
+env:
+  CMAKE_VERSION: 3.31.6
+  NINJA_VERSION: 1.12.1
+  QT_VERSION: 6.11.1
+  VCPKG_COMMIT: 03e366fb91e38b9432ebd5f8cc79f7c8f55e96ab
+  FFMPEG_FORMULA: ffmpeg@7
+  FFMPEG_EXPECTED_PREFIX: 7.1.5
+  HOMEBREW_NO_AUTO_UPDATE: '1'
+  HOMEBREW_CACHE: ${{ github.workspace }}/.cache/homebrew
+  VCPKG_DEFAULT_TRIPLET: arm64-osx
+  VCPKG_DEFAULT_HOST_TRIPLET: arm64-osx
+
+jobs:
+  package-candidates:
+    runs-on: macos-15
+    timeout-minutes: 75
+    env:
+      VERSION: ${{ inputs.version }}
+
+    steps:
+      - name: Checkout candidate source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate candidate identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "$GITHUB_REF_NAME" != main ]]; then
+            echo "macOS release candidates must run from main, not $GITHUB_REF_NAME." >&2
+            exit 1
+          fi
+          cmake_version="$(sed -n 's/.*VIDCHOPPER_DISPLAY_VERSION "\([^"]*\)".*/\1/p' CMakeLists.txt | head -n 1)"
+          manifest_version="$(jq -r '.version' "packaging/releases/${VERSION}.json")"
+          publication_status="$(jq -r '.publicationStatus' "packaging/releases/${VERSION}.json")"
+          if [[ "$VERSION" != "$cmake_version" || "$VERSION" != "$manifest_version" ]]; then
+            echo "Candidate version does not match CMake and release metadata." >&2
+            exit 1
+          fi
+          if [[ "$publication_status" != candidate-pending ]]; then
+            echo "Candidate generation requires candidate-pending release metadata." >&2
+            exit 1
+          fi
+
+      - name: Select current Apple toolchain
+        shell: bash
+        run: sudo xcode-select --switch /Applications/Xcode_26.3.app/Contents/Developer
+
+      - name: Set up pinned CMake and Ninja
+        uses: lukka/get-cmake@v4.3.3
+        with:
+          cmakeVersion: ${{ env.CMAKE_VERSION }}
+          ninjaVersion: ${{ env.NINJA_VERSION }}
+
+      - name: Prepare vcpkg binary cache
+        shell: bash
+        run: mkdir -p '${{ runner.temp }}/vcpkg-binary-cache/macos-arm64-apple-clang-arm64-osx-${{ env.VCPKG_COMMIT }}'
+
+      - name: Set up cached vcpkg dependencies
+        uses: lukka/run-vcpkg@v11
+        with:
+          vcpkgDirectory: '${{ runner.temp }}/vcpkg'
+          vcpkgGitCommitId: ${{ env.VCPKG_COMMIT }}
+          vcpkgJsonGlob: '**/vcpkg.json'
+          runVcpkgInstall: false
+          binaryCachePath: '${{ runner.temp }}/vcpkg-binary-cache/macos-arm64-apple-clang-arm64-osx-${{ env.VCPKG_COMMIT }}'
+
+      - name: Install cached Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{ env.QT_VERSION }}
+          host: mac
+          target: desktop
+          arch: clang_64
+          dir: '${{ runner.temp }}/qt'
+          install-deps: true
+          cache: true
+          cache-key-prefix: vidchopper-qt-${{ env.QT_VERSION }}-macos-arm64-apple-clang
+
+      - name: Install pinned FFmpeg
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOMEBREW_CACHE"
+          if ! brew install "$FFMPEG_FORMULA"; then
+            brew list --versions "$FFMPEG_FORMULA" >/dev/null
+          fi
+          brew link --overwrite --force "$FFMPEG_FORMULA"
+          brew pin "$FFMPEG_FORMULA"
+          installed_version="$(brew list --versions "$FFMPEG_FORMULA" | awk '{ print $2 }')"
+          if [[ "$installed_version" != "$FFMPEG_EXPECTED_PREFIX"* ]]; then
+            echo "Expected $FFMPEG_FORMULA $FFMPEG_EXPECTED_PREFIX, got $installed_version." >&2
+            exit 1
+          fi
+
+      - name: Configure and build macOS app and CLI
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/candidate-logs
+          cmake --fresh --preset macos-gui-release 2>&1 | tee artifacts/candidate-logs/configure.log
+          cmake --build --preset macos-gui-release --parallel 2 2>&1 | tee artifacts/candidate-logs/build.log
+          ctest --test-dir build/macos-gui-release -L qt --output-on-failure 2>&1 | tee artifacts/candidate-logs/ctest-qt.log
+
+      - name: Package exact CLI and DMG bytes
+        shell: bash
+        run: |
+          set -euo pipefail
+          output_dir="$GITHUB_WORKSPACE/artifacts/candidate"
+          tools/package-macos-cli.sh --output-dir "$output_dir"
+          tools/package-macos-app.sh \
+            --sign \
+            --cli "$output_dir/VidChopper-${VERSION}-macos-arm64-cli.tar.gz" \
+            --output-dir "$output_dir"
+          find "$output_dir" -maxdepth 1 -type f -print | sort
+
+      - name: Upload immutable macOS candidates
+        uses: actions/upload-artifact@v4
+        with:
+          name: vidchopper-macos-arm64-${{ inputs.version }}
+          path: |
+            artifacts/candidate/VidChopper-${{ inputs.version }}-macos-arm64.dmg
+            artifacts/candidate/VidChopper-${{ inputs.version }}-macos-arm64.dmg.sha256
+            artifacts/candidate/VidChopper-${{ inputs.version }}-macos-arm64-cli.tar.gz
+            artifacts/candidate/VidChopper-${{ inputs.version }}-macos-arm64-cli.tar.gz.sha256
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload package failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-candidate-package-failure-${{ inputs.version }}-${{ github.run_attempt }}
+          path: artifacts/candidate-logs/**
+          if-no-files-found: warn
+          retention-days: 14
+
+  smoke-exact-candidates:
+    needs: package-candidates
+    runs-on: macos-15
+    timeout-minutes: 45
+    env:
+      VERSION: ${{ inputs.version }}
+
+    steps:
+      - name: Checkout verification code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download exact candidate bytes
+        uses: actions/download-artifact@v4
+        with:
+          name: vidchopper-macos-arm64-${{ inputs.version }}
+          path: artifacts/candidate
+
+      - name: Install pinned FFmpeg
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOMEBREW_CACHE"
+          if ! brew install "$FFMPEG_FORMULA"; then
+            brew list --versions "$FFMPEG_FORMULA" >/dev/null
+          fi
+          brew link --overwrite --force "$FFMPEG_FORMULA"
+          brew pin "$FFMPEG_FORMULA"
+          installed_version="$(brew list --versions "$FFMPEG_FORMULA" | awk '{ print $2 }')"
+          if [[ "$installed_version" != "$FFMPEG_EXPECTED_PREFIX"* ]]; then
+            echo "Expected $FFMPEG_FORMULA $FFMPEG_EXPECTED_PREFIX, got $installed_version." >&2
+            exit 1
+          fi
+
+      - name: Verify exact DMG and CLI archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/evidence
+          tools/verify-macos-candidate.sh \
+            --version "$VERSION" \
+            --dmg "$GITHUB_WORKSPACE/artifacts/candidate/VidChopper-${VERSION}-macos-arm64.dmg" \
+            --cli-archive "$GITHUB_WORKSPACE/artifacts/candidate/VidChopper-${VERSION}-macos-arm64-cli.tar.gz" \
+            --evidence "$GITHUB_WORKSPACE/artifacts/evidence/macos-candidate-evidence.json" \
+            2>&1 | tee artifacts/evidence/verification.log
+
+      - name: Prove changed bytes are rejected
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_path="artifacts/candidate/VidChopper-${VERSION}-macos-arm64.dmg"
+          tampered_path="artifacts/evidence/tampered-copy.dmg"
+          cp "$source_path" "$tampered_path"
+          printf 'tampered' >> "$tampered_path"
+          expected="$(awk 'NR == 1 { print $1 }' "${source_path}.sha256")"
+          actual="$(shasum -a 256 "$tampered_path" | awk '{ print $1 }')"
+          if [[ "$expected" == "$actual" ]]; then
+            echo "Tampered candidate unexpectedly matched the recorded hash." >&2
+            exit 1
+          fi
+          rm "$tampered_path"
+          printf 'tamper-rejection=passed\n' > artifacts/evidence/tamper-rejection.txt
+
+      - name: Upload automated candidate evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vidchopper-macos-evidence-${{ inputs.version }}-${{ github.run_attempt }}
+          path: artifacts/evidence/**
+          if-no-files-found: warn
+          retention-days: 30
