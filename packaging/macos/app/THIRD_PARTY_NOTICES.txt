@@ -1,0 +1,39 @@
+VidChopper macOS package notices
+================================
+
+This package is assembled from locally built VidChopper artifacts. The exact
+Qt libraries, plugins, and other runtime files depend on the input build and
+are copied by macdeployqt and the local packaging script.
+
+VidChopper
+----------
+VidChopper source code is distributed under the MIT License. The complete
+project license is included beside the application as LICENSE.
+
+Qt
+--
+The application uses Qt. Qt frameworks and plugins copied into the app bundle
+remain subject to the Qt license and the redistribution obligations that apply
+to the Qt build used to create the artifact. Keep the applicable Qt notices
+with any redistribution of this package.
+
+yaml-cpp and other CLI dependencies
+------------------------------------
+An optional VidChopperCLI input may contain yaml-cpp or other non-FFmpeg
+runtime libraries. Those files retain their original licenses and notices.
+Review the supplied CLI archive's notices before sharing the package. The
+packaging script does not invent or replace upstream notices.
+
+FFmpeg and ffprobe
+------------------
+ffmpeg and ffprobe are not bundled by this packaging path. If a user installs
+or configures those tools separately, their own licenses and notices apply.
+
+Apple system components
+-----------------------
+The application may use macOS system frameworks and libraries supplied by
+Apple. Those components are not copied into the package and remain governed by
+Apple's terms.
+
+This file is a packaging reminder, not a substitute for reviewing the exact
+dependencies in the built artifacts.

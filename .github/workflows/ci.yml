@@ -176,6 +176,10 @@ jobs:
           cmakeVersion: ${{ env.CMAKE_VERSION }}
           ninjaVersion: ${{ env.NINJA_VERSION }}
 
+      - name: Prepare vcpkg binary cache
+        shell: pwsh
+        run: New-Item -ItemType Directory -Force '${{ runner.temp }}/vcpkg-binary-cache/windows-x64-msvc-${{ env.VCPKG_COMMIT }}' | Out-Null
+
       - name: Set up cached vcpkg dependencies
         uses: lukka/run-vcpkg@v11
         with:
@@ -213,7 +217,8 @@ jobs:
           New-Item -ItemType Directory -Force artifacts/ci | Out-Null
           $cmakeVersion = (cmake --version | Select-Object -First 1)
           $ninjaVersion = (ninja --version | Select-Object -First 1)
-          $compilerVersion = ((cl 2>&1) | Select-Object -First 1)
+          $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
+          $compilerVersion = (& $vswhere -latest -products * -property catalog_productDisplayVersion | Select-Object -First 1)
           $vcpkgVersion = (& (Join-Path $env:VCPKG_ROOT 'vcpkg.exe') version | Select-Object -First 1)
           $qtVersion = (& (Join-Path $env:QT_ROOT_DIR 'bin\qmake.exe') -query QT_VERSION).Trim()
           $ffmpegVersion = (ffmpeg -version | Select-Object -First 1)
@@ -289,6 +294,10 @@ jobs:
           cmakeVersion: ${{ env.CMAKE_VERSION }}
           ninjaVersion: ${{ env.NINJA_VERSION }}
 
+      - name: Prepare vcpkg binary cache
+        shell: pwsh
+        run: New-Item -ItemType Directory -Force '${{ runner.temp }}/vcpkg-binary-cache/windows-x64-msvc-${{ env.VCPKG_COMMIT }}' | Out-Null
+
       - name: Set up cached vcpkg dependencies
         uses: lukka/run-vcpkg@v11
         with:
@@ -326,7 +335,8 @@ jobs:
           New-Item -ItemType Directory -Force artifacts/ci | Out-Null
           $cmakeVersion = (cmake --version | Select-Object -First 1)
           $ninjaVersion = (ninja --version | Select-Object -First 1)
-          $compilerVersion = ((cl 2>&1) | Select-Object -First 1)
+          $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
+          $compilerVersion = (& $vswhere -latest -products * -property catalog_productDisplayVersion | Select-Object -First 1)
           $vcpkgVersion = (& (Join-Path $env:VCPKG_ROOT 'vcpkg.exe') version | Select-Object -First 1)
           $qtVersion = (& (Join-Path $env:QT_ROOT_DIR 'bin\qmake.exe') -query QT_VERSION).Trim()
           $ffmpegVersion = (ffmpeg -version | Select-Object -First 1)
@@ -416,6 +426,7 @@ jobs:
             os: macos-15
             platform: macos
             architecture: arm64
+            qt_version: 6.11.1
             compiler: apple-clang
             cc: clang
             cxx: clang++
@@ -431,6 +442,7 @@ jobs:
             os: macos-26
             platform: macos
             architecture: arm64
+            qt_version: 6.11.1
             compiler: apple-clang
             cc: clang
             cxx: clang++
@@ -446,12 +458,13 @@ jobs:
             os: ubuntu-24.04
             platform: ubuntu
             architecture: x64
+            qt_version: 6.9.0
             compiler: gcc-13
             cc: gcc-13
             cxx: g++-13
             vcpkg_triplet: x64-linux
             qt_host: linux
-            qt_arch: gcc_64
+            qt_arch: linux_gcc_64
             ffmpeg_formula: ''
             ffmpeg_apt_prefix: '7:6.1.1-3ubuntu5'
             ffmpeg_expected_prefix: 6.1.1
@@ -469,16 +482,26 @@ jobs:
       FFMPEG_FORMULA: ${{ matrix.ffmpeg_formula }}
       FFMPEG_APT_PREFIX: ${{ matrix.ffmpeg_apt_prefix }}
       FFMPEG_EXPECTED_PREFIX: ${{ matrix.ffmpeg_expected_prefix }}
+      QT_VERSION: ${{ matrix.qt_version }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Select current Apple toolchain
+        if: matrix.os == 'macos-15'
+        shell: bash
+        run: sudo xcode-select --switch /Applications/Xcode_26.3.app/Contents/Developer
 
       - name: Set up pinned CMake and Ninja
         uses: lukka/get-cmake@v4.3.3
         with:
           cmakeVersion: ${{ env.CMAKE_VERSION }}
           ninjaVersion: ${{ env.NINJA_VERSION }}
+
+      - name: Prepare vcpkg binary cache
+        shell: bash
+        run: mkdir -p '${{ runner.temp }}/vcpkg-binary-cache/${{ matrix.platform }}-${{ matrix.architecture }}-${{ matrix.compiler }}-${{ matrix.vcpkg_triplet }}-${{ env.VCPKG_COMMIT }}'
 
       - name: Set up cached vcpkg dependencies
         uses: lukka/run-vcpkg@v11
@@ -489,7 +512,7 @@ jobs:
           runVcpkgInstall: false
           binaryCachePath: '${{ runner.temp }}/vcpkg-binary-cache/${{ matrix.platform }}-${{ matrix.architecture }}-${{ matrix.compiler }}-${{ matrix.vcpkg_triplet }}-${{ env.VCPKG_COMMIT }}'
 
-      - name: Install cached Qt 6.9
+      - name: Install cached Qt
         uses: jurplel/install-qt-action@v4
         with:
           version: ${{ env.QT_VERSION }}
@@ -522,11 +545,13 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p "$HOMEBREW_CACHE"
-          brew install "$FFMPEG_FORMULA"
+          if ! brew install "$FFMPEG_FORMULA"; then
+            brew list --versions "$FFMPEG_FORMULA" >/dev/null
+          fi
           brew link --overwrite --force "$FFMPEG_FORMULA"
           brew pin "$FFMPEG_FORMULA"
           installed_version="$(brew list --versions "$FFMPEG_FORMULA" | awk '{ print $2 }')"
-          if [[ "$installed_version" != "$FFMPEG_EXPECTED_PREFIX" ]]; then
+          if [[ "$installed_version" != "$FFMPEG_EXPECTED_PREFIX"* ]]; then
             echo "Expected $FFMPEG_FORMULA $FFMPEG_EXPECTED_PREFIX, got $installed_version." >&2
             exit 1
           fi
@@ -691,6 +716,7 @@ jobs:
             os: macos-15
             platform: macos
             architecture: arm64
+            qt_version: 6.11.1
             compiler: apple-clang
             cc: clang
             cxx: clang++
@@ -706,6 +732,7 @@ jobs:
             os: macos-26
             platform: macos
             architecture: arm64
+            qt_version: 6.11.1
             compiler: apple-clang
             cc: clang
             cxx: clang++
@@ -721,12 +748,13 @@ jobs:
             os: ubuntu-24.04
             platform: ubuntu
             architecture: x64
+            qt_version: 6.9.0
             compiler: gcc-13
             cc: gcc-13
             cxx: g++-13
             vcpkg_triplet: x64-linux
             qt_host: linux
-            qt_arch: gcc_64
+            qt_arch: linux_gcc_64
             ffmpeg_formula: ''
             ffmpeg_apt_prefix: '7:6.1.1-3ubuntu5'
             ffmpeg_expected_prefix: 6.1.1
@@ -744,17 +772,27 @@ jobs:
       FFMPEG_FORMULA: ${{ matrix.ffmpeg_formula }}
       FFMPEG_APT_PREFIX: ${{ matrix.ffmpeg_apt_prefix }}
       FFMPEG_EXPECTED_PREFIX: ${{ matrix.ffmpeg_expected_prefix }}
+      QT_VERSION: ${{ matrix.qt_version }}
       QT_QPA_PLATFORM: offscreen
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Select current Apple toolchain
+        if: matrix.os == 'macos-15'
+        shell: bash
+        run: sudo xcode-select --switch /Applications/Xcode_26.3.app/Contents/Developer
+
       - name: Set up pinned CMake and Ninja
         uses: lukka/get-cmake@v4.3.3
         with:
           cmakeVersion: ${{ env.CMAKE_VERSION }}
           ninjaVersion: ${{ env.NINJA_VERSION }}
+
+      - name: Prepare vcpkg binary cache
+        shell: bash
+        run: mkdir -p '${{ runner.temp }}/vcpkg-binary-cache/${{ matrix.platform }}-${{ matrix.architecture }}-${{ matrix.compiler }}-${{ matrix.vcpkg_triplet }}-${{ env.VCPKG_COMMIT }}'
 
       - name: Set up cached vcpkg dependencies
         uses: lukka/run-vcpkg@v11
@@ -765,7 +803,7 @@ jobs:
           runVcpkgInstall: false
           binaryCachePath: '${{ runner.temp }}/vcpkg-binary-cache/${{ matrix.platform }}-${{ matrix.architecture }}-${{ matrix.compiler }}-${{ matrix.vcpkg_triplet }}-${{ env.VCPKG_COMMIT }}'
 
-      - name: Install cached Qt 6.9
+      - name: Install cached Qt
         uses: jurplel/install-qt-action@v4
         with:
           version: ${{ env.QT_VERSION }}
@@ -798,11 +836,13 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p "$HOMEBREW_CACHE"
-          brew install "$FFMPEG_FORMULA"
+          if ! brew install "$FFMPEG_FORMULA"; then
+            brew list --versions "$FFMPEG_FORMULA" >/dev/null
+          fi
           brew link --overwrite --force "$FFMPEG_FORMULA"
           brew pin "$FFMPEG_FORMULA"
           installed_version="$(brew list --versions "$FFMPEG_FORMULA" | awk '{ print $2 }')"
-          if [[ "$installed_version" != "$FFMPEG_EXPECTED_PREFIX" ]]; then
+          if [[ "$installed_version" != "$FFMPEG_EXPECTED_PREFIX"* ]]; then
             echo "Expected $FFMPEG_FORMULA $FFMPEG_EXPECTED_PREFIX, got $installed_version." >&2
             exit 1
           fi

@@ -41,7 +41,9 @@ tmp/
 .venv-tools/
 CODEX.md
 PUBLISH.md
-.codex/
+.codex/*
+!.codex/environments/
+!.codex/environments/environment.toml
 .agents/*
 !.agents/skills/
 .agents/skills/*

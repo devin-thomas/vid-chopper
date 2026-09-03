@@ -1,8 +1,11 @@
 cmake_minimum_required(VERSION 3.28)
 
+set(CMAKE_OSX_ARCHITECTURES "arm64" CACHE STRING "Apple Silicon architecture for macOS builds")
+set(CMAKE_OSX_DEPLOYMENT_TARGET "15.0" CACHE STRING "Minimum macOS version for macOS builds")
+
 project(
     VidChopper
-    VERSION 1.1.0
+    VERSION 1.2.0
     DESCRIPTION "Qt desktop app for splitting videos into chapter clips with ffmpeg"
     LANGUAGES CXX
 )
@@ -11,7 +14,16 @@ option(VIDCHOPPER_BUILD_CLI "Build the no-Qt CLI target" ON)
 option(VIDCHOPPER_BUILD_GUI "Build the Qt GUI target" ON)
 option(VIDCHOPPER_BUILD_TESTS "Build the test targets" ON)
 option(VIDCHOPPER_BUILD_QT_TESTS "Build Qt-dependent test targets" OFF)
-set(VIDCHOPPER_DISPLAY_VERSION "1.1.0" CACHE STRING "User-facing version string")
+set(VIDCHOPPER_DISPLAY_VERSION "1.2.0" CACHE STRING "User-facing version string")
+
+if(APPLE)
+    if(NOT "${CMAKE_OSX_ARCHITECTURES}" STREQUAL "arm64")
+        message(FATAL_ERROR "VidChopper macOS builds require the arm64 architecture")
+    endif()
+    if(NOT "${CMAKE_OSX_DEPLOYMENT_TARGET}" VERSION_EQUAL "15.0")
+        message(FATAL_ERROR "VidChopper macOS builds require macOS deployment target 15.0")
+    endif()
+endif()
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -118,6 +130,7 @@ if(VIDCHOPPER_BUILD_CLI)
 endif()
 
 include(CTest)
+include(GNUInstallDirs)
 
 if(VIDCHOPPER_BUILD_TESTS OR VIDCHOPPER_BUILD_QT_TESTS)
     enable_testing()
@@ -180,14 +193,43 @@ if(VIDCHOPPER_BUILD_GUI)
 
     find_package(Qt6 6.7 REQUIRED COMPONENTS Core Gui Widgets)
 
-    qt_standard_project_setup()
+    qt_standard_project_setup(REQUIRES 6.7)
 
-    set(VIDCHOPPER_WIN_RESOURCE "")
+    set(VIDCHOPPER_GUI_EXECUTABLE_OPTIONS "")
+    set(VIDCHOPPER_PLATFORM_RESOURCES "")
     if(WIN32)
-        set(VIDCHOPPER_WIN_RESOURCE resources/app_icon.rc)
+        list(APPEND VIDCHOPPER_PLATFORM_RESOURCES resources/app_icon.rc)
     endif()
 
-    add_executable(VidChopper
+    if(APPLE)
+        set(VIDCHOPPER_BUNDLE_IDENTIFIER "com.vidchopper.VidChopper")
+        set(VIDCHOPPER_BUNDLE_DISPLAY_NAME "VidChopper")
+        set(VIDCHOPPER_BUNDLE_CATEGORY "public.app-category.video")
+        set(VIDCHOPPER_BUNDLE_COPYRIGHT "Copyright (c) 2026 VidChopper contributors.")
+        set(VIDCHOPPER_BUNDLE_EXECUTABLE "VidChopper")
+        set(VIDCHOPPER_MACOS_ICON_FILE "VidChopper.icns")
+        set(VIDCHOPPER_MACOS_ICON "${PROJECT_SOURCE_DIR}/resources/macos/${VIDCHOPPER_MACOS_ICON_FILE}")
+        set(VIDCHOPPER_MACOS_INFO_PLIST "${CMAKE_CURRENT_BINARY_DIR}/VidChopper-Info.plist")
+
+        if(NOT EXISTS "${VIDCHOPPER_MACOS_ICON}")
+            message(FATAL_ERROR "Missing macOS application icon: ${VIDCHOPPER_MACOS_ICON}")
+        endif()
+
+        configure_file(
+            "${PROJECT_SOURCE_DIR}/resources/macos/Info.plist.in"
+            "${VIDCHOPPER_MACOS_INFO_PLIST}"
+            @ONLY
+        )
+        set_source_files_properties(
+            "${VIDCHOPPER_MACOS_ICON}"
+            PROPERTIES
+                MACOSX_PACKAGE_LOCATION "Resources"
+        )
+        list(APPEND VIDCHOPPER_GUI_EXECUTABLE_OPTIONS MACOSX_BUNDLE)
+        list(APPEND VIDCHOPPER_PLATFORM_RESOURCES "${VIDCHOPPER_MACOS_ICON}")
+    endif()
+
+    qt_add_executable(VidChopper ${VIDCHOPPER_GUI_EXECUTABLE_OPTIONS}
         src/qt/main.cpp
         src/qt/app_settings.cpp
         src/qt/app_settings.hpp
@@ -218,14 +260,49 @@ if(VIDCHOPPER_BUILD_GUI)
         src/qt/ui/zoom_policy.cpp
         src/qt/ui/zoom_policy.hpp
         resources/app_icon.qrc
-        ${VIDCHOPPER_WIN_RESOURCE}
+        ${VIDCHOPPER_PLATFORM_RESOURCES}
     )
 
     target_link_libraries(VidChopper PRIVATE Qt6::Core Qt6::Gui Qt6::Widgets vidchopper_core vidchopper_services)
     apply_vidchopper_display_version(VidChopper)
     apply_vidchopper_warnings(VidChopper)
 
-    set_target_properties(VidChopper PROPERTIES WIN32_EXECUTABLE TRUE OUTPUT_NAME "VidChopper")
+    set_target_properties(VidChopper PROPERTIES
+        WIN32_EXECUTABLE TRUE
+        OUTPUT_NAME "VidChopper"
+    )
+
+    if(APPLE)
+        set_target_properties(VidChopper PROPERTIES
+            MACOSX_BUNDLE TRUE
+            MACOSX_BUNDLE_BUNDLE_NAME "${VIDCHOPPER_BUNDLE_DISPLAY_NAME}"
+            MACOSX_BUNDLE_BUNDLE_VERSION "${PROJECT_VERSION}"
+            MACOSX_BUNDLE_COPYRIGHT "${VIDCHOPPER_BUNDLE_COPYRIGHT}"
+            MACOSX_BUNDLE_GUI_IDENTIFIER "${VIDCHOPPER_BUNDLE_IDENTIFIER}"
+            MACOSX_BUNDLE_ICON_FILE "${VIDCHOPPER_MACOS_ICON_FILE}"
+            MACOSX_BUNDLE_INFO_PLIST "${VIDCHOPPER_MACOS_INFO_PLIST}"
+            MACOSX_BUNDLE_SHORT_VERSION_STRING "${VIDCHOPPER_DISPLAY_VERSION}"
+            MACOSX_RPATH TRUE
+            BUILD_WITH_INSTALL_RPATH FALSE
+            INSTALL_RPATH "@executable_path/../Frameworks;@loader_path/../Frameworks"
+            INSTALL_RPATH_USE_LINK_PATH TRUE
+        )
+
+        if(NOT COMMAND qt_generate_deploy_app_script)
+            message(FATAL_ERROR "The installed Qt version does not provide app-bundle deployment support")
+        endif()
+
+        qt_generate_deploy_app_script(
+            TARGET VidChopper
+            OUTPUT_SCRIPT VIDCHOPPER_DEPLOY_SCRIPT
+            NO_TRANSLATIONS
+        )
+        install(TARGETS VidChopper
+            BUNDLE DESTINATION .
+            RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
+        )
+        install(SCRIPT "${VIDCHOPPER_DEPLOY_SCRIPT}")
+    endif()
 
     if(VIDCHOPPER_BUILD_QT_TESTS)
         find_package(Qt6 6.7 REQUIRED COMPONENTS Test)

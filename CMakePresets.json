@@ -15,7 +15,7 @@
         "VIDCHOPPER_BUILD_GUI": "OFF",
         "VIDCHOPPER_BUILD_TESTS": "ON",
         "VIDCHOPPER_BUILD_QT_TESTS": "OFF",
-        "VIDCHOPPER_DISPLAY_VERSION": "1.1.0"
+        "VIDCHOPPER_DISPLAY_VERSION": "1.2.0"
       }
     },
     {
@@ -42,7 +42,9 @@
         "VIDCHOPPER_BUILD_CLI": "ON",
         "VIDCHOPPER_BUILD_GUI": "ON",
         "VIDCHOPPER_BUILD_TESTS": "OFF",
-        "VIDCHOPPER_BUILD_QT_TESTS": "ON"
+        "VIDCHOPPER_BUILD_QT_TESTS": "ON",
+        "CMAKE_OSX_ARCHITECTURES": "arm64",
+        "CMAKE_OSX_DEPLOYMENT_TARGET": "15.0"
       }
     },
     {

@@ -1,0 +1,10 @@
+VidChopperCLI macOS package notices
+===================================
+
+VidChopper source code is distributed under the MIT License. See LICENSE.
+
+The CLI uses yaml-cpp and nlohmann-json through the repository's vcpkg
+manifest. Their upstream licenses remain applicable to the built executable.
+
+ffmpeg and ffprobe are intentionally not bundled. Any separately installed
+media tools retain their own licenses and notices.

@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleDevelopmentRegion</key>
+    <string>en</string>
+    <key>CFBundleDisplayName</key>
+    <string>@VIDCHOPPER_BUNDLE_DISPLAY_NAME@</string>
+    <key>CFBundleExecutable</key>
+    <string>@VIDCHOPPER_BUNDLE_EXECUTABLE@</string>
+    <key>CFBundleIconFile</key>
+    <string>@VIDCHOPPER_MACOS_ICON_FILE@</string>
+    <key>CFBundleIdentifier</key>
+    <string>@VIDCHOPPER_BUNDLE_IDENTIFIER@</string>
+    <key>CFBundleInfoDictionaryVersion</key>
+    <string>6.0</string>
+    <key>CFBundleName</key>
+    <string>@VIDCHOPPER_BUNDLE_DISPLAY_NAME@</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleShortVersionString</key>
+    <string>@VIDCHOPPER_DISPLAY_VERSION@</string>
+    <key>CFBundleSignature</key>
+    <string>????</string>
+    <key>CFBundleVersion</key>
+    <string>@PROJECT_VERSION@</string>
+    <key>LSApplicationCategoryType</key>
+    <string>@VIDCHOPPER_BUNDLE_CATEGORY@</string>
+    <key>LSMinimumSystemVersion</key>
+    <string>@CMAKE_OSX_DEPLOYMENT_TARGET@</string>
+    <key>NSHighResolutionCapable</key>
+    <true/>
+    <key>NSHumanReadableCopyright</key>
+    <string>@VIDCHOPPER_BUNDLE_COPYRIGHT@</string>
+</dict>
+</plist>
