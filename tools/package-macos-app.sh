@@ -70,7 +70,7 @@ if [[ "$(uname -m)" != "$ARCHITECTURE" ]]; then
     echo "The local app package requires an arm64 Apple Silicon host." >&2
     exit 1
 fi
-if ! file "$APP_INPUT/Contents/MacOS/VidChopper" | rg -q 'arm64'; then
+if ! file "$APP_INPUT/Contents/MacOS/VidChopper" | grep -Eq 'arm64'; then
     echo "Application executable is not arm64: $APP_INPUT" >&2
     exit 1
 fi
@@ -108,7 +108,8 @@ if ((DO_SIGN == 1)); then
     codesign --verify --deep --strict "$PACKAGE_APP"
 fi
 
-if otool -L "$PACKAGE_APP/Contents/MacOS/VidChopper" | rg -q '/Users/research/homebrew|/opt/homebrew|/usr/local/opt'; then
+if otool -L "$PACKAGE_APP/Contents/MacOS/VidChopper" \
+    | grep -Eq '/Users/research/homebrew|/opt/homebrew|/usr/local/opt'; then
     echo "Packaged app still links to a developer-local library path." >&2
     exit 1
 fi

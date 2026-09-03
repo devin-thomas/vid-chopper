@@ -156,7 +156,7 @@ audit_macho_dependencies() {
     local install_id
     : > "$audit_path"
     while IFS= read -r -d '' file_path; do
-        if file "$file_path" | rg -q 'Mach-O'; then
+        if file "$file_path" | grep -Eq 'Mach-O'; then
             install_id="$(otool -D "$file_path" 2>/dev/null | sed -n '2p')"
             printf '%s:\n' "$file_path" >> "$audit_path"
             while IFS= read -r dependency_line; do
@@ -180,7 +180,7 @@ audit_macho_dependencies() {
             done < <(otool -L "$file_path" | tail -n +2)
         fi
     done < <(find "$root" -type f -print0)
-    if rg -n '/Users/|/home/|/opt/homebrew|/usr/local/(Cellar|opt)/|/build/' "$audit_path"; then
+    if grep -En '/Users/|/home/|/opt/homebrew|/usr/local/(Cellar|opt)/|/build/' "$audit_path"; then
         echo "Packaged Mach-O dependency audit found a developer-local path." >&2
         exit 1
     fi
@@ -274,7 +274,7 @@ GUI_PID=""
 
 DRY_RUN_LOG="$WORK_DIR/cli-dry-run.log"
 HOME="$TEST_HOME" "$CLI" "$SOURCE_VIDEO" "$CHAPTER_FILE" --dry-run 2>&1 | tee "$DRY_RUN_LOG"
-if ! rg -q 'Planned chapters: 1' "$DRY_RUN_LOG"; then
+if ! grep -Eq 'Planned chapters: 1' "$DRY_RUN_LOG"; then
     echo "Packaged CLI dry-run did not plan exactly one chapter." >&2
     exit 1
 fi
@@ -287,7 +287,7 @@ fi
 
 EXPORT_LOG="$WORK_DIR/cli-export.log"
 HOME="$TEST_HOME" "$CLI" "$SOURCE_VIDEO" "$CHAPTER_FILE" --preset ultrafast --crf 40 2>&1 | tee "$EXPORT_LOG"
-if ! rg -q 'Summary: exported=1, failed=0, skipped=0' "$EXPORT_LOG"; then
+if ! grep -Eq 'Summary: exported=1, failed=0, skipped=0' "$EXPORT_LOG"; then
     echo "Packaged CLI export summary did not report complete success." >&2
     exit 1
 fi
