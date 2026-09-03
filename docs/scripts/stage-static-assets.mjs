@@ -251,8 +251,10 @@ async function validateReleaseContract(validatedSources) {
     );
     requireRelease(
       candidateRelease.version === displayVersion &&
-        candidateRelease.publicationStatus === "candidate-pending",
-      "CMake display version drifted without an explicit pending release candidate",
+        ["candidate-pending", "release-ready"].includes(
+          candidateRelease.publicationStatus,
+        ),
+      "CMake display version drifted without an explicit pre-publication release",
     );
   }
 }
