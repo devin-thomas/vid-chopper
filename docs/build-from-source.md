@@ -125,8 +125,9 @@ ffprobe -version
 The resolver checks an explicit configured executable first, then `PATH`, common Homebrew locations such
 as `/opt/homebrew/bin` and `/usr/local/bin`, and standard Unix locations such as `/usr/local/bin` and
 `/usr/bin`. It normalizes duplicate candidates, verifies executability, runs `-version`, parses the
-version, and blocks versions below 6.1 or at major 9 and above. A supported ffmpeg/ffprobe version
-mismatch remains a visible warning with both paths and versions.
+version, and blocks versions below 6.1 or at major 10 and above. The current 1.2.0 source accepts major
+9.x; the published 1.1.0 foundation remains qualified through major 8.x. A supported ffmpeg/ffprobe
+version mismatch remains a visible warning with both paths and versions.
 
 Auto encoder selection must use a real minimal capability encode before hardware export. Auto chooses
 usable HEVC VideoToolbox on Apple Silicon only in the `1.2.0` contract; Windows/Linux use usable HEVC

@@ -246,7 +246,7 @@ auto add_tool_candidate(std::vector<Candidate>& candidates,
 }
 
 [[nodiscard]] auto supported_range_text() -> std::string_view {
-    return "Supported versions are 6.1 through 8.x.";
+    return "Supported versions are 6.1 through 9.x.";
 }
 
 [[nodiscard]] auto parse_unsigned(std::string_view text, size_t& offset) -> std::optional<u32> {
@@ -287,10 +287,11 @@ auto add_tool_candidate(std::vector<Candidate>& candidates,
 
 auto set_no_tool_failure(ToolResolution& result) -> void {
     if (result.diagnostics.empty()) {
-        result.failure_reason = std::format("Unable to find a supported {} executable: no candidates were checked. {} {}",
-            tool_kind_name(result.kind),
-            supported_range_text(),
-            platform_guidance());
+        result.failure_reason =
+            std::format("Unable to find a supported {} executable: no candidates were checked. {} {}",
+                tool_kind_name(result.kind),
+                supported_range_text(),
+                platform_guidance());
         return;
     }
 
@@ -373,7 +374,7 @@ auto parse_tool_version(const std::string_view output, const ToolKind kind) -> s
 }
 
 auto is_supported_tool_version(const ToolVersion& version) noexcept -> bool {
-    return (version.major == 6 && version.minor >= 1) || version.major == 7 || version.major == 8;
+    return (version.major == 6 && version.minor >= 1) || version.major == 7 || version.major == 8 || version.major == 9;
 }
 
 auto format_tool_version(const ToolVersion& version) -> std::string {
@@ -416,8 +417,8 @@ auto MediaToolResolver::resolve(const ToolKind kind, const Path& configured_path
 
         result.selected_path = candidate.path;
         if (!options_.executor) {
-            static_cast<void>(reject_candidate(
-                result, std::move(diagnostic), "no process executor is configured", true));
+            static_cast<void>(
+                reject_candidate(result, std::move(diagnostic), "no process executor is configured", true));
             return result;
         }
         const ProcessResult process = options_.executor(ProcessRequest {
@@ -449,7 +450,8 @@ auto MediaToolResolver::resolve(const ToolKind kind, const Path& configured_path
         }
         result.version = *version;
         if (!is_supported_tool_version(result.version)) {
-            const std::string reason = std::format("reports unsupported version {}", format_tool_version(result.version));
+            const std::string reason =
+                std::format("reports unsupported version {}", format_tool_version(result.version));
             if (reject_candidate(result, std::move(diagnostic), reason, strict_configured_path)) {
                 return result;
             }

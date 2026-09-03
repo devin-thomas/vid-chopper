@@ -201,10 +201,11 @@ one explicit CLI settings file; `--portable` selects the deterministic sidecar b
 Those modes cannot be combined. There are no `--ffmpeg` or `--ffprobe` flags; use the current
 [CLI reference](docs/cli-config-schema.md) and [settings reference](docs/cli-settings.md).
 
-The 1.1.0 foundation accepts external FFmpeg and ffprobe from a configured path, `PATH`, common Homebrew
-locations, and standard Unix locations, then validates that each executable runs `-version` and reports a
-supported version. The supported range is FFmpeg/ffprobe `6.1` through major `8.x`; `6.0` and `9.x` or
-newer are unqualified and blocked. VidChopper never downloads or auto-installs these tools.
+VidChopper accepts external FFmpeg and ffprobe from a configured path, `PATH`, common Homebrew locations,
+and standard Unix locations, then validates that each executable runs `-version` and reports a supported
+version. The 1.2.0 source range is FFmpeg/ffprobe `6.1` through major `9.x`; `6.0` and `10.x` or newer are
+unqualified and blocked. The published 1.1.0 foundation remains qualified through major `8.x`.
+VidChopper never downloads or auto-installs these tools.
 
 Auto, x264, and HEVC NVENC retain their existing persisted meanings. `--crf` changes x264 quality and
 `--cq` changes NVENC quality only when that backend is selected; neither flag selects an encoder.

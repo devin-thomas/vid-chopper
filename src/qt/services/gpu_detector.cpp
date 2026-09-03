@@ -73,8 +73,8 @@ auto GpuDetector::detect(const QString& ffmpeg_path) -> bool {
     state_ = state;
 
     const EncoderPlatform platform = current_encoder_platform();
-    const EncoderKind backend = platform == EncoderPlatform::MacOs ? EncoderKind::HevcVideoToolbox
-                                                                     : EncoderKind::HevcNvenc;
+    const EncoderKind backend =
+        platform == EncoderPlatform::MacOs ? EncoderKind::HevcVideoToolbox : EncoderKind::HevcNvenc;
     const ExportSettings settings = capability_settings(ffmpeg_path, backend);
     ProcessExecutor executor = executor_;
     auto* thread = QThread::create([state, executor = std::move(executor), settings, backend, platform]() mutable {

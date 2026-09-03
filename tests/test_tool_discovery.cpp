@@ -54,10 +54,10 @@ namespace {
         return std::format("{} version 6.1.0", tool);
     }
     if (contains(name, "unsupported-new")) {
-        return std::format("{} version 9.0.0", tool);
+        return std::format("{} version 10.0.0", tool);
     }
     if (contains(name, "supported-new")) {
-        return std::format("{} version 8.9.0", tool);
+        return std::format("{} version 9.0.1", tool);
     }
     if (contains(name, "unparseable")) {
         return std::format("{} version development-build", tool);
@@ -96,6 +96,9 @@ auto main(const int argument_count, char** arguments) -> int {
     test_support::expect_eq(parse_tool_version("ffmpeg version 8.2", ToolKind::Ffmpeg),
         std::optional<ToolVersion> {ToolVersion {.major = 8, .minor = 2, .patch = 0}},
         "8.x should parse");
+    test_support::expect_eq(parse_tool_version("ffprobe version 9.0.1", ToolKind::Ffprobe),
+        std::optional<ToolVersion> {ToolVersion {.major = 9, .minor = 0, .patch = 1}},
+        "9.x should parse");
     test_support::expect_true(!parse_tool_version("not an ffmpeg version", ToolKind::Ffmpeg).has_value(),
         "unparseable output should be rejected");
     test_support::expect_true(
@@ -105,7 +108,9 @@ auto main(const int argument_count, char** arguments) -> int {
     test_support::expect_true(
         is_supported_tool_version(ToolVersion {.major = 8, .minor = 9}), "8.x should be supported");
     test_support::expect_true(
-        !is_supported_tool_version(ToolVersion {.major = 9, .minor = 0}), "9.x should be outside the supported range");
+        is_supported_tool_version(ToolVersion {.major = 9, .minor = 0}), "9.x should be supported");
+    test_support::expect_true(!is_supported_tool_version(ToolVersion {.major = 10, .minor = 0}),
+        "10.x should be outside the supported range");
 
     const Path root = std::filesystem::temp_directory_path() / "vidchopper-tool-discovery-test";
     static_cast<void>(std::filesystem::remove_all(root));
@@ -194,7 +199,7 @@ auto main(const int argument_count, char** arguments) -> int {
     test_support::expect_true(!old_result.ok(), "6.0 should be blocked");
     test_support::expect_true(contains(old_result.failure_reason, path_to_utf8(unsupported_old)),
         "unsupported diagnostics should identify the exact path");
-    test_support::expect_true(contains(old_result.failure_reason, "6.1 through 8.x"),
+    test_support::expect_true(contains(old_result.failure_reason, "6.1 through 9.x"),
         "unsupported diagnostics should state the supported range");
 
     const Path supported_old = copy_fixture(self, root, "supported-old-ffmpeg");
@@ -206,13 +211,13 @@ auto main(const int argument_count, char** arguments) -> int {
 
     const Path unsupported_new = copy_fixture(self, root, "unsupported-new-ffmpeg");
     const ToolResolution new_result = discover_tool(ToolKind::Ffmpeg, unsupported_new, deterministic_options);
-    test_support::expect_true(!new_result.ok(), "9.x should be blocked");
+    test_support::expect_true(!new_result.ok(), "10.x should be blocked");
 
     const Path supported_new = copy_fixture(self, root, "supported-new-ffprobe");
     const ToolResolution newest_supported = discover_tool(ToolKind::Ffprobe, supported_new, deterministic_options);
-    test_support::expect_true(newest_supported.ok(), "8.x should remain an accepted fixture version");
+    test_support::expect_true(newest_supported.ok(), "9.x should be an accepted fixture version");
     test_support::expect_eq(newest_supported.version,
-        ToolVersion {.major = 8, .minor = 9, .patch = 0},
+        ToolVersion {.major = 9, .minor = 0, .patch = 1},
         "the newest supported fixture version should be retained");
 
     const Path unparseable = copy_fixture(self, root, "unparseable-ffmpeg");

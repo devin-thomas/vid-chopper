@@ -9,10 +9,10 @@ release, notarized package, or support claim for the public `1.1.0` boundary.
 - macOS arm64 with a macOS 15 SDK or newer.
 - CMake 3.28 or newer, Ninja, Apple Clang, and Qt 6.7 or newer.
 - The repository vcpkg manifest bootstrapped at `.vcpkg`.
-- External `ffmpeg` and `ffprobe` 6.1 through major 8.x. They are never bundled.
+- External `ffmpeg` and `ffprobe` 6.1 through major 9.x. They are never bundled.
 
 The current qualification Mac used macOS `26.5.2`, Apple Silicon, CMake
-`4.4.2`, Qt `6.11.1`, and FFmpeg/ffprobe `8.1.2`.
+`4.4.2`, Qt `6.11.1`, and FFmpeg/ffprobe `9.0.1`.
 
 ## Build and install
 

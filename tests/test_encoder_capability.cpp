@@ -141,39 +141,33 @@ auto main() -> int {
     videotoolbox_settings.encoder_kind = EncoderKind::HevcVideoToolbox;
     videotoolbox_settings.video_toolbox_quality = 77;
     CapabilityFixture videotoolbox_fixture {};
-    const EncoderCapabilityResult videotoolbox = EncoderCapabilityService {fixture_executor(videotoolbox_fixture)}.test(
-        videotoolbox_settings,
-        EncoderKind::HevcVideoToolbox,
-        EncoderEnvironment {
-            .has_hevc_videotoolbox_encoder = true,
-            .platform = EncoderPlatform::MacOs,
-        });
+    const EncoderCapabilityResult videotoolbox =
+        EncoderCapabilityService {fixture_executor(videotoolbox_fixture)}.test(videotoolbox_settings,
+            EncoderKind::HevcVideoToolbox,
+            EncoderEnvironment {
+                .has_hevc_videotoolbox_encoder = true,
+                .platform = EncoderPlatform::MacOs,
+            });
     test_support::expect_true(videotoolbox.available(), "VideoToolbox should pass its real minimal encode probe");
     test_support::expect_eq(
         videotoolbox_fixture.requests.size(), size_t {1}, "the minimal VideoToolbox probe should run one process");
     test_support::expect_true(contains_argument(videotoolbox.command, "-f"), "probe should use a lavfi input");
-    test_support::expect_true(
-        contains_argument(videotoolbox.command, "color=c=black:s=16x16:r=1"),
+    test_support::expect_true(contains_argument(videotoolbox.command, "color=c=black:s=16x16:r=1"),
         "probe should encode a generated one-frame source");
-    test_support::expect_true(
-        contains_argument(videotoolbox.command, "hevc_videotoolbox"),
+    test_support::expect_true(contains_argument(videotoolbox.command, "hevc_videotoolbox"),
         "probe should test the requested VideoToolbox codec");
     test_support::expect_true(
-        contains_argument(videotoolbox.command, "-q:v"),
-        "probe should use the VideoToolbox quality mapping");
+        contains_argument(videotoolbox.command, "-q:v"), "probe should use the VideoToolbox quality mapping");
     test_support::expect_true(
-        contains_argument(videotoolbox.command, "-b:v"),
-        "probe should make quality-based rate control explicit");
-    test_support::expect_true(
-        videotoolbox.command_summary.find("hevc_videotoolbox") != std::string::npos,
+        contains_argument(videotoolbox.command, "-b:v"), "probe should make quality-based rate control explicit");
+    test_support::expect_true(videotoolbox.command_summary.find("hevc_videotoolbox") != std::string::npos,
         "probe summary should expose the selected backend");
 
     auto auto_videotoolbox_settings = videotoolbox_settings;
     auto_videotoolbox_settings.encoder_kind = EncoderKind::Auto;
     CapabilityFixture auto_videotoolbox_fixture {};
     const EncoderSelectionResult auto_videotoolbox =
-        EncoderCapabilityService {fixture_executor(auto_videotoolbox_fixture)}.select(
-            auto_videotoolbox_settings,
+        EncoderCapabilityService {fixture_executor(auto_videotoolbox_fixture)}.select(auto_videotoolbox_settings,
             EncoderEnvironment {
                 .has_hevc_videotoolbox_encoder = true,
                 .platform = EncoderPlatform::MacOs,
@@ -200,14 +194,12 @@ auto main() -> int {
     test_support::expect_eq(auto_fallback_videotoolbox.selection.resolved_kind,
         EncoderKind::X264,
         "failed Auto VideoToolbox selection should resolve to x264");
-    test_support::expect_true(
-        auto_fallback_videotoolbox.selection.used_fallback,
+    test_support::expect_true(auto_fallback_videotoolbox.selection.used_fallback,
         "VideoToolbox capability failure should be recorded as an Auto fallback");
     test_support::expect_eq(auto_fallback_videotoolbox.capability_results.size(),
         size_t {2},
         "Auto VideoToolbox fallback should record hardware and x264 probes");
-    test_support::expect_true(
-        auto_fallback_videotoolbox.summary.find("hevc_videotoolbox") != std::string::npos,
+    test_support::expect_true(auto_fallback_videotoolbox.summary.find("hevc_videotoolbox") != std::string::npos,
         "Auto fallback summary should preserve the rejected VideoToolbox backend");
 
     auto explicit_videotoolbox_failure_settings = videotoolbox_settings;

@@ -128,11 +128,10 @@ auto main() -> int {
     test_support::expect_eq(resolved_videotoolbox.video_codec,
         std::string {"hevc_videotoolbox"},
         "resolved VideoToolbox should expose its codec");
-    test_support::expect_eq(resolved_videotoolbox.quality_value,
-        u8 {82},
-        "resolved VideoToolbox should preserve its quality setting");
-    test_support::expect_true(!resolved_videotoolbox.used_fallback,
-        "available VideoToolbox should not be marked as a fallback");
+    test_support::expect_eq(
+        resolved_videotoolbox.quality_value, u8 {82}, "resolved VideoToolbox should preserve its quality setting");
+    test_support::expect_true(
+        !resolved_videotoolbox.used_fallback, "available VideoToolbox should not be marked as a fallback");
 
     return 0;
 }

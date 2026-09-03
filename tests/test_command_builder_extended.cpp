@@ -151,8 +151,9 @@ auto main() -> int {
                 .has_hevc_videotoolbox_encoder = true,
                 .platform = EncoderPlatform::MacOs,
             });
-        test_support::expect_eq(
-            encoder.kind, EncoderKind::HevcVideoToolbox, "Auto should prefer a passed VideoToolbox capability on macOS");
+        test_support::expect_eq(encoder.kind,
+            EncoderKind::HevcVideoToolbox,
+            "Auto should prefer a passed VideoToolbox capability on macOS");
     }
 
     // resolve_encoder: Auto without GPU falls back to x264

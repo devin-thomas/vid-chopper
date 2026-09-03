@@ -211,10 +211,7 @@ auto EncoderCapabilityService::test(const ExportSettings& settings,
     }
 
     result.rejection_reason = std::format(
-        "{} ({}) minimal encode failed ({}).",
-        descriptor.display_name,
-        descriptor.codec_name,
-        result.process_summary);
+        "{} ({}) minimal encode failed ({}).", descriptor.display_name, descriptor.codec_name, result.process_summary);
     return result;
 }
 

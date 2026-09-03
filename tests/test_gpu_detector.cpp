@@ -46,8 +46,10 @@ auto main(int argc, char* argv[]) -> int {
     auto delivered_on_owner_thread = false;
     auto diagnostic = QString {};
     auto finished_environment = EncoderEnvironment {};
-    QObject::connect(
-        &detector, &GpuDetector::finished, &application, [&](const EncoderEnvironment& environment, const QString& message) {
+    QObject::connect(&detector,
+        &GpuDetector::finished,
+        &application,
+        [&](const EncoderEnvironment& environment, const QString& message) {
             finished = true;
             delivered_on_owner_thread = QThread::currentThread() == application.thread();
             diagnostic = message;
@@ -65,8 +67,8 @@ auto main(int argc, char* argv[]) -> int {
     test_support::expect_true(delivered_on_owner_thread, "capability completion should return to the owner thread");
     test_support::expect_true(!diagnostic.isEmpty(), "capability completion should retain an actionable diagnostic");
     if (current_encoder_platform() == EncoderPlatform::MacOs) {
-        test_support::expect_true(
-            diagnostic.contains(QStringLiteral("VideoToolbox")), "macOS capability diagnostics should name VideoToolbox");
+        test_support::expect_true(diagnostic.contains(QStringLiteral("VideoToolbox")),
+            "macOS capability diagnostics should name VideoToolbox");
         test_support::expect_true(!finished_environment.has_hevc_videotoolbox_encoder,
             "a failed macOS VideoToolbox probe should remain unavailable");
     } else {

@@ -212,7 +212,7 @@ auto encoder_arguments_for(const ExportSettings& settings, const EncoderKind kin
     if (kind == EncoderKind::HevcVideoToolbox) {
         // FFmpeg's VideoToolbox encoder selects quality-based VBR through the
         // generic qscale option. A zero bitrate keeps the rate-control mode
-        // explicit across the supported FFmpeg 6.1 through 8.x range.
+        // explicit across the supported FFmpeg 6.1 through 9.x range.
         return {"-b:v", "0", std::string {descriptor.quality_argument}, quality};
     }
 
