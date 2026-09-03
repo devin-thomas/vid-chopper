@@ -8,6 +8,7 @@ param(
 $ErrorActionPreference = "Stop"
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
+. (Join-Path $PSScriptRoot "capture-demo-common.ps1")
 if ([string]::IsNullOrWhiteSpace($ExecutablePath)) {
     $ExecutablePath = Join-Path $repoRoot "build\windows-gui-release\Release\VidChopper.exe"
 }
@@ -183,7 +184,15 @@ function Save-CaptureBitmap {
     $finalBitmap = $Bitmap
     if ($Capture.capture -eq "crop") {
         $crop = $Capture.crop
-        $rectangle = New-Object System.Drawing.Rectangle $crop.x, $crop.y, $crop.width, $crop.height
+        $bounds = Resolve-CaptureRectangle `
+            -BitmapWidth $Bitmap.Width `
+            -BitmapHeight $Bitmap.Height `
+            -WindowSize $Capture.windowSize `
+            -Crop $crop
+        $captureGeometry =
+            "bitmap $($Bitmap.Width)x$($Bitmap.Height), crop $($bounds.X),$($bounds.Y) $($bounds.Width)x$($bounds.Height)"
+        Write-Host "Capture '$($Capture.asset)': $captureGeometry"
+        $rectangle = New-Object System.Drawing.Rectangle $bounds.X, $bounds.Y, $bounds.Width, $bounds.Height
         $finalBitmap = $Bitmap.Clone($rectangle, $Bitmap.PixelFormat)
     }
 
