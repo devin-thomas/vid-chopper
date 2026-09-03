@@ -299,8 +299,12 @@ jobs:
             checksum="artifacts/candidate/${binary}.sha256"
             expected="$(awk 'NR == 1 { print $1 }' "$checksum")"
             recorded="$(awk 'NR == 1 { print $2 }' "$checksum")"
+            recorded="${recorded%$'\r'}"
             actual="$(sha256sum "artifacts/candidate/$binary" | awk '{ print $1 }')"
-            [[ "$expected" == "$actual" && "${recorded#\*}" == "$binary" ]]
+            if [[ "$expected" != "$actual" || "${recorded#\*}" != "$binary" ]]; then
+              echo "Candidate checksum pair is invalid: $binary" >&2
+              exit 1
+            fi
           done
 
           mac_evidence="artifacts/evidence/macos/macos-candidate-evidence.json"
@@ -373,11 +377,13 @@ jobs:
           jq \
             --arg sourceCommit "$GITHUB_SHA" \
             --arg macosCandidateRunId "$MACOS_CANDIDATE_RUN_ID" \
+            --arg dmg "$dmg" \
+            --arg cli "$cli" \
             --slurpfile assets artifacts/evidence/cumulative/assets.json \
             '.sourceCommit = $sourceCommit |
              .macosCandidateRunId = $macosCandidateRunId |
              .artifacts = [$assets[0][] |
-               select(.name | test("macos-arm64\\.(dmg|tar\\.gz)$")) |
+               select(.name == $dmg or .name == $cli) |
                {name: .name, sha256: .sha256}
              ]' \
             packaging/releases/macos-physical-evidence.example.json \
