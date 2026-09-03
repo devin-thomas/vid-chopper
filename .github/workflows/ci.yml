@@ -217,7 +217,8 @@ jobs:
           New-Item -ItemType Directory -Force artifacts/ci | Out-Null
           $cmakeVersion = (cmake --version | Select-Object -First 1)
           $ninjaVersion = (ninja --version | Select-Object -First 1)
-          $compilerVersion = ((cl 2>&1) | Select-Object -First 1)
+          $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
+          $compilerVersion = (& $vswhere -latest -products * -property catalog_productDisplayVersion | Select-Object -First 1)
           $vcpkgVersion = (& (Join-Path $env:VCPKG_ROOT 'vcpkg.exe') version | Select-Object -First 1)
           $qtVersion = (& (Join-Path $env:QT_ROOT_DIR 'bin\qmake.exe') -query QT_VERSION).Trim()
           $ffmpegVersion = (ffmpeg -version | Select-Object -First 1)
@@ -334,7 +335,8 @@ jobs:
           New-Item -ItemType Directory -Force artifacts/ci | Out-Null
           $cmakeVersion = (cmake --version | Select-Object -First 1)
           $ninjaVersion = (ninja --version | Select-Object -First 1)
-          $compilerVersion = ((cl 2>&1) | Select-Object -First 1)
+          $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
+          $compilerVersion = (& $vswhere -latest -products * -property catalog_productDisplayVersion | Select-Object -First 1)
           $vcpkgVersion = (& (Join-Path $env:VCPKG_ROOT 'vcpkg.exe') version | Select-Object -First 1)
           $qtVersion = (& (Join-Path $env:QT_ROOT_DIR 'bin\qmake.exe') -query QT_VERSION).Trim()
           $ffmpegVersion = (ffmpeg -version | Select-Object -First 1)
@@ -459,7 +461,7 @@ jobs:
             cxx: g++-13
             vcpkg_triplet: x64-linux
             qt_host: linux
-            qt_arch: gcc_64
+            qt_arch: linux_gcc_64
             ffmpeg_formula: ''
             ffmpeg_apt_prefix: '7:6.1.1-3ubuntu5'
             ffmpeg_expected_prefix: 6.1.1
@@ -538,7 +540,7 @@ jobs:
           brew link --overwrite --force "$FFMPEG_FORMULA"
           brew pin "$FFMPEG_FORMULA"
           installed_version="$(brew list --versions "$FFMPEG_FORMULA" | awk '{ print $2 }')"
-          if [[ "$installed_version" != "$FFMPEG_EXPECTED_PREFIX" ]]; then
+          if [[ "$installed_version" != "$FFMPEG_EXPECTED_PREFIX"* ]]; then
             echo "Expected $FFMPEG_FORMULA $FFMPEG_EXPECTED_PREFIX, got $installed_version." >&2
             exit 1
           fi
@@ -738,7 +740,7 @@ jobs:
             cxx: g++-13
             vcpkg_triplet: x64-linux
             qt_host: linux
-            qt_arch: gcc_64
+            qt_arch: linux_gcc_64
             ffmpeg_formula: ''
             ffmpeg_apt_prefix: '7:6.1.1-3ubuntu5'
             ffmpeg_expected_prefix: 6.1.1
@@ -818,7 +820,7 @@ jobs:
           brew link --overwrite --force "$FFMPEG_FORMULA"
           brew pin "$FFMPEG_FORMULA"
           installed_version="$(brew list --versions "$FFMPEG_FORMULA" | awk '{ print $2 }')"
-          if [[ "$installed_version" != "$FFMPEG_EXPECTED_PREFIX" ]]; then
+          if [[ "$installed_version" != "$FFMPEG_EXPECTED_PREFIX"* ]]; then
             echo "Expected $FFMPEG_FORMULA $FFMPEG_EXPECTED_PREFIX, got $installed_version." >&2
             exit 1
           fi
