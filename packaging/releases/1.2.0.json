@@ -25,6 +25,34 @@
       "size": null,
       "sha256": null,
       "status": "pending-windows-qualification"
+    },
+    {
+      "name": "VidChopper-1.2.0-macos-arm64.dmg",
+      "url": "https://github.com/devin-thomas/vid-chopper/releases/download/v1.2.0/VidChopper-1.2.0-macos-arm64.dmg",
+      "size": null,
+      "sha256": null,
+      "status": "pending-macos-qualification"
+    },
+    {
+      "name": "VidChopper-1.2.0-macos-arm64.dmg.sha256",
+      "url": "https://github.com/devin-thomas/vid-chopper/releases/download/v1.2.0/VidChopper-1.2.0-macos-arm64.dmg.sha256",
+      "size": null,
+      "sha256": null,
+      "status": "pending-macos-qualification"
+    },
+    {
+      "name": "VidChopper-1.2.0-macos-arm64-cli.tar.gz",
+      "url": "https://github.com/devin-thomas/vid-chopper/releases/download/v1.2.0/VidChopper-1.2.0-macos-arm64-cli.tar.gz",
+      "size": null,
+      "sha256": null,
+      "status": "pending-macos-qualification"
+    },
+    {
+      "name": "VidChopper-1.2.0-macos-arm64-cli.tar.gz.sha256",
+      "url": "https://github.com/devin-thomas/vid-chopper/releases/download/v1.2.0/VidChopper-1.2.0-macos-arm64-cli.tar.gz.sha256",
+      "size": null,
+      "sha256": null,
+      "status": "pending-macos-qualification"
     }
   ]
 }

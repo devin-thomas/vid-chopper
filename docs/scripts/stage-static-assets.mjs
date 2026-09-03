@@ -158,12 +158,18 @@ async function validateReleaseContract(validatedSources) {
   const expectedChannel = releaseChannelForVersion(version);
   const expectedTag = `v${version}`;
   const expectedReleaseUrl = `https://github.com/devin-thomas/vid-chopper/releases/tag/${expectedTag}`;
-  const expectedAssetName = `VidChopper-${version}-windows-x64.zip`;
-  const expectedAssetUrl = `https://github.com/devin-thomas/vid-chopper/releases/download/${expectedTag}/${expectedAssetName}`;
-  const expectedChecksumName = `${expectedAssetName}.sha256`;
-  const expectedChecksumUrl = `${expectedAssetUrl}.sha256`;
-  const releaseAsset = releaseMetadata.assets?.[0];
-  const checksumAsset = releaseMetadata.assets?.[1];
+  const windowsAssetName = `VidChopper-${version}-windows-x64.zip`;
+  const expectedAssetNames = [windowsAssetName, `${windowsAssetName}.sha256`];
+  if (version === "1.2.0") {
+    const macDmgName = `VidChopper-${version}-macos-arm64.dmg`;
+    const macCliName = `VidChopper-${version}-macos-arm64-cli.tar.gz`;
+    expectedAssetNames.push(
+      macDmgName,
+      `${macDmgName}.sha256`,
+      macCliName,
+      `${macCliName}.sha256`,
+    );
+  }
   const schemaVersion = schema?.properties?.version?.const;
   const publishedAt = new Date(releaseMetadata.publishedAt);
 
@@ -216,38 +222,23 @@ async function validateReleaseContract(validatedSources) {
   );
   requireRelease(
     Array.isArray(releaseMetadata.assets) &&
-      releaseMetadata.assets.length === 2,
-    "the package and checksum release assets are required",
+      releaseMetadata.assets.length === expectedAssetNames.length,
+    "the complete release asset and checksum set is required",
   );
-  requireRelease(
-    releaseAsset?.name === expectedAssetName,
-    "asset name drifted",
-  );
-  requireRelease(releaseAsset?.url === expectedAssetUrl, "asset URL drifted");
-  requireRelease(
-    Number.isSafeInteger(releaseAsset?.size) && releaseAsset.size > 0,
-    "asset size must be a positive safe integer",
-  );
-  requireRelease(
-    /^[a-f0-9]{64}$/.test(releaseAsset?.sha256 ?? ""),
-    "asset SHA-256 must be 64 lowercase hexadecimal characters",
-  );
-  requireRelease(
-    checksumAsset?.name === expectedChecksumName,
-    "checksum asset name drifted",
-  );
-  requireRelease(
-    checksumAsset?.url === expectedChecksumUrl,
-    "checksum asset URL drifted",
-  );
-  requireRelease(
-    Number.isSafeInteger(checksumAsset?.size) && checksumAsset.size > 0,
-    "checksum asset size must be a positive safe integer",
-  );
-  requireRelease(
-    /^[a-f0-9]{64}$/.test(checksumAsset?.sha256 ?? ""),
-    "checksum asset SHA-256 must be 64 lowercase hexadecimal characters",
-  );
+  for (const [index, expectedName] of expectedAssetNames.entries()) {
+    const releaseAsset = releaseMetadata.assets[index];
+    const expectedUrl = `https://github.com/devin-thomas/vid-chopper/releases/download/${expectedTag}/${expectedName}`;
+    requireRelease(releaseAsset?.name === expectedName, "asset name drifted");
+    requireRelease(releaseAsset?.url === expectedUrl, "asset URL drifted");
+    requireRelease(
+      Number.isSafeInteger(releaseAsset?.size) && releaseAsset.size > 0,
+      "asset size must be a positive safe integer",
+    );
+    requireRelease(
+      /^[a-f0-9]{64}$/.test(releaseAsset?.sha256 ?? ""),
+      "asset SHA-256 must be 64 lowercase hexadecimal characters",
+    );
+  }
   if (displayVersion !== version) {
     const candidateReleasePath = path.join(
       repositoryRoot,

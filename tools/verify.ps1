@@ -151,21 +151,22 @@ function Invoke-VersionChecks {
     if ([string]$releaseManifest.tag -ne $expectedTag) {
         throw "Release manifest tag '$($releaseManifest.tag)' does not match '$expectedTag'."
     }
-    $expectedAsset = "VidChopper-$displayVersion-windows-x64.zip"
-    $expectedChecksum = "${expectedAsset}.sha256"
-    $expectedAssets = @($expectedAsset, $expectedChecksum)
+    $windowsAsset = "VidChopper-$displayVersion-windows-x64.zip"
+    $expectedAssets = @($windowsAsset, "${windowsAsset}.sha256")
+    if ($displayVersion -eq "1.2.0") {
+        $macDmg = "VidChopper-$displayVersion-macos-arm64.dmg"
+        $macCli = "VidChopper-$displayVersion-macos-arm64-cli.tar.gz"
+        $expectedAssets += @($macDmg, "${macDmg}.sha256", $macCli, "${macCli}.sha256")
+    }
     $assets = @($releaseManifest.assets)
     $assetNames = @($releaseManifest.assets | ForEach-Object { [string]$_.name })
     if ($assets.Count -ne $expectedAssets.Count -or
         (($assetNames | Sort-Object) -join "|") -ne (($expectedAssets | Sort-Object) -join "|")) {
-        throw "Release manifest is missing the Windows ZIP/checksum asset pair for '$displayVersion'."
+        throw "Release manifest does not contain the expected release asset set for '$displayVersion'."
     }
-    $expectedUrls = @(
-        "https://github.com/devin-thomas/vid-chopper/releases/download/$expectedTag/$expectedAsset",
-        "https://github.com/devin-thomas/vid-chopper/releases/download/$expectedTag/$expectedChecksum"
-    )
     for ($index = 0; $index -lt $assets.Count; $index++) {
-        if ([string]$assets[$index].url -ne $expectedUrls[$index]) {
+        $expectedUrl = "https://github.com/devin-thomas/vid-chopper/releases/download/$expectedTag/$($assets[$index].name)"
+        if ([string]$assets[$index].url -ne $expectedUrl) {
             throw "Release manifest asset URL drifted for '$($assets[$index].name)'."
         }
     }
@@ -177,7 +178,8 @@ function Invoke-VersionChecks {
         ""
     }
     $publishedRelease = $publicationStatus -eq "published"
-    if ($hasPublicationStatus -and $publicationStatus -notin @("candidate-pending", "published")) {
+    $releaseReady = $publicationStatus -eq "release-ready"
+    if ($hasPublicationStatus -and $publicationStatus -notin @("candidate-pending", "release-ready", "published")) {
         throw "Unsupported release publicationStatus '$publicationStatus'."
     }
     $candidatePending = $publicationStatus -eq "candidate-pending"
@@ -186,12 +188,28 @@ function Invoke-VersionChecks {
             throw "Pending release candidate must not contain publication time or source commit metadata."
         }
         foreach ($asset in $assets) {
-            if ($null -ne $asset.size -or $null -ne $asset.sha256 -or
-                [string]$asset.status -ne "pending-windows-qualification") {
+            $expectedStatus = if ([string]$asset.name -like "*-windows-x64.zip*") {
+                "pending-windows-qualification"
+            } else {
+                "pending-macos-qualification"
+            }
+            if ($null -ne $asset.size -or $null -ne $asset.sha256 -or [string]$asset.status -ne $expectedStatus) {
                 throw "Pending release candidate assets must remain unqualified and unhashed."
             }
         }
-        Write-Host "Windows release metadata remains candidate-pending; no Windows qualification is claimed."
+        Write-Host "Release metadata remains candidate-pending; no platform qualification is claimed."
+    } elseif ($releaseReady) {
+        if ($null -ne $releaseManifest.publishedAt -or
+            ([string]$releaseManifest.sourceCommit) -notmatch '^[a-f0-9]{40}$') {
+            throw "Release-ready metadata requires a source commit and no publication timestamp."
+        }
+        foreach ($asset in $assets) {
+            if ([int64]$asset.size -le 0 -or [string]$asset.sha256 -notmatch '^[a-f0-9]{64}$' -or
+                [string]$asset.status -ne "qualified") {
+                throw "Release-ready assets must contain qualified sizes and SHA-256 digests."
+            }
+        }
+        Write-Host "Release metadata is hash-qualified and awaiting protected publication."
     } elseif ($publishedRelease) {
         if (([string]$releaseManifest.publishedAt) -notmatch '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$' -or
             ([string]$releaseManifest.sourceCommit) -notmatch '^[a-f0-9]{40}$') {
@@ -202,11 +220,11 @@ function Invoke-VersionChecks {
                 throw "Published release assets must contain positive sizes and SHA-256 digests."
             }
         }
-        Write-Host "Published Windows release metadata is finalized and hash-qualified."
+        Write-Host "Published release metadata is finalized and hash-qualified."
     }
 
     if ([string]$docsPackage.version -ne $displayVersion) {
-        if (-not $candidatePending) {
+        if (-not $candidatePending -and -not $releaseReady) {
             throw "docs/package.json version '$($docsPackage.version)' does not match display version '$displayVersion'."
         }
         Write-Host "Docs remain on stable version '$($docsPackage.version)' during candidate qualification for '$displayVersion'."
