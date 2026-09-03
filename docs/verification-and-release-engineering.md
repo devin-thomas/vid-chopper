@@ -177,6 +177,7 @@ canceled by the workflow concurrency group. Never treat a canceled older run as 
 | Cloudflare `deploy` | `pwsh -NoProfile -File tools/verify.ps1 -CiLane Docs` reproduces pre-deploy checks | Credential preflight, mutation, identity correlation, and HTTPS acceptance are remote-only |
 | Release `package-candidate` | `pwsh -NoProfile -File tools/verify.ps1 -Tier Release` | Clean Windows packaging and immutable artifact upload |
 | Release `smoke-clean-archive` | `pwsh -NoProfile -File tools/verify-release-archive.ps1 -Version <version> -ArchivePath <zip>` | A second clean Windows runner and retained JSON evidence |
+| macOS Candidate `smoke-exact-candidates` | `tools/verify-macos-candidate.sh --version <version> --dmg <dmg> --cli-archive <archive> --evidence <json>` | A second Apple Silicon runner, exact DMG/CLI hashes, relocated app and real export smoke, and retained JSON evidence |
 | Release publish job | No local substitute; verify metadata/digest inputs before approving the protected job | GitHub tag/release mutation and remote asset re-download |
 
 Each CI lane writes a log under `artifacts/ci` and uploads the last bounded diagnostic section only on
