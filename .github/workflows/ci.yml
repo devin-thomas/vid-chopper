@@ -426,6 +426,7 @@ jobs:
             os: macos-15
             platform: macos
             architecture: arm64
+            qt_version: 6.11.1
             compiler: apple-clang
             cc: clang
             cxx: clang++
@@ -441,6 +442,7 @@ jobs:
             os: macos-26
             platform: macos
             architecture: arm64
+            qt_version: 6.11.1
             compiler: apple-clang
             cc: clang
             cxx: clang++
@@ -456,6 +458,7 @@ jobs:
             os: ubuntu-24.04
             platform: ubuntu
             architecture: x64
+            qt_version: 6.9.0
             compiler: gcc-13
             cc: gcc-13
             cxx: g++-13
@@ -479,10 +482,16 @@ jobs:
       FFMPEG_FORMULA: ${{ matrix.ffmpeg_formula }}
       FFMPEG_APT_PREFIX: ${{ matrix.ffmpeg_apt_prefix }}
       FFMPEG_EXPECTED_PREFIX: ${{ matrix.ffmpeg_expected_prefix }}
+      QT_VERSION: ${{ matrix.qt_version }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Select current Apple toolchain
+        if: matrix.os == 'macos-15'
+        shell: bash
+        run: sudo xcode-select --switch /Applications/Xcode_26.3.app/Contents/Developer
 
       - name: Set up pinned CMake and Ninja
         uses: lukka/get-cmake@v4.3.3
@@ -503,7 +512,7 @@ jobs:
           runVcpkgInstall: false
           binaryCachePath: '${{ runner.temp }}/vcpkg-binary-cache/${{ matrix.platform }}-${{ matrix.architecture }}-${{ matrix.compiler }}-${{ matrix.vcpkg_triplet }}-${{ env.VCPKG_COMMIT }}'
 
-      - name: Install cached Qt 6.9
+      - name: Install cached Qt
         uses: jurplel/install-qt-action@v4
         with:
           version: ${{ env.QT_VERSION }}
@@ -705,6 +714,7 @@ jobs:
             os: macos-15
             platform: macos
             architecture: arm64
+            qt_version: 6.11.1
             compiler: apple-clang
             cc: clang
             cxx: clang++
@@ -720,6 +730,7 @@ jobs:
             os: macos-26
             platform: macos
             architecture: arm64
+            qt_version: 6.11.1
             compiler: apple-clang
             cc: clang
             cxx: clang++
@@ -735,6 +746,7 @@ jobs:
             os: ubuntu-24.04
             platform: ubuntu
             architecture: x64
+            qt_version: 6.9.0
             compiler: gcc-13
             cc: gcc-13
             cxx: g++-13
@@ -758,11 +770,17 @@ jobs:
       FFMPEG_FORMULA: ${{ matrix.ffmpeg_formula }}
       FFMPEG_APT_PREFIX: ${{ matrix.ffmpeg_apt_prefix }}
       FFMPEG_EXPECTED_PREFIX: ${{ matrix.ffmpeg_expected_prefix }}
+      QT_VERSION: ${{ matrix.qt_version }}
       QT_QPA_PLATFORM: offscreen
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Select current Apple toolchain
+        if: matrix.os == 'macos-15'
+        shell: bash
+        run: sudo xcode-select --switch /Applications/Xcode_26.3.app/Contents/Developer
 
       - name: Set up pinned CMake and Ninja
         uses: lukka/get-cmake@v4.3.3
@@ -783,7 +801,7 @@ jobs:
           runVcpkgInstall: false
           binaryCachePath: '${{ runner.temp }}/vcpkg-binary-cache/${{ matrix.platform }}-${{ matrix.architecture }}-${{ matrix.compiler }}-${{ matrix.vcpkg_triplet }}-${{ env.VCPKG_COMMIT }}'
 
-      - name: Install cached Qt 6.9
+      - name: Install cached Qt
         uses: jurplel/install-qt-action@v4
         with:
           version: ${{ env.QT_VERSION }}

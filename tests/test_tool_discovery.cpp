@@ -197,8 +197,11 @@ auto main(const int argument_count, char** arguments) -> int {
     const Path unsupported_old = copy_fixture(self, root, "unsupported-old-ffmpeg");
     const ToolResolution old_result = discover_tool(ToolKind::Ffmpeg, unsupported_old, deterministic_options);
     test_support::expect_true(!old_result.ok(), "6.0 should be blocked");
-    test_support::expect_true(contains(old_result.failure_reason, path_to_utf8(unsupported_old)),
-        "unsupported diagnostics should identify the exact path");
+    test_support::expect_true(!old_result.diagnostics.empty(), "unsupported diagnostics should name the candidate");
+    test_support::expect_true(std::filesystem::equivalent(old_result.diagnostics.front().candidate, unsupported_old),
+        "unsupported diagnostics should identify the exact candidate");
+    test_support::expect_true(contains(old_result.failure_reason, path_to_utf8(unsupported_old.filename())),
+        "unsupported diagnostics should print the candidate filename");
     test_support::expect_true(contains(old_result.failure_reason, "6.1 through 9.x"),
         "unsupported diagnostics should state the supported range");
 
