@@ -545,7 +545,9 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p "$HOMEBREW_CACHE"
-          brew install "$FFMPEG_FORMULA"
+          if ! brew install "$FFMPEG_FORMULA"; then
+            brew list --versions "$FFMPEG_FORMULA" >/dev/null
+          fi
           brew link --overwrite --force "$FFMPEG_FORMULA"
           brew pin "$FFMPEG_FORMULA"
           installed_version="$(brew list --versions "$FFMPEG_FORMULA" | awk '{ print $2 }')"
@@ -834,7 +836,9 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p "$HOMEBREW_CACHE"
-          brew install "$FFMPEG_FORMULA"
+          if ! brew install "$FFMPEG_FORMULA"; then
+            brew list --versions "$FFMPEG_FORMULA" >/dev/null
+          fi
           brew link --overwrite --force "$FFMPEG_FORMULA"
           brew pin "$FFMPEG_FORMULA"
           installed_version="$(brew list --versions "$FFMPEG_FORMULA" | awk '{ print $2 }')"
