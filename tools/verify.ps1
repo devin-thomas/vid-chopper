@@ -88,6 +88,10 @@ function Invoke-StaticChecks {
     Invoke-VerificationStage -Name "Static policy checks" -Action {
         Invoke-TextPolicyChecks
         Invoke-ReviewFindingChecks
+        & (Join-Path $repoRoot "tools\test-capture-demo-crop.ps1")
+        if ($LASTEXITCODE -ne 0) {
+            throw "Demo crop geometry tests failed with exit code $LASTEXITCODE."
+        }
         $clangTidy = Get-RepoCommand -Name "clang-tidy" -Remediation "Run tools/bootstrap.ps1."
         $versionOutput = (& $clangTidy --version) -join " "
         if ($versionOutput -notmatch [regex]::Escape($script:ToolVersions.Clang)) {
