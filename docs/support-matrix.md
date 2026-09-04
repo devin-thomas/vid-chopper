@@ -7,7 +7,7 @@
 | Platform and architecture | Qualification evidence | Public binary in 1.2.0 | End-user support in 1.2.0 |
 | --- | --- | --- | --- |
 | Windows 10/11 x64 | Core, CLI, GUI, fast/slow/Qt tests, package regression, and exact clean-archive smoke | Windows portable ZIP and adjacent checksum | Yes |
-| macOS 15+ arm64 | Hosted builds and exact-candidate smoke plus full journeys on physical M1 Air and M4 Pro | DMG, standalone CLI archive, and adjacent checksums | Yes |
+| macOS 15+ arm64 | Hosted builds and exact-candidate smoke plus full journeys on a physical M4 Pro | DMG, standalone CLI archive, and adjacent checksums | Yes |
 | Intel macOS | None | No | No |
 | Ubuntu 24.04/26.04 x86-64 | Native core/CLI tests and GUI compile/launch smoke | No | No; planned for 1.3.0 |
 | Linux arm64 | Source compatibility only; separate 1.3.0 qualification is pending | No | No; planned for 1.3.0 |
@@ -29,7 +29,7 @@ Publication requires one source commit and exact hashes across every lane:
 
 - Windows x64 Release tier plus a second-runner archive smoke.
 - macOS candidate build plus a second-runner checksum, signature, dependency, relocated-launch, CLI, x264, manifest, and VideoToolbox capability smoke.
-- Physical M1 Air and M4 Pro journeys for installation/relaunch, probing, embedded/default chapter editing, x264 and VideoToolbox exports, cancellation without orphan processes, manifests, output-folder opening, settings/error paths, and direct/installed CLI use.
+- Physical M4 Pro journeys for installation/relaunch, probing, embedded/default chapter editing, x264 and VideoToolbox exports, cancellation without orphan processes, manifests, output-folder opening, settings/error paths, and direct/installed CLI use.
 - A browser-downloaded quarantine and per-app first-launch approval journey on at least one physical Mac.
 - A protected promotion that downloads the retained candidate set, checks all evidence and hashes, publishes six unchanged assets, and compares every remote download byte-for-byte.
 

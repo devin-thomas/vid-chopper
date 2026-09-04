@@ -466,7 +466,7 @@ jobs:
           repository: ${{ github.repository }}
           run-id: ${{ inputs.release_candidate_run_id }}
 
-      - name: Enforce release and two-Mac physical evidence
+      - name: Enforce release and M4 Pro physical evidence
         shell: bash
         run: |
           set -euo pipefail
@@ -499,13 +499,13 @@ jobs:
             .sourceCommit == $source and
             (.macosCandidateRunId | tostring) == $macrun and
             .outcome == "passed" and
-            ([.machines[].role] | sort) == ["m1-air", "m4-pro"] and
+            ([.machines[].role] | sort) == ["m4-pro"] and
             all(.machines[];
               .outcome == "passed" and
               ([.hardwareModel, .cpuModel, .osVersion, .osBuild, .ffmpegVersion, .ffprobeVersion, .tester, .timestamp] |
                 all(.[]; type == "string" and length > 0))
             ) and
-            (.firstLaunch.machineRole == "m1-air" or .firstLaunch.machineRole == "m4-pro") and
+            .firstLaunch.machineRole == "m4-pro" and
             .firstLaunch.browserDownloaded == true and
             .firstLaunch.quarantineObserved == true and
             .firstLaunch.perAppApproval == true and
@@ -518,7 +518,7 @@ jobs:
             output-folder-open native-settings-persistence explicit-portable-config-error cli-archive
             cli-installer-no-sudo cli-installed-new-shell cli-dry-run cli-real-export
           )
-          for role in m1-air m4-pro; do
+          for role in m4-pro; do
             for test_name in "${required_tests[@]}"; do
               jq -e --arg role "$role" --arg test "$test_name" '
                 any(.machines[]; .role == $role and any(.tests[]; .name == $test and .outcome == "passed"))

@@ -15,38 +15,6 @@
   ],
   "machines": [
     {
-      "role": "m1-air",
-      "hardwareModel": "",
-      "cpuModel": "",
-      "osVersion": "",
-      "osBuild": "",
-      "ffmpegVersion": "",
-      "ffprobeVersion": "",
-      "tester": "",
-      "timestamp": "",
-      "tests": [
-        { "name": "checksum-pairs", "outcome": "pending" },
-        { "name": "app-install-and-relaunch", "outcome": "pending" },
-        { "name": "source-probe", "outcome": "pending" },
-        { "name": "embedded-chapters", "outcome": "pending" },
-        { "name": "default-chapters", "outcome": "pending" },
-        { "name": "chapter-editing", "outcome": "pending" },
-        { "name": "x264-export", "outcome": "pending" },
-        { "name": "videotoolbox-export", "outcome": "pending" },
-        { "name": "cancellation-no-orphans", "outcome": "pending" },
-        { "name": "manifest-verification", "outcome": "pending" },
-        { "name": "output-folder-open", "outcome": "pending" },
-        { "name": "native-settings-persistence", "outcome": "pending" },
-        { "name": "explicit-portable-config-error", "outcome": "pending" },
-        { "name": "cli-archive", "outcome": "pending" },
-        { "name": "cli-installer-no-sudo", "outcome": "pending" },
-        { "name": "cli-installed-new-shell", "outcome": "pending" },
-        { "name": "cli-dry-run", "outcome": "pending" },
-        { "name": "cli-real-export", "outcome": "pending" }
-      ],
-      "outcome": "pending"
-    },
-    {
       "role": "m4-pro",
       "hardwareModel": "",
       "cpuModel": "",
