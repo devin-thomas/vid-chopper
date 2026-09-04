@@ -4,7 +4,7 @@ VidChopper is a local desktop application for turning one source video into chap
 
 ## 1.2.0 Release Boundary
 
-`1.2.0` is the first Apple Silicon macOS end-user release and a cumulative Windows 10/11 x64 release. It publishes a Windows ZIP, a macOS DMG, a standalone Mac CLI archive, and adjacent checksums after the exact candidates pass both physical Macs. Intel Macs are not qualified. Linux remains source- and CI-compatible without a supported end-user package until 1.3.0.
+`1.2.0` is the first Apple Silicon macOS end-user release and a cumulative Windows 10/11 x64 release. It publishes a Windows ZIP, a macOS DMG, a standalone Mac CLI archive, and adjacent checksums after the exact candidates pass physical qualification on the M4 Pro. Intel Macs are not qualified. Linux remains source- and CI-compatible without a supported end-user package until 1.3.0.
 
 Until that promotion gate passes, `v1.1.0` remains the current public stable download. See the [1.2.0 support matrix](docs/support-matrix.md), [macOS installation guide](docs/local-macos-install.md), and [release evidence record](docs/1.2.0-release-evidence.md) for the exact boundary.
 
@@ -177,7 +177,7 @@ The manually triggered release workflow:
 - builds and smoke-tests the Windows ZIP on separate Windows 2022 runners
 - imports a passed macOS Candidate run only when it has the same source commit
 - aggregates and retains all six candidate/checksum files with machine-readable evidence
-- promotes a named prior candidate run without rebuilding after both physical Macs pass
+- promotes a named prior candidate run without rebuilding after the M4 Pro physical qualification passes
 - pauses at the protected release environment, publishes the unchanged candidates, and compares every remote byte stream
 
 That release asset is the intended end-user download. Building from source is only necessary for development, debugging, or local modification work.

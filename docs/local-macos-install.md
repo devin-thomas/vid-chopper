@@ -1,8 +1,8 @@
 # macOS 1.2.0 Installation
 
 VidChopper 1.2.0 supports Apple Silicon Macs running macOS 15 or newer. The
-public release remains gated until the exact candidates pass both physical
-Macs; until then, use retained candidate artifacts only for qualification.
+public release remains gated until the exact candidates pass physical
+qualification on the M4 Pro; until then, use retained candidate artifacts only for qualification.
 
 ## Requirements
 

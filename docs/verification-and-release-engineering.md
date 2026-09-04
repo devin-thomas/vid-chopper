@@ -17,13 +17,13 @@ replace local diagnosis.
 physical qualification. Linux source builds, native core/CLI tests, and GUI compile/launch smoke do not
 produce public Linux packages. The first planned end-user Linux release is `1.3.0`.
 
-The required release lanes are Windows x64, hosted macOS arm64, physical M1 Air and M4 Pro, and the
+The required release lanes are Windows x64, hosted macOS arm64, and a physical M4 Pro, and the
 existing Ubuntu source/CI lanes. A failure in an assigned lane blocks publication. Use the
 [support matrix](support-matrix.md) for the platform table and the
 [1.2.0 evidence record](1.2.0-release-evidence.md) for candidate identity and gate fields.
 
 The release workflow qualifies Windows and aggregates an already-passed Mac candidate run from the same
-source commit. Its protected publish mode promotes that retained set only after the committed two-Mac
+source commit. Its protected publish mode promotes that retained set only after the committed M4 Pro
 physical evidence matches every candidate hash.
 
 Canonical domain terms come from [`CONTEXT.md`](../CONTEXT.md). Accepted architecture boundaries are
@@ -36,7 +36,7 @@ recorded in the [ADR index](../knowledge/architecture/decisions/README.md).
 | Is a change ready for review? | Relevant local tier or CI lane, focused tests, and a clean diff | Any unexplained failure or missing prerequisite |
 | Is a PR ready to merge? | Required PR jobs green for the reviewed head commit | Superseded, canceled, skipped-required, or red jobs |
 | Is a package a release candidate? | Windows and Mac automated evidence, one source SHA, and all six file hashes | Candidate bytes differ between stages |
-| Is publication authorized? | Both physical Macs passed, human approval, final metadata, notes, and rollback plan | Missing approval/evidence or mutable artifact identity |
+| Is publication authorized? | Physical M4 Pro passed, human approval, final metadata, notes, and rollback plan | Missing approval/evidence or mutable artifact identity |
 | Is a release complete? | Tag, commit, release URL, all remote digests, Windows smoke, and Mac physical evidence | Remote asset or metadata does not match the proven candidate |
 
 ## Bootstrap Policy
@@ -243,10 +243,10 @@ protected stable path without `--prerelease` and asserts `isPrerelease == false`
 4. Dispatch `macOS Candidate` from `main` and record its successful run ID.
 5. Dispatch `Release` in `qualify` mode with that Mac run ID. The workflow rejects a source-SHA mismatch,
    builds and requalifies Windows, and retains one cumulative six-asset candidate set.
-6. Download those exact candidates to the M1 Air and M4 Pro and complete every journey in the 1.2.0
-   physical evidence record, including browser quarantine on at least one Mac.
+6. Download those exact candidates to the M4 Pro and complete every journey in the 1.2.0 physical
+   evidence record, including browser quarantine and per-app approval.
 7. Finalize the six asset sizes and hashes in the release manifest, set it to `release-ready`, and commit
-   the two-Mac physical evidence without rebuilding either platform.
+   the M4 Pro physical evidence without rebuilding either platform.
 
 ### Publication checklist
 
