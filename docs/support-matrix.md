@@ -1,6 +1,6 @@
 # 1.2.0 Support Matrix
 
-`1.2.0` is the first Apple Silicon macOS end-user release and remains a cumulative Windows release. The public support change takes effect only after the exact candidates pass the automated and physical gates in the [1.2.0 evidence record](1.2.0-release-evidence.md). Until that publication occurs, 1.1.0 remains the current stable download.
+`1.2.0` is the first Apple Silicon macOS end-user release and remains a cumulative Windows release. It was published on 2026-09-04 after the exact candidates passed the automated gates and the scoped physical evidence/waiver contract in the [1.2.0 evidence record](1.2.0-release-evidence.md).
 
 ## End-user boundary
 
@@ -33,4 +33,4 @@ Publication requires one source commit and exact hashes across every lane:
 - A browser-downloaded quarantine and per-app first-launch approval journey on at least one physical Mac.
 - A protected promotion that downloads the retained candidate set, checks all evidence and hashes, publishes six unchanged assets, and compares every remote download byte-for-byte.
 
-Any failed or missing assigned check blocks publication. Building a replacement after qualification creates a new candidate and requires requalification.
+Any failed or missing assigned check blocks publication unless it is covered by the narrowly scoped 1.2.0 release-owner waiver described above. Building a replacement after qualification creates a new candidate and requires requalification.

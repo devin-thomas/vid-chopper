@@ -9,6 +9,8 @@ import {
   releaseChecklist,
   releaseFacts,
   releaseHighlights,
+  releaseMacCliUrl,
+  releaseMacDmgUrl,
   releaseVersion,
   releaseZipUrl,
   releasesUrl,
@@ -33,17 +35,20 @@ export function ReleasePage() {
         <div className="release-hero-copy">
           <div className="hero-kicker">Release portal</div>
           <h1>
-            Download the current portable Windows release without building Qt
-            locally.
+            Download the current Windows or Apple Silicon Mac release without
+            building Qt locally.
           </h1>
           <p>
-            The stable release is the intended end-user path: unzip it,
-            launch VidChopper.exe, then point the app at ffmpeg and ffprobe if
-            they are not already on your PATH.
+            Use the portable ZIP on Windows or the DMG on Apple Silicon Macs,
+            then point VidChopper at ffmpeg and ffprobe if they are not already
+            on your PATH.
           </p>
           <div className="hero-actions">
             <a className="cta-primary" href={releaseZipUrl}>
-              <Icon name="download" /> Download {releaseVersion} ZIP
+              <Icon name="download" /> Windows ZIP
+            </a>
+            <a className="cta-secondary" href={releaseMacDmgUrl}>
+              <Icon name="download" /> Mac DMG
             </a>
             <SiteLink className="cta-secondary" to="/docs">
               Read docs first
@@ -55,20 +60,20 @@ export function ReleasePage() {
             <div className="shot-badge shot-badge-top">Current shipped UI</div>
             <img
               src={releaseShot}
-              alt="Real VidChopper export controls and chapter table from the Windows release."
+              alt="Real VidChopper export controls and chapter table from the native desktop release."
             />
           </div>
           <div className="release-hero-card">
             <div className="release-mark">
               <img src={appIcon} alt="" />
-              <span>Portable Windows release</span>
+              <span>Windows + Apple Silicon Mac</span>
             </div>
             <div className="release-chip">Current release</div>
             <h2>{releaseVersion}</h2>
             <p>
               Download the same packaged app surface shown here: Qt runtime
-              bundled, VC++ runtime bundled, `ffmpeg` and `ffprobe` configured
-              separately.
+              bundled, platform runtime included, and `ffmpeg`/`ffprobe`
+              configured separately.
             </p>
           </div>
         </div>
@@ -87,13 +92,14 @@ export function ReleasePage() {
           </dl>
         </article>
         <article className="release-card">
-          <h3>Included in the ZIP</h3>
+          <h3>Published packages</h3>
           <ul>
-            <li>VidChopper.exe</li>
-            <li>VidChopperCLI.exe</li>
-            <li>yaml-cpp.dll for ChapterFile loading</li>
-            <li>Required Qt runtime files</li>
-            <li>Microsoft VC++ runtime</li>
+            <li>Windows x64 portable ZIP with GUI and CLI</li>
+            <li>Apple Silicon macOS DMG with native app</li>
+            <li>
+              <a href={releaseMacCliUrl}>Standalone Mac CLI archive</a>
+            </li>
+            <li>Required Qt and platform runtime files</li>
             <li>Offline VidChopper CLI skill and integrity manifest</li>
             <li>Release readme, notices, and license files</li>
           </ul>
@@ -122,9 +128,9 @@ export function ReleasePage() {
         <div className="release-note-card">
           <strong>Why the portable route exists</strong>
           <p>
-            The repo can validate the core without Qt, but the GUI build still
-            depends on a Qt SDK. The release ZIP is the clean path for people
-            who want the product rather than the build setup.
+            The repo can validate the core without Qt, but GUI builds still
+            depend on a Qt SDK. The published ZIP and DMG are the clean paths
+            for people who want the product rather than the build setup.
           </p>
         </div>
       </section>

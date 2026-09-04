@@ -4,12 +4,17 @@ export const siteUrl = "https://vidchopper.app";
 export const docsUrl = `${siteUrl}/docs`;
 export const chapterFileSchemaUrl = `${siteUrl}/schemas/chapter-config/v1/schema.json`;
 export const chapterFileSampleUrl = `${siteUrl}/samples/chapter-config/v1/chapter-config.json`;
-export const releaseMetadataUrl = `${siteUrl}/releases/v1.1.0/manifest.json`;
+export const releaseMetadataUrl = `${siteUrl}/releases/v1.2.0/manifest.json`;
 export const agentSkillUrl = `${siteUrl}/agents/vidchopper-cli/SKILL.md`;
 export const agentOnboardingPrompt = `Follow ${agentSkillUrl}. Inspect my video and chapter inputs, show me a dry-run, and ask before exporting, overwriting, uploading, publishing, or deleting anything.`;
-export const releaseVersion = "v1.1.0";
+export const releaseVersion = "v1.2.0";
+export const releasePageUrl = `${repositoryUrl}/releases/tag/${releaseVersion}`;
 export const releaseZipUrl =
-  "https://github.com/devin-thomas/vid-chopper/releases/download/v1.1.0/VidChopper-1.1.0-windows-x64.zip";
+  "https://github.com/devin-thomas/vid-chopper/releases/download/v1.2.0/VidChopper-1.2.0-windows-x64.zip";
+export const releaseMacDmgUrl =
+  "https://github.com/devin-thomas/vid-chopper/releases/download/v1.2.0/VidChopper-1.2.0-macos-arm64.dmg";
+export const releaseMacCliUrl =
+  "https://github.com/devin-thomas/vid-chopper/releases/download/v1.2.0/VidChopper-1.2.0-macos-arm64-cli.tar.gz";
 
 export const docsLinks = [
   {
@@ -31,21 +36,21 @@ export const docsLinks = [
     href: agentSkillUrl,
   },
   {
-    title: "1.1.0 support matrix",
+    title: "1.2.0 support matrix",
     description:
-      "Windows-only publication boundary with macOS/Linux source and GUI smoke evidence, not Unix end-user support.",
+      "Windows 10/11 x64 and Apple Silicon macOS end-user support, with Linux remaining source/CI only.",
     href: `${repositoryUrl}/blob/main/docs/support-matrix.md`,
   },
   {
-    title: "1.1.0 foundation evidence",
+    title: "1.2.0 release evidence",
     description:
-      "Candidate identity, dependency, lane, checksum, and publication-gate fields for the Windows-only release.",
-    href: `${repositoryUrl}/blob/main/docs/1.1.0-foundation-evidence.md`,
+      "Candidate identity, M4 Pro evidence and waivers, publication workflow, and remote byte verification.",
+    href: `${repositoryUrl}/blob/main/docs/1.2.0-release-evidence.md`,
   },
   {
     title: "Release metadata",
     description:
-      "Version, source commit, package URL, size, checksum, and schema compatibility for v1.1.0.",
+      "Version, source commit, package URLs, sizes, checksums, and schema compatibility for v1.2.0.",
     href: releaseMetadataUrl,
   },
   {
@@ -58,9 +63,9 @@ export const docsLinks = [
 
 export const releaseFacts = [
   { label: "Version", value: releaseVersion },
-  { label: "Platform", value: "Windows 10/11 x64" },
-  { label: "Package", value: "Portable ZIP release" },
-  { label: "Runtime", value: "Qt + VC++ bundled" },
+  { label: "Platforms", value: "Windows x64 + Apple Silicon Mac" },
+  { label: "Packages", value: "Windows ZIP + Mac DMG/CLI" },
+  { label: "Runtime", value: "Qt bundled; FFmpeg external" },
 ] as const;
 
 export const workflowSteps = [
@@ -79,21 +84,26 @@ export const workflowSteps = [
 ] as const;
 
 export const releaseHighlights = [
-  "Stable Windows 10/11 x64 ZIP attached to the GitHub release",
-  "Qt desktop app and VidChopperCLI.exe using one shared probe and export engine",
+  "Stable Windows 10/11 x64 ZIP and Apple Silicon macOS DMG",
+  "Qt desktop apps and standalone CLIs using one shared probe and export engine",
   "Explicit JSON/YAML ChapterFiles, dry-run planning, exports, and manifests",
   "ChapterBuilder compatibility verified with a public tournament fixture",
-  "Clean Windows archive smoke testing before stable publication",
+  "Exact Windows and Mac candidates verified again after stable publication",
 ] as const;
 
 export const releaseChecklist = [
-  "Download the ZIP archive from the current GitHub release.",
-  "Extract the portable folder to any writable location.",
+  "Choose the Windows ZIP or Apple Silicon macOS DMG from the current GitHub release.",
+  "Extract the Windows folder, or open the DMG and drag VidChopper to Applications.",
   "Install ffmpeg and ffprobe separately, or set their paths in Advanced Settings.",
-  "Launch VidChopper.exe and export from the native desktop workflow.",
+  "Launch VidChopper and export from the native desktop workflow.",
 ] as const;
 
 export const previousReleases = [
+  {
+    version: "v1.1.0",
+    date: "Windows stable",
+    note: "Windows release with the shared Unix foundation.",
+  },
   {
     version: "v0.3.0-beta",
     date: "Portable CLI beta",
@@ -126,8 +136,14 @@ export const changelogEntries = [
   {
     title: "Proven portable package",
     detail:
-      "A second clean Windows runner extracts and tests the exact ZIP before GitHub publishes the stable release.",
+      "Clean runners test the exact Windows and Mac candidates before protected stable publication.",
     tag: "Release",
+  },
+  {
+    title: "Native Apple Silicon release",
+    detail:
+      "The Mac DMG and standalone CLI support macOS 15+ arm64 with native settings and VideoToolbox-aware defaults.",
+    tag: "macOS",
   },
   {
     title: "Responsive desktop shell",
@@ -156,7 +172,7 @@ export const keyFeatures = [
   {
     title: "GPU-aware defaults",
     detail:
-      "Prefer HEVC NVENC when supported, then fall back to x264 for predictable compatibility.",
+      "Prefer HEVC NVENC on Windows or VideoToolbox on Apple Silicon when supported, then fall back to x264.",
   },
   {
     title: "Portable config path",
@@ -184,6 +200,10 @@ export const roadmap = [
     item: "Converge GUI and CLI on one shared engine for stable v1.1.0",
     status: "Shipped",
   },
+  {
+    item: "Ship cumulative Windows and Apple Silicon macOS v1.2.0",
+    status: "Shipped",
+  },
 ] as const;
 
 export const docsGuideposts = [
@@ -192,10 +212,10 @@ export const docsGuideposts = [
     path: "/docs/getting-started",
     title: "Getting started",
     summary:
-      "Install the portable Windows package and verify the local tools before reading or changing user media.",
+      "Install the Windows or Apple Silicon Mac package and verify local tools before reading or changing user media.",
     points: [
-      "Use the v1.1.0 Windows x64 ZIP from the verified stable GitHub release.",
-      "VidChopperCLI.exe and the GUI are bundled; ffmpeg and ffprobe are installed or configured separately.",
+      "Use the v1.2.0 Windows x64 ZIP or Apple Silicon macOS DMG from the verified stable GitHub release.",
+      "The GUI and platform CLI are packaged; ffmpeg and ffprobe are installed or configured separately.",
       "Keep the source video, ChapterFile, manifests, and clips local. The documentation site never receives them.",
     ],
     command: `& "C:\\Tools\\VidChopper\\VidChopperCLI.exe" --version
@@ -205,14 +225,14 @@ ffprobe -version`,
   {
     slug: "support-boundary",
     path: "/docs/support-boundary",
-    title: "1.1.0 support boundary",
+    title: "1.2.0 support boundary",
     summary:
-      "Windows binaries are the only 1.1.0 end-user release; Unix source builds and GUI smoke runs are portability evidence.",
+      "Windows x64 and Apple Silicon macOS are supported end-user platforms; Linux remains source/CI compatible only.",
     points: [
-      "Windows 10/11 x64 is the only 1.1.0 end-user supported platform and the only platform with a public binary candidate.",
-      "macOS 15/26 arm64 and Ubuntu 24.04/26.04 x86-64 may run native core/CLI tests and GUI compile/launch smoke in qualification lanes.",
-      "A Unix source build, internal CI artifact, or GUI smoke result is not an end-user support claim and does not create a public Unix package.",
-      "FFmpeg and ffprobe remain external and are validated from 6.1 through major 8.x; Auto hardware failure falls back to x264 before export.",
+      "Windows 10/11 x64 ships as a portable ZIP with the GUI and CLI.",
+      "Apple Silicon macOS 15+ ships as a DMG plus a standalone CLI archive; Intel Macs are not qualified.",
+      "Linux source builds and CI results do not create a public Linux package or end-user support claim.",
+      "FFmpeg and ffprobe remain external and are validated from 6.1 through major 9.x; Auto hardware failure falls back to x264 before export.",
       "Do not invent a config, portable, ffmpeg, or ffprobe CLI flag; use the current parser contract and settings documentation.",
     ],
     links: [
@@ -221,8 +241,8 @@ ffprobe -version`,
         href: `${repositoryUrl}/blob/main/docs/support-matrix.md`,
       },
       {
-        label: "Open the foundation evidence record",
-        href: `${repositoryUrl}/blob/main/docs/1.1.0-foundation-evidence.md`,
+        label: "Open the 1.2.0 release evidence",
+        href: `${repositoryUrl}/blob/main/docs/1.2.0-release-evidence.md`,
       },
     ],
   },

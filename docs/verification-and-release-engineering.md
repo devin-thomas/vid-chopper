@@ -267,7 +267,7 @@ protected stable path without `--prerelease` and asserts `isPrerelease == false`
 4. Confirm the Windows GUI seeded startup, Qt-free CLI, version/help/direct/chop modes, ChapterBuilder export,
    manifests, and ffprobe output evidence.
 5. Verify public download links resolve to the stable tag and asset, then cache-bust the live download checks.
-   Public documentation presentation at `vidchopper.app/docs` remains separate post-1.0 work.
+   The canonical documentation at `vidchopper.app/docs` must identify the same current stable release.
 
 ### Rollback and correction
 

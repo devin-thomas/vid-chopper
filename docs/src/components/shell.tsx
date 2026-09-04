@@ -3,7 +3,7 @@ import routeContract from "../../routes.json";
 import appIcon from "../assets/app-icon.png";
 import {
   docsUrl,
-  releaseZipUrl,
+  releasePageUrl,
   repositoryUrl,
   siteUrl,
 } from "../content/site";
@@ -131,8 +131,8 @@ export function Shell({ children }: { children: ReactNode }) {
           ))}
         </nav>
         <div className="topbar-actions">
-          <a className="primary-link" href={releaseZipUrl}>
-            <Icon name="download" /> Download ZIP
+          <a className="primary-link" href={releasePageUrl}>
+            <Icon name="download" /> Download 1.2.0
           </a>
         </div>
       </header>
@@ -147,8 +147,8 @@ export function Shell({ children }: { children: ReactNode }) {
         <div>
           <h3>VidChopper</h3>
           <p>
-            Windows-first desktop tooling for turning one source video into
-            precise chapter clips with ffmpeg.
+            Native Windows and Apple Silicon Mac tooling for turning one
+            source video into precise chapter clips with ffmpeg.
           </p>
         </div>
         <div className="footer-links">
@@ -157,7 +157,7 @@ export function Shell({ children }: { children: ReactNode }) {
           <a href={repositoryUrl}>
             <Icon name="github" /> Repository
           </a>
-          <a href={releaseZipUrl}>Latest ZIP</a>
+          <a href={releasePageUrl}>Latest release</a>
         </div>
       </footer>
     </div>
