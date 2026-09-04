@@ -1,8 +1,7 @@
 # macOS 1.2.0 Installation
 
-VidChopper 1.2.0 supports Apple Silicon Macs running macOS 15 or newer. The
-public release remains gated until the exact candidates pass physical
-qualification on the M4 Pro; until then, use retained candidate artifacts only for qualification.
+VidChopper 1.2.0 supports Apple Silicon Macs running macOS 15 or newer. The stable DMG and standalone
+CLI archive are published at the [v1.2.0 GitHub release](https://github.com/devin-thomas/vid-chopper/releases/tag/v1.2.0).
 
 ## Requirements
 

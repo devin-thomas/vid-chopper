@@ -146,7 +146,19 @@ function Invoke-VersionChecks {
     if (-not (Test-Path -LiteralPath $releaseManifestPath -PathType Leaf)) {
         throw "Release manifest is missing: $releaseManifestPath"
     }
-    $releaseManifest = Get-Content -Raw -LiteralPath $releaseManifestPath | ConvertFrom-Json
+    $releaseManifestText = Get-Content -Raw -LiteralPath $releaseManifestPath
+    $releaseManifest = $releaseManifestText | ConvertFrom-Json
+    $releaseManifestJson = [System.Text.Json.JsonDocument]::Parse($releaseManifestText)
+    try {
+        $publishedAtElement = $releaseManifestJson.RootElement.GetProperty("publishedAt")
+        $publishedAtText = if ($publishedAtElement.ValueKind -eq [System.Text.Json.JsonValueKind]::String) {
+            $publishedAtElement.GetString()
+        } else {
+            $null
+        }
+    } finally {
+        $releaseManifestJson.Dispose()
+    }
     if ([string]$releaseManifest.version -ne $displayVersion -or
         [string]$releaseManifest.cliVersion -ne $displayVersion) {
         throw "Release manifest version tuple does not match display version '$displayVersion'."
@@ -215,7 +227,7 @@ function Invoke-VersionChecks {
         }
         Write-Host "Release metadata is hash-qualified and awaiting protected publication."
     } elseif ($publishedRelease) {
-        if (([string]$releaseManifest.publishedAt) -notmatch '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$' -or
+        if ($publishedAtText -notmatch '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$' -or
             ([string]$releaseManifest.sourceCommit) -notmatch '^[a-f0-9]{40}$') {
             throw "Published release metadata must contain a canonical UTC timestamp and full source commit."
         }

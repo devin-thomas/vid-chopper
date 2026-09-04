@@ -390,9 +390,17 @@ function assertReleaseMetadata(release, packageVersion, schemaVersion) {
   const expectedAssetName = `VidChopper-${packageVersion}-windows-x64.zip`;
   const expectedAssetUrl = `https://github.com/devin-thomas/vid-chopper/releases/download/${expectedTag}/${expectedAssetName}`;
   const expectedChecksumName = `${expectedAssetName}.sha256`;
-  const expectedChecksumUrl = `${expectedAssetUrl}.sha256`;
-  const releaseAsset = release.assets?.[0];
-  const checksumAsset = release.assets?.[1];
+  const expectedAssetNames = [expectedAssetName, expectedChecksumName];
+  if (packageVersion === "1.2.0") {
+    const macDmgName = `VidChopper-${packageVersion}-macos-arm64.dmg`;
+    const macCliName = `VidChopper-${packageVersion}-macos-arm64-cli.tar.gz`;
+    expectedAssetNames.push(
+      macDmgName,
+      `${macDmgName}.sha256`,
+      macCliName,
+      `${macCliName}.sha256`,
+    );
+  }
   const publishedAt = new Date(release.publishedAt);
 
   assert(release.schemaVersion === 1, "Release schemaVersion drifted.");
@@ -426,38 +434,25 @@ function assertReleaseMetadata(release, packageVersion, schemaVersion) {
     "Export manifest schema version drifted.",
   );
   assert(
-    Array.isArray(release.assets) && release.assets.length === 2,
-    "Release must declare the published package and checksum assets.",
+    Array.isArray(release.assets) &&
+      release.assets.length === expectedAssetNames.length,
+    "Release must declare every published package and checksum asset.",
   );
-  assert(
-    releaseAsset?.name === expectedAssetName,
-    "Release asset name drifted.",
-  );
-  assert(releaseAsset?.url === expectedAssetUrl, "Release asset URL drifted.");
-  assert(
-    Number.isSafeInteger(releaseAsset?.size) && releaseAsset.size > 0,
-    "Release asset size must be a positive safe integer.",
-  );
-  assert(
-    /^[a-f0-9]{64}$/.test(releaseAsset?.sha256 ?? ""),
-    "Release asset SHA-256 must be 64 lowercase hexadecimal characters.",
-  );
-  assert(
-    checksumAsset?.name === expectedChecksumName,
-    "Release checksum asset name drifted.",
-  );
-  assert(
-    checksumAsset?.url === expectedChecksumUrl,
-    "Release checksum asset URL drifted.",
-  );
-  assert(
-    Number.isSafeInteger(checksumAsset?.size) && checksumAsset.size > 0,
-    "Release checksum size must be a positive safe integer.",
-  );
-  assert(
-    /^[a-f0-9]{64}$/.test(checksumAsset?.sha256 ?? ""),
-    "Release checksum SHA-256 must be 64 lowercase hexadecimal characters.",
-  );
+  for (const [index, expectedName] of expectedAssetNames.entries()) {
+    const asset = release.assets[index];
+    const expectedUrl = `https://github.com/devin-thomas/vid-chopper/releases/download/${expectedTag}/${expectedName}`;
+    assert(asset?.name === expectedName, "Release asset name drifted.");
+    assert(asset?.url === expectedUrl, "Release asset URL drifted.");
+    assert(
+      Number.isSafeInteger(asset?.size) && asset.size > 0,
+      "Release asset size must be a positive safe integer.",
+    );
+    assert(
+      /^[a-f0-9]{64}$/.test(asset?.sha256 ?? ""),
+      "Release asset SHA-256 must be 64 lowercase hexadecimal characters.",
+    );
+    assert(asset?.status === "published", "Release asset must be published.");
+  }
   return { expectedAssetUrl, expectedTag };
 }
 

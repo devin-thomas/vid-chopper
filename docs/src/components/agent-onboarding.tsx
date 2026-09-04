@@ -3,8 +3,8 @@ import {
   agentOnboardingPrompt,
   agentSkillUrl,
   docsUrl,
+  releasePageUrl,
   releaseVersion,
-  releaseZipUrl,
 } from "../content/site";
 import { Icon } from "./icon";
 
@@ -48,10 +48,10 @@ export function AgentOnboarding() {
       <div className="start-path-grid">
         <article className="start-card" aria-label="Download VidChopper">
           <Icon name="download" />
-          <span className="start-card-label">Portable app</span>
+          <span className="start-card-label">Windows + Mac apps</span>
           <a
             className="start-card-action"
-            href={releaseZipUrl}
+            href={releasePageUrl}
             aria-label={`Download VidChopper ${releaseVersion}`}
           >
             Download

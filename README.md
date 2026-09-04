@@ -4,21 +4,21 @@ VidChopper is a local desktop application for turning one source video into chap
 
 ## 1.2.0 Release Boundary
 
-`1.2.0` is the first Apple Silicon macOS end-user release and a cumulative Windows 10/11 x64 release. It publishes a Windows ZIP, a macOS DMG, a standalone Mac CLI archive, and adjacent checksums after the exact candidates pass physical qualification on the M4 Pro. Intel Macs are not qualified. Linux remains source- and CI-compatible without a supported end-user package until 1.3.0.
+`1.2.0` is the first Apple Silicon macOS end-user release and a cumulative Windows 10/11 x64 release. It publishes a Windows ZIP, a macOS DMG, a standalone Mac CLI archive, and adjacent checksums after the exact candidates pass the automated qualification gates and the scoped M4 Pro physical evidence/waiver contract. Intel Macs are not qualified. Linux remains source- and CI-compatible without a supported end-user package until 1.3.0.
 
-Until that promotion gate passes, `v1.1.0` remains the current public stable download. See the [1.2.0 support matrix](docs/support-matrix.md), [macOS installation guide](docs/local-macos-install.md), and [release evidence record](docs/1.2.0-release-evidence.md) for the exact boundary.
+`v1.2.0` is the current public stable release. See the [1.2.0 support matrix](docs/support-matrix.md), [macOS installation guide](docs/local-macos-install.md), and [release evidence record](docs/1.2.0-release-evidence.md) for the exact boundary and recorded release-owner waivers.
 
-## Apple Silicon macOS Candidate
+## Apple Silicon macOS Download
 
-The release source builds an arm64 app and Qt-free CLI without remote media processing. From the repository root, run `./script/build_and_run.sh --verify` to build, deploy, install at `~/Applications/VidChopper.app`, and launch it. The [macOS installation guide](docs/local-macos-install.md) covers the public DMG trust flow, optional CLI install, and local packaging. `ffmpeg` and `ffprobe` remain separate local dependencies.
+Download the stable [Apple Silicon DMG](https://github.com/devin-thomas/vid-chopper/releases/download/v1.2.0/VidChopper-1.2.0-macos-arm64.dmg) or [standalone Mac CLI archive](https://github.com/devin-thomas/vid-chopper/releases/download/v1.2.0/VidChopper-1.2.0-macos-arm64-cli.tar.gz). The [macOS installation guide](docs/local-macos-install.md) covers checksum verification, the per-app Gatekeeper approval flow, and optional no-sudo CLI installation. `ffmpeg` and `ffprobe` remain separate local dependencies.
 
 ## Windows Download
 
-If you want to run VidChopper on Windows 10/11 x64 without building from source, use the stable `v1.1.0` GitHub release zip:
+If you want to run VidChopper on Windows 10/11 x64 without building from source, use the stable `v1.2.0` GitHub release zip:
 
-- [Download the `v1.1.0` Windows x64 release zip](https://github.com/devin-thomas/vid-chopper/releases/download/v1.1.0/VidChopper-1.1.0-windows-x64.zip)
+- [Download the `v1.2.0` Windows x64 release zip](https://github.com/devin-thomas/vid-chopper/releases/download/v1.2.0/VidChopper-1.2.0-windows-x64.zip)
 - [Browse all GitHub releases](https://github.com/devin-thomas/vid-chopper/releases)
-- [Open the staged canonical documentation route](https://vidchopper.app/docs) (production rollout and live acceptance are tracked separately)
+- [Open the canonical documentation](https://vidchopper.app/docs)
 
 The release zip is a portable build that includes `VidChopper.exe`, `VidChopperCLI.exe`,
 `yaml-cpp.dll`, the required Qt runtime files, and the Microsoft Visual C++ runtime. It does **not**
@@ -27,11 +27,11 @@ settings dialog.
 
 ### Quick Start
 
-1. Download and unzip `VidChopper-1.1.0-windows-x64.zip`.
+1. Download and unzip `VidChopper-1.2.0-windows-x64.zip`.
 2. Launch `VidChopper.exe`.
 3. Install `ffmpeg` and `ffprobe` separately, or point VidChopper at custom tool paths in Advanced Settings.
 
-## Project Status - 1.2.0 Release Candidate
+## Project Status - 1.2.0 Stable
 
 The 1.2.0 documentation and evidence boundary covers:
 
@@ -43,10 +43,9 @@ The 1.2.0 documentation and evidence boundary covers:
 - A staged test suite split into fast unit-level coverage and slower `ffmpeg` integration coverage
 - A Vite + React + TypeScript + Tailwind site in `docs/` for the canonical product, release, and CLI documentation surface, with GitHub Pages retained as a legacy mirror
 
-The stable `v1.1.0` release remains the currently linked Windows package until the 1.2.0 physical and
-promotion gates pass. It puts the GUI and CLI on one
-shared cross-platform probe/export engine, packages `VidChopperCLI.exe` beside the GUI, and verifies a
-ChapterBuilder-produced ChapterFile through dry-run, export, and clean release-archive smoke testing.
+The stable `v1.2.0` release ships the GUI and CLI on one shared cross-platform probe/export engine,
+packages `VidChopperCLI.exe` beside the Windows GUI, and adds the Apple Silicon DMG and standalone CLI.
+Its retained candidates passed the automated release gates and the scoped physical evidence/waiver contract.
 Linear's
 [vid-chopper project](https://linear.app/devin-main/project/vid-chopper-d0e76dad962c) is the
 authoritative roadmap; repository progress documents are dated snapshots.

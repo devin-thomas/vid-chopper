@@ -8,7 +8,7 @@ import {
   agentOnboardingPrompt,
   agentSkillUrl,
   docsUrl,
-  releaseZipUrl,
+  releasePageUrl,
 } from "../content/site";
 import { HomePage } from "../pages/home-page";
 
@@ -42,7 +42,7 @@ describe("AgentOnboarding", () => {
     expect(cards).toHaveLength(3);
     expect(within(cards[0]!).getByRole("link", { name: /download/i })).toHaveAttribute(
       "href",
-      releaseZipUrl,
+      releasePageUrl,
     );
     expect(within(cards[1]!).getByRole("link", { name: /read the docs/i })).toHaveAttribute(
       "href",
@@ -123,6 +123,6 @@ describe("AgentOnboarding", () => {
     expect(html).toContain(agentOnboardingPrompt);
     expect(html).toContain(`href="${agentSkillUrl}"`);
     expect(html).toContain(`href="${docsUrl}"`);
-    expect(html).toContain(`href="${releaseZipUrl}"`);
+    expect(html).toContain(`href="${releasePageUrl}"`);
   });
 });

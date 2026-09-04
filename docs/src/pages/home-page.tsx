@@ -7,8 +7,8 @@ import { SectionHeading } from "../components/section-heading";
 import { SiteLink, useSiteSearchParams } from "../router";
 import {
   keyFeatures,
+  releasePageUrl,
   releaseVersion,
-  releaseZipUrl,
   releasesUrl,
   roadmap,
   workflowSteps,
@@ -162,12 +162,12 @@ export function HomePage() {
         <div className="download-band-copy">
           <h2>Ready to ship clean clips?</h2>
           <p>
-            The release portal includes the ZIP, install checklist,
+            The release portal includes Windows and Mac packages, install guidance,
             ffmpeg/ffprobe requirement notes, and changelog.
           </p>
         </div>
         <div className="download-band-actions">
-          <a className="cta-primary" href={releaseZipUrl}>
+          <a className="cta-primary" href={releasePageUrl}>
             <Icon name="download" /> Download {releaseVersion}
           </a>
           <a className="cta-secondary" href={releasesUrl}>
