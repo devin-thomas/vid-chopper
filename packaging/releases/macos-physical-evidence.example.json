@@ -54,5 +54,12 @@
     "perAppApproval": false,
     "globalGatekeeperChanged": false
   },
+  "releaseOwnerWaiver": {
+    "authorized": false,
+    "authorizedBy": "",
+    "authorizedAt": "",
+    "reason": "",
+    "tests": []
+  },
   "outcome": "pending"
 }

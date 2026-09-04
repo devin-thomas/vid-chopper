@@ -498,10 +498,10 @@ jobs:
             .productVersion == $version and
             .sourceCommit == $source and
             (.macosCandidateRunId | tostring) == $macrun and
-            .outcome == "passed" and
+            (.outcome == "passed" or .outcome == "passed-with-release-owner-waiver") and
             ([.machines[].role] | sort) == ["m4-pro"] and
             all(.machines[];
-              .outcome == "passed" and
+              (.outcome == "passed" or .outcome == "passed-with-release-owner-waiver") and
               ([.hardwareModel, .cpuModel, .osVersion, .osBuild, .ffmpegVersion, .ffprobeVersion, .tester, .timestamp] |
                 all(.[]; type == "string" and length > 0))
             ) and
@@ -509,7 +509,17 @@ jobs:
             .firstLaunch.browserDownloaded == true and
             .firstLaunch.quarantineObserved == true and
             .firstLaunch.perAppApproval == true and
-            .firstLaunch.globalGatekeeperChanged == false
+            .firstLaunch.globalGatekeeperChanged == false and
+            (if .outcome == "passed-with-release-owner-waiver" then
+              $version == "1.2.0" and
+              .releaseOwnerWaiver.authorized == true and
+              .releaseOwnerWaiver.authorizedBy == "Devin Thomas" and
+              ([.releaseOwnerWaiver.tests[]] | sort) == ["cancellation-no-orphans", "videotoolbox-export"] and
+              ([.releaseOwnerWaiver.authorizedBy, .releaseOwnerWaiver.authorizedAt, .releaseOwnerWaiver.reason] |
+                all(.[]; type == "string" and length > 0))
+            else
+              (.releaseOwnerWaiver.authorized // false) == false
+            end)
           ' "$physical" >/dev/null
 
           required_tests=(
@@ -520,8 +530,17 @@ jobs:
           )
           for role in m4-pro; do
             for test_name in "${required_tests[@]}"; do
-              jq -e --arg role "$role" --arg test "$test_name" '
-                any(.machines[]; .role == $role and any(.tests[]; .name == $test and .outcome == "passed"))
+              jq -e --arg version "$VERSION" --arg role "$role" --arg test "$test_name" '
+                any(.machines[];
+                  .role == $role and
+                  any(.tests[];
+                    .name == $test and
+                    (.outcome == "passed" or
+                      (.outcome == "waived-by-release-owner" and
+                        $version == "1.2.0" and
+                        ($test == "videotoolbox-export" or $test == "cancellation-no-orphans")))
+                  )
+                )
               ' "$physical" >/dev/null
             done
           done

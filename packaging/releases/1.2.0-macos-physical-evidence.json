@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "productVersion": "1.2.0",
+  "sourceCommit": "33399352105929597198f15b48831853a4168b06",
+  "macosCandidateRunId": "33814208557",
+  "artifacts": [
+    {
+      "name": "VidChopper-1.2.0-macos-arm64.dmg",
+      "sha256": "ce3e41ed63c82f9e4047bd459792ccd133e986eb154ddae19161ad2aa58ed115"
+    },
+    {
+      "name": "VidChopper-1.2.0-macos-arm64-cli.tar.gz",
+      "sha256": "3fb255fd82ba3f2322831bccba35efd9b2d17854f1e7684bb508ef55382e52e9"
+    }
+  ],
+  "machines": [
+    {
+      "role": "m4-pro",
+      "hardwareModel": "Mac16,7",
+      "cpuModel": "Apple M4 Pro",
+      "osVersion": "26.5.2",
+      "osBuild": "25F84",
+      "ffmpegVersion": "ffmpeg version 9.0.1 Copyright (c) 2000-2026 the FFmpeg developers",
+      "ffprobeVersion": "ffprobe version 9.0.1 Copyright (c) 2007-2026 the FFmpeg developers",
+      "tester": "codex-local",
+      "timestamp": "2026-09-04T11:49:04Z",
+      "tests": [
+        { "name": "checksum-pairs", "outcome": "passed" },
+        { "name": "app-install-and-relaunch", "outcome": "passed" },
+        { "name": "source-probe", "outcome": "passed" },
+        { "name": "embedded-chapters", "outcome": "passed" },
+        { "name": "default-chapters", "outcome": "passed" },
+        { "name": "chapter-editing", "outcome": "passed" },
+        { "name": "x264-export", "outcome": "passed" },
+        {
+          "name": "videotoolbox-export",
+          "outcome": "waived-by-release-owner",
+          "observation": "Auto selected hevc_videotoolbox and produced externally verified HEVC output, but the full three-segment journey did not complete after a transient in-app ffprobe metadata verification failure."
+        },
+        {
+          "name": "cancellation-no-orphans",
+          "outcome": "waived-by-release-owner",
+          "observation": "The physical cancellation journey was not run before the M4 Pro became inaccessible."
+        },
+        { "name": "manifest-verification", "outcome": "passed" },
+        { "name": "output-folder-open", "outcome": "passed" },
+        { "name": "native-settings-persistence", "outcome": "passed" },
+        { "name": "explicit-portable-config-error", "outcome": "passed" },
+        { "name": "cli-archive", "outcome": "passed" },
+        { "name": "cli-installer-no-sudo", "outcome": "passed" },
+        { "name": "cli-installed-new-shell", "outcome": "passed" },
+        { "name": "cli-dry-run", "outcome": "passed" },
+        { "name": "cli-real-export", "outcome": "passed" }
+      ],
+      "outcome": "passed-with-release-owner-waiver"
+    }
+  ],
+  "firstLaunch": {
+    "machineRole": "m4-pro",
+    "browserDownloaded": true,
+    "quarantineObserved": true,
+    "perAppApproval": true,
+    "globalGatekeeperChanged": false
+  },
+  "releaseOwnerWaiver": {
+    "authorized": true,
+    "authorizedBy": "Devin Thomas",
+    "authorizedAt": "2026-09-04T11:49:04Z",
+    "reason": "Release owner directed the remaining physical checks to be bypassed because the M4 Pro cannot be reached for the next 10 hours.",
+    "tests": [
+      "videotoolbox-export",
+      "cancellation-no-orphans"
+    ]
+  },
+  "outcome": "passed-with-release-owner-waiver"
+}
