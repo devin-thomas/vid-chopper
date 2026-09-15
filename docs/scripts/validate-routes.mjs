@@ -10,6 +10,8 @@ import {
   cacheControl,
   distDirectory,
   expectedHeadersText,
+  fingerprintedAssetRoute,
+  htmlCachePolicy,
   htmlPath,
   isPagesMode,
   releaseChannelForVersion,
@@ -208,9 +210,21 @@ if (pagesMode) {
 }
 const builtHeaders = parseHeaders(builtHeadersText);
 assert(
-  builtHeaders.size === routes.assets.length,
-  "Built _headers route count does not match active assets.",
+  builtHeaders.size === routes.assets.length + routes.htmlRoutes.length + 1,
+  "Built _headers must cover every asset, every HTML route, and the bundle splat.",
 );
+assert(
+  builtHeaders.get(fingerprintedAssetRoute)?.get("cache-control") ===
+    cacheControl("immutable"),
+  "Fingerprinted bundles must be cached immutably.",
+);
+for (const route of routes.htmlRoutes) {
+  assert(
+    builtHeaders.get(route)?.get("cache-control") ===
+      cacheControl(htmlCachePolicy),
+    `HTML route ${route} must revalidate instead of serving a cached document.`,
+  );
+}
 
 function contentType(route, file) {
   return (
@@ -245,6 +259,7 @@ async function resolveRequest(route) {
       file: htmlPath(distDirectory, route),
       status: 200,
       contentType: "text/html",
+      cacheControl: builtHeaders.get(route)?.get("cache-control"),
     };
   }
 
@@ -554,7 +569,15 @@ function validateCliCommand(line, flagArity) {
 
 try {
   for (const route of routes.htmlRoutes) {
-    const { body } = await fetchRoute(route, 200, "text/html; charset=utf-8");
+    const { body, headers } = await fetchRoute(
+      route,
+      200,
+      "text/html; charset=utf-8",
+    );
+    assert(
+      headers.get("cache-control") === cacheControl(htmlCachePolicy),
+      `${route}: HTML cache policy drift`,
+    );
     const html = assertHtmlDeclaresUtf8(body, route);
     observedHtml.set(route, html);
     if (remoteMode && !pagesMode) {
@@ -708,24 +731,31 @@ try {
     path.join(repositoryRoot, "docs", "src", "content", "site.ts"),
     "utf8",
   );
-  const routerSources = await Promise.all(
-    [
-      "App.tsx",
-      "components/shell.tsx",
-      "pages/docs-page.tsx",
-      "pages/home-page.tsx",
-      "pages/release-page.tsx",
-      "router.tsx",
-    ].map((file) =>
-      readFile(path.join(repositoryRoot, "docs", "src", file), "utf8"),
+  const routerFiles = [
+    "App.tsx",
+    "components/shell.tsx",
+    "lib/dom-safety.ts",
+    "pages/docs-page.tsx",
+    "pages/home-page.tsx",
+    "pages/release-page.tsx",
+    "router.tsx",
+  ];
+  const routerSources = new Map(
+    await Promise.all(
+      routerFiles.map(async (file) => [
+        file,
+        await readFile(path.join(repositoryRoot, "docs", "src", file), "utf8"),
+      ]),
     ),
   );
-  const sourceText = [siteSource, ...routerSources].join("\n");
+  const sourceText = [siteSource, ...routerSources.values()].join("\n");
   const onboardingSource = await readFile(
     path.join(repositoryRoot, "docs", "src", "components", "agent-onboarding.tsx"),
     "utf8",
   );
-  const routerSource = routerSources.at(-1);
+  const domSafetyFile = "lib/dom-safety.ts";
+  const routerSource = routerSources.get("router.tsx");
+  const domSafetySource = routerSources.get(domSafetyFile);
   assert(
     !sourceText.includes("HashLink") && !sourceText.includes("useHash"),
     "Hash-only router APIs remain in site source.",
@@ -758,7 +788,7 @@ try {
     "event.shiftKey",
     "event.altKey",
     "target !== undefined",
-    "window.history.pushState",
+    "pushHistoryEntry(to)",
   ]) {
     assert(
       routerSource.includes(safeguard),
@@ -767,12 +797,43 @@ try {
   }
   for (const focusSafeguard of [
     'querySelector<HTMLElement>("[data-route-focus]")',
-    "target.focus({ preventScroll: true })",
+    "focusWithoutScroll(target)",
+    "element.focus({ preventScroll: true })",
+    "applyRouteMetadata(title, canonicalPath, siteUrl)",
   ]) {
     assert(
       sourceText.includes(focusSafeguard),
       `Route focus/search safeguard drifted: ${focusSafeguard}`,
     );
+  }
+  // Safari throws for unknown scroll enum values and for documents that mutate
+  // history too often. Every such call must stay behind a guarded helper,
+  // because an uncaught throw inside an effect unmounts the site entirely.
+  for (const resilienceSafeguard of [
+    "window.history.pushState",
+    "window.history.replaceState",
+    'behavior: "instant" as ScrollBehavior',
+  ]) {
+    assert(
+      domSafetySource.includes(resilienceSafeguard),
+      `Browser compatibility guard drifted: ${resilienceSafeguard}`,
+    );
+  }
+  for (const [file, source] of routerSources) {
+    if (file === domSafetyFile) continue;
+    for (const rawCall of [
+      "window.history.pushState",
+      "window.history.replaceState",
+      ".scrollIntoView(",
+      "window.scrollTo(",
+      ".focus({",
+      "document.title",
+    ]) {
+      assert(
+        !source.includes(rawCall),
+        `${file} calls ${rawCall} outside lib/dom-safety.ts`,
+      );
+    }
   }
   for (const forbiddenDataSink of [
     "fetch(",
@@ -1104,6 +1165,39 @@ try {
       `No-JavaScript agent prompt drifted: ${fallbackContract}`,
     );
   }
+  // A client-rendered site shows nothing at all when its bundle never runs, so
+  // every document ships an inline guard that reveals static starting points.
+  assert(
+    rootHtml.indexOf('<div id="root"></div>') <
+      rootHtml.indexOf('<div id="boot-fallback" hidden>'),
+    "The bootstrap fallback must follow the React root.",
+  );
+  for (const bootContract of [
+    "window.__vidchopperBoot",
+    "window.addEventListener(",
+    "setTimeout(",
+    "boot-fallback-reload",
+  ]) {
+    assert(
+      rootHtml.includes(bootContract),
+      `Bootstrap load guard drifted: ${bootContract}`,
+    );
+  }
+  const mainSource = await readFile(
+    path.join(repositoryRoot, "docs", "src", "main.tsx"),
+    "utf8",
+  );
+  for (const mountContract of [
+    "<AppErrorBoundary>",
+    "markBootReady()",
+    "markBootFailed(",
+  ]) {
+    assert(
+      mainSource.includes(mountContract),
+      `Application mount guard drifted: ${mountContract}`,
+    );
+  }
+
   const servedRootHtml = remoteMode ? observedHtml.get("/") : rootHtml;
   assert(servedRootHtml !== undefined, "Root HTML was not observed.");
   const assetReferences = [

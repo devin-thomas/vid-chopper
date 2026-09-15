@@ -4,10 +4,12 @@ import { DocsPage } from "./pages/docs-page";
 import { HomePage } from "./pages/home-page";
 import { NotFoundPage } from "./pages/not-found-page";
 import { ReleasePage } from "./pages/release-page";
-import { useSiteLocation } from "./router";
+import { useCanonicalLocation, useSiteLocation } from "./router";
 
 export default function App() {
-  const { pathname } = useSiteLocation();
+  const location = useSiteLocation();
+  const { pathname } = location;
+  useCanonicalLocation(location);
   const docsRoute =
     pathname === "/docs" ||
     docsGuideposts.some((section) => section.path === pathname);

@@ -21,6 +21,44 @@
     <meta property="og:url" content="https://vidchopper.app/" />
     <meta name="theme-color" content="#08050f" />
     <link rel="icon" type="image/png" href="/src/assets/app-icon.png" />
+    <!--
+      The bootstrap fallback carries its own styles so it stays legible even
+      when the hashed stylesheet is the file that failed to arrive.
+    -->
+    <style>
+      #boot-fallback[hidden] { display: none; }
+      #boot-fallback {
+        box-sizing: border-box;
+        width: 100%;
+        max-width: 760px;
+        margin: 48px auto;
+        padding: 24px;
+        border: 1px solid #2a2340;
+        border-radius: 16px;
+        background: #100d1c;
+        color: #ece9f5;
+        font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+        line-height: 1.5;
+      }
+      #boot-fallback h1 { margin: 8px 0 0; font-size: 1.35rem; }
+      #boot-fallback p { margin: 12px 0 0; color: #b3aacb; }
+      #boot-fallback nav { display: grid; gap: 10px; margin-top: 20px; }
+      #boot-fallback a {
+        display: flex;
+        min-height: 44px;
+        align-items: center;
+        justify-content: center;
+        padding: 10px;
+        border: 1px solid #2a2340;
+        border-radius: 8px;
+        color: #cdbcff;
+        text-align: center;
+        text-decoration: none;
+      }
+      @media (min-width: 620px) {
+        #boot-fallback nav { grid-template-columns: repeat(2, 1fr); }
+      }
+    </style>
     <script type="module" src="/src/main.tsx"></script>
   </head>
   <body>
@@ -44,5 +82,100 @@
       </main>
     </noscript>
     <div id="root"></div>
+    <div id="boot-fallback" hidden>
+      <p>VidChopper works without a website account</p>
+      <h1>The page did not finish loading, but the downloads still work.</h1>
+      <p>
+        Reload to try again, or go straight to the release, the docs, or the
+        agent skill. The site never receives your media or local paths.
+      </p>
+      <nav aria-label="Recovery starting points">
+        <a href="https://github.com/devin-thomas/vid-chopper/releases/download/v1.2.0/VidChopper-1.2.0-macos-arm64.dmg">Download v1.2.0 for Mac</a>
+        <a href="https://github.com/devin-thomas/vid-chopper/releases/download/v1.2.0/VidChopper-1.2.0-windows-x64.zip">Download v1.2.0 for Windows</a>
+        <a href="https://github.com/devin-thomas/vid-chopper/releases/tag/v1.2.0">View v1.2.0 release details</a>
+        <a href="https://vidchopper.app/docs">Read the docs</a>
+        <a href="https://vidchopper.app/agents/vidchopper-cli/SKILL.md">Inspect the full skill</a>
+        <a id="boot-fallback-reload" href="/">Reload the site</a>
+      </nav>
+    </div>
+    <!--
+      Bootstrap guard. Deliberately ES5 and inline: it has to survive the exact
+      failures it reports, so it cannot depend on the module bundle, the
+      stylesheet, or any syntax a stale browser might reject.
+    -->
+    <script>
+      (function () {
+        var root = document.getElementById("root");
+        var fallback = document.getElementById("boot-fallback");
+        var timer = null;
+        var revealed = false;
+
+        function stopTimer() {
+          if (timer !== null) {
+            clearTimeout(timer);
+            timer = null;
+          }
+        }
+
+        function mounted() {
+          return root !== null && root.childElementCount > 0;
+        }
+
+        function reveal(reason) {
+          if (revealed || fallback === null || mounted()) return;
+          revealed = true;
+          stopTimer();
+          fallback.removeAttribute("hidden");
+          if (reason) {
+            try {
+              console.error("VidChopper site could not start: " + reason);
+            } catch (ignored) {}
+          }
+        }
+
+        function ready() {
+          stopTimer();
+          revealed = false;
+          if (fallback !== null && fallback.parentNode !== null) {
+            fallback.parentNode.removeChild(fallback);
+            fallback = null;
+          }
+        }
+
+        window.__vidchopperBoot = { ready: ready, fail: reveal };
+
+        window.addEventListener(
+          "error",
+          function (event) {
+            var target = event ? event.target : null;
+            if (target && target !== window && target.tagName) {
+              var tag = String(target.tagName).toLowerCase();
+              if (tag === "script" || tag === "link") {
+                reveal("a required file could not be downloaded");
+              }
+              return;
+            }
+            reveal(
+              (event && event.message) || "a script error stopped the page",
+            );
+          },
+          true,
+        );
+
+        var reload = document.getElementById("boot-fallback-reload");
+        if (reload !== null) {
+          reload.addEventListener("click", function (event) {
+            event.preventDefault();
+            window.location.reload();
+          });
+        }
+
+        // A slow connection is not a failure, so wait well past a normal load
+        // before replacing the blank root with the static starting points.
+        timer = setTimeout(function () {
+          reveal("the application did not start in time");
+        }, 12000);
+      })();
+    </script>
   </body>
 </html>

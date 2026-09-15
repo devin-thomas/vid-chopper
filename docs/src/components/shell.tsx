@@ -7,7 +7,17 @@ import {
   repositoryUrl,
   siteUrl,
 } from "../content/site";
-import { legacyPagesBuild, SiteLink, useSiteLocation } from "../router";
+import {
+  applyRouteMetadata,
+  focusWithoutScroll,
+  scrollToTop,
+} from "../lib/dom-safety";
+import {
+  legacyPagesBuild,
+  SiteLink,
+  useSiteLocation,
+  useSiteSearchParams,
+} from "../router";
 import { Icon } from "./icon";
 
 const navItems = [
@@ -22,13 +32,13 @@ const routeTitles = new Map(Object.entries(routeContract.htmlTitles));
 export function Shell({ children }: { children: ReactNode }) {
   const location = useSiteLocation();
   const [menuOpen, setMenuOpen] = useState(false);
-  const section = new URLSearchParams(location.search).get("section");
+  const section = useSiteSearchParams().get("section");
   const previousRoute = useRef(`${location.pathname}${location.search}`);
 
   useEffect(() => {
     setMenuOpen(false);
     if (section === null) {
-      window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
+      scrollToTop();
     }
   }, [location.pathname, section]);
 
@@ -40,17 +50,7 @@ export function Shell({ children }: { children: ReactNode }) {
     const canonicalPath = featuresView
       ? "/?section=features"
       : location.pathname;
-    const canonicalUrl = new URL(canonicalPath, siteUrl).href;
-    document.title = title;
-    document
-      .querySelector<HTMLLinkElement>('link[rel="canonical"]')
-      ?.setAttribute("href", canonicalUrl);
-    document
-      .querySelector<HTMLMetaElement>('meta[property="og:title"]')
-      ?.setAttribute("content", title);
-    document
-      .querySelector<HTMLMetaElement>('meta[property="og:url"]')
-      ?.setAttribute("content", canonicalUrl);
+    applyRouteMetadata(title, canonicalPath, siteUrl);
   }, [location.pathname, section]);
 
   useEffect(() => {
@@ -66,7 +66,7 @@ export function Shell({ children }: { children: ReactNode }) {
       if (!target.hasAttribute("tabindex")) {
         target.setAttribute("tabindex", "-1");
       }
-      target.focus({ preventScroll: true });
+      focusWithoutScroll(target);
     });
 
     return () => window.cancelAnimationFrame(frame);
