@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import appIcon from "../assets/app-icon.png";
 import releaseShot from "../assets/vidchopper-real-export.png";
 import { Icon } from "../components/icon";
+import { scrollSectionIntoView } from "../lib/dom-safety";
 import { SiteLink, useSiteSearchParams } from "../router";
 import {
   changelogEntries,
@@ -22,10 +23,9 @@ export function ReleasePage() {
 
   useEffect(() => {
     if (searchParams.get("section") === "changelog") {
-      changelogRef.current?.scrollIntoView({
-        block: "start",
-        behavior: "smooth",
-      });
+      if (changelogRef.current !== null) {
+        scrollSectionIntoView(changelogRef.current);
+      }
     }
   }, [searchParams]);
 

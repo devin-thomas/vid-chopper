@@ -4,6 +4,7 @@ import heroExport from "../assets/vidchopper-real-export.png";
 import { AgentOnboarding } from "../components/agent-onboarding";
 import { Icon } from "../components/icon";
 import { SectionHeading } from "../components/section-heading";
+import { scrollSectionIntoView } from "../lib/dom-safety";
 import { SiteLink, useSiteSearchParams } from "../router";
 import {
   keyFeatures,
@@ -22,16 +23,14 @@ export function HomePage() {
   useEffect(() => {
     const section = searchParams.get("section");
     if (section === "features") {
-      featuresRef.current?.scrollIntoView({
-        block: "start",
-        behavior: "smooth",
-      });
+      if (featuresRef.current !== null) {
+        scrollSectionIntoView(featuresRef.current);
+      }
     }
     if (section === "screenshots") {
-      screenshotsRef.current?.scrollIntoView({
-        block: "start",
-        behavior: "smooth",
-      });
+      if (screenshotsRef.current !== null) {
+        scrollSectionIntoView(screenshotsRef.current);
+      }
     }
   }, [searchParams]);
 

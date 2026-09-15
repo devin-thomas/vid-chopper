@@ -43,6 +43,10 @@ export const stagedPublicDirectory = path.join(docsDirectory, ".staged-public");
 export const routesPath = path.join(docsDirectory, "routes.json");
 export const assetsIgnoreText =
   ".assetsignore\n**/.DS_Store\n**/node_modules\n";
+/** Cache policy applied to every pre-rendered HTML document. */
+export const htmlCachePolicy = "revalidate";
+/** Splat covering the Vite bundles, whose file names already pin their bytes. */
+export const fingerprintedAssetRoute = "/assets/*";
 
 function fail(message) {
   throw new Error(`Invalid docs route contract: ${message}`);
@@ -335,6 +339,7 @@ export function isPagesMode(argumentsList = process.argv.slice(2)) {
 }
 
 export function cacheControl(cache) {
+  if (cache === "revalidate") return "public, max-age=0, must-revalidate";
   if (cache === "stable") return "public, max-age=300, must-revalidate";
   if (cache === "immutable") return "public, max-age=31536000, immutable";
   throw new Error(`Unsupported cache policy: ${cache}`);
@@ -349,13 +354,26 @@ export function releaseChannelForVersion(version) {
 }
 
 export function expectedHeadersText() {
-  return `${routes.assets
-    .map((asset) =>
+  // Documents must revalidate on every visit. Vite renames a bundle whenever
+  // its bytes change and the previous name stops existing after a deploy, so a
+  // document served from a browser cache would ask for a file that is already
+  // gone and render nothing at all. Fingerprinted bundles are the opposite
+  // case: their name pins their bytes, so they can be cached indefinitely.
+  const blocks = [
+    [
+      fingerprintedAssetRoute,
+      `  Cache-Control: ${cacheControl("immutable")}`,
+    ].join("\n"),
+    ...routes.htmlRoutes.map((route) =>
+      [route, `  Cache-Control: ${cacheControl(htmlCachePolicy)}`].join("\n"),
+    ),
+    ...routes.assets.map((asset) =>
       [
         asset.route,
         `  Content-Type: ${asset.contentType}`,
         `  Cache-Control: ${cacheControl(asset.cache)}`,
       ].join("\n"),
-    )
-    .join("\n\n")}\n`;
+    ),
+  ];
+  return `${blocks.join("\n\n")}\n`;
 }

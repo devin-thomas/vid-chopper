@@ -7,6 +7,7 @@ import {
   repositoryUrl,
   siteUrl,
 } from "../content/site";
+import { focusWithoutScroll, scrollToTop } from "../lib/dom-safety";
 import { legacyPagesBuild, SiteLink, useSiteLocation } from "../router";
 import { Icon } from "./icon";
 
@@ -28,7 +29,7 @@ export function Shell({ children }: { children: ReactNode }) {
   useEffect(() => {
     setMenuOpen(false);
     if (section === null) {
-      window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
+      scrollToTop();
     }
   }, [location.pathname, section]);
 
@@ -66,7 +67,7 @@ export function Shell({ children }: { children: ReactNode }) {
       if (!target.hasAttribute("tabindex")) {
         target.setAttribute("tabindex", "-1");
       }
-      target.focus({ preventScroll: true });
+      focusWithoutScroll(target);
     });
 
     return () => window.cancelAnimationFrame(frame);
