@@ -799,6 +799,7 @@ try {
     'querySelector<HTMLElement>("[data-route-focus]")',
     "focusWithoutScroll(target)",
     "element.focus({ preventScroll: true })",
+    "applyRouteMetadata(title, canonicalPath, siteUrl)",
   ]) {
     assert(
       sourceText.includes(focusSafeguard),
@@ -826,6 +827,7 @@ try {
       ".scrollIntoView(",
       "window.scrollTo(",
       ".focus({",
+      "document.title",
     ]) {
       assert(
         !source.includes(rawCall),

@@ -52,7 +52,20 @@ function snapshot() {
   return `path:${stripPagesBase(window.location.pathname)}${window.location.search}`;
 }
 
-const fallbackLocation: SiteLocation = { pathname: "/", search: "" };
+/**
+ * Recover a route without the URL parser.
+ *
+ * Only reached when parsing threw, so it keeps the visitor on the page they
+ * asked for instead of silently returning them to the home page. Query
+ * handling is dropped, which costs the section anchors and nothing else.
+ */
+function fallbackRoute(routeSnapshot: string): SiteLocation {
+  const route = routeSnapshot.slice(routeSnapshot.indexOf(":") + 1);
+  const rawPath = route.split(/[?#]/)[0] ?? "/";
+  if (!rawPath.startsWith("/")) return { pathname: "/", search: "" };
+  const pathname = rawPath.length > 1 ? rawPath.replace(/\/+$/, "") : "/";
+  return { pathname, search: "" };
+}
 
 function parseRoute(routeSnapshot: string): SiteLocation {
   const route = routeSnapshot.slice(routeSnapshot.indexOf(":") + 1);
@@ -94,13 +107,15 @@ function normalizeRoute(routeSnapshot: string): SiteLocation {
     location = parseRoute(routeSnapshot);
   } catch {
     // A malformed address must still render the site rather than nothing.
-    location = fallbackLocation;
+    location = fallbackRoute(routeSnapshot);
   }
   if (locationCache.size > 64) locationCache.clear();
   locationCache.set(routeSnapshot, location);
   return location;
 }
 
+// Readers share one instance per query string, so treat the result as
+// read-only: mutating it would rewrite what every other component sees.
 const searchParamsCache = new Map<string, URLSearchParams>();
 
 function parsedSearchParams(search: string) {

@@ -58,6 +58,34 @@ export function pushHistoryEntry(url: string) {
   return ignoreFailure(() => window.history.pushState(null, "", url));
 }
 
+/**
+ * Point the document's title and crawler-facing tags at the current route.
+ *
+ * Presentation only, so the title and the link tags degrade independently:
+ * an address the URL parser rejects must not also cost the tab its label.
+ */
+export function applyRouteMetadata(
+  title: string,
+  canonicalPath: string,
+  origin: string,
+) {
+  ignoreFailure(() => {
+    document.title = title;
+  });
+  ignoreFailure(() => {
+    const canonicalUrl = new URL(canonicalPath, origin).href;
+    document
+      .querySelector<HTMLLinkElement>('link[rel="canonical"]')
+      ?.setAttribute("href", canonicalUrl);
+    document
+      .querySelector<HTMLMetaElement>('meta[property="og:title"]')
+      ?.setAttribute("content", title);
+    document
+      .querySelector<HTMLMetaElement>('meta[property="og:url"]')
+      ?.setAttribute("content", canonicalUrl);
+  });
+}
+
 /** Tell the in-app router that `window.location` changed. */
 export function notifyLocationChanged() {
   if (ignoreFailure(() => window.dispatchEvent(new PopStateEvent("popstate")))) {
