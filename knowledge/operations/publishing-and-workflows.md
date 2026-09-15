@@ -73,24 +73,24 @@ Behavior:
 
 The default docs build targets the canonical root-hosted site and validates physical HTML routes,
 byte-identical machine assets, `GET`/`HEAD`, content types, cache policy, and strict machine-route
-404s. The VID-55 Worker must use `html_handling = "drop-trailing-slash"` and
-`not_found_handling = "404-page"`; blanket SPA fallback would turn missing machine resources into
-false HTML successes. The Pages build is a separate compatibility artifact; it displays a
-canonical-site notice.
+404s. Canonical HTML routes are flat `route.html` files so Cloudflare Pages serves them without a
+trailing slash, and the root `404.html` keeps Pages from falling back to the SPA shell, which would
+turn missing machine resources into false HTML successes. The GitHub Pages build is a separate
+compatibility artifact; it displays a canonical-site notice.
 
-## Cloudflare Production Workflow
+## Cloudflare Pages Workflow
 
 File: `.github/workflows/cloudflare.yml`
 
-The production workflow is manual, accepts only `main`, and requires the exact
-`deploy vidchopper.app` confirmation plus the `cloudflare-environment` GitHub environment. It
-installs the pinned repository dependencies, validates deterministic skill artifacts, runs frontend
-tests, builds and audits the canonical static artifact, performs a Wrangler dry run, publishes that
-same artifact, captures the deployment identity, and runs the cache-busted remote validator.
+Every push to `main` that touches site inputs publishes `vidchopper.app` automatically; it can also
+be dispatched manually on `main`. Using the `cloudflare-environment` GitHub environment, it installs
+the pinned dependencies, checks the Pages credentials, validates deterministic skill artifacts, runs
+frontend tests, builds and audits the canonical static artifact, uploads it with
+`wrangler pages deploy`, and runs the cache-busted remote validator.
 
-The credential, preflight, human-gate, live-acceptance, and version-rollback procedure is maintained
-in `knowledge/operations/cloudflare-production.md`. GitHub Pages remains the explicit legacy
-mirror and is not a production fallback claim.
+Credentials, manual deploys, previews, routing, and rollback are documented in
+`knowledge/operations/cloudflare-production.md`. GitHub Pages remains the explicit legacy mirror
+and is not a production fallback.
 
 ## Local Validation Reality
 
@@ -122,11 +122,10 @@ npm run build:pages
 npm run preview:pages -- --host 127.0.0.1 --port 4174
 ```
 
-VID-55 can reuse the same contract against a cache-busted HTTPS preview or production origin after
-the deployment gate:
+The same contract checks any Cloudflare Pages preview or the production origin:
 
 ```powershell
-node scripts/validate-routes.mjs --origin https://preview.example.com
+node scripts/validate-routes.mjs --origin https://my-change.vidchopper.pages.dev
 ```
 
 Remote mode verifies the deployed origin's `GET`/`HEAD`, raw bytes, MIME/cache headers, redirects,

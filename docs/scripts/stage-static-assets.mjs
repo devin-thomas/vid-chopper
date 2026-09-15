@@ -16,8 +16,8 @@ import {
   approvedSourceRoot,
   assetPath,
   assertInside,
-  assetsIgnoreText,
   expectedHeadersText,
+  expectedRedirectsText,
   releaseChannelForVersion,
   repositoryRoot,
   routes,
@@ -317,8 +317,8 @@ await Promise.all([
     "utf8",
   ),
   writeFile(
-    path.join(stagedPublicDirectory, ".assetsignore"),
-    assetsIgnoreText,
+    path.join(stagedPublicDirectory, "_redirects"),
+    expectedRedirectsText(),
     "utf8",
   ),
 ]);

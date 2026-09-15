@@ -39,7 +39,7 @@ function withMetadata(html, route, title) {
 }
 
 for (const route of routes.htmlRoutes) {
-  const destination = htmlPath(distDirectory, route);
+  const destination = htmlPath(distDirectory, route, pagesMode);
   await mkdir(path.dirname(destination), { recursive: true });
   await writeFile(
     destination,
@@ -56,7 +56,7 @@ await writeFile(
 
 if (pagesMode) {
   await Promise.all(
-    [".assetsignore", "_headers"].map((file) =>
+    ["_headers", "_redirects"].map((file) =>
       rm(path.join(distDirectory, file), { force: true }),
     ),
   );

@@ -1,12 +1,25 @@
-name: Cloudflare Production
+name: Cloudflare Pages
 
+# Every push to main that touches the site publishes it to vidchopper.app.
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - .gitattributes
+      - .agents/skills/vidchopper-cli/**
+      - CMakeLists.txt
+      - docs/**
+      - examples/chapter-config.json
+      - examples/chapter-config.yaml
+      - examples/chapter-config/**
+      - packaging/releases/**
+      - packaging/windows/README.txt
+      - src/cli/cli_arguments.cpp
+      - src/cli/manifest_writer.cpp
+      - tools/agent-skill-artifacts.ps1
+      - .github/workflows/cloudflare.yml
   workflow_dispatch:
-    inputs:
-      confirmation:
-        description: Type "deploy vidchopper.app" to publish main to production
-        required: true
-        type: string
 
 permissions:
   contents: read
@@ -16,28 +29,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  authorize:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 2
-    steps:
-      - name: Require main and exact production confirmation
-        env:
-          DISPATCH_REF: ${{ github.ref }}
-          CONFIRMATION: ${{ inputs.confirmation }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [[ "$DISPATCH_REF" != "refs/heads/main" ]]; then
-            echo "Cloudflare production can be dispatched only from main." >&2
-            exit 1
-          fi
-          if [[ "$CONFIRMATION" != "deploy vidchopper.app" ]]; then
-            echo "Production confirmation did not match the required phrase." >&2
-            exit 1
-          fi
-
   deploy:
-    needs: authorize
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     environment:
@@ -73,19 +65,8 @@ jobs:
             echo "Cloudflare production secrets are missing." >&2
             exit 1
           fi
-          deployments_json="$(npx --no-install wrangler deployments list --name vidchopper --json)"
-          versions_json="$(npx --no-install wrangler versions list --name vidchopper --json)"
-          printf '%s\n' "$deployments_json" | jq -e '
-            type == "array" and
-            length > 0 and
-            all(.[]; (.id | type == "string") and (.created_on | type == "string"))
-          ' > /dev/null
-          printf '%s\n' "$versions_json" | jq -e '
-            type == "array" and
-            length > 0 and
-            all(.[]; (.id | type == "string") and (.metadata.created_on | type == "string"))
-          ' > /dev/null
-          echo "Cloudflare credential and read-contract preflight passed."
+          npx --no-install wrangler pages deployment list --project-name vidchopper > /dev/null
+          echo "Cloudflare Pages credential preflight passed."
 
       - name: Validate deterministic agent skill artifacts
         shell: pwsh
@@ -99,80 +80,26 @@ jobs:
         working-directory: docs
         run: npm run build
 
-      - name: Inspect the Wrangler upload without publishing
-        working-directory: docs
-        run: >-
-          npm run cloudflare:dry-run --
-          --message "GitHub Actions ${{ github.sha }} run ${{ github.run_id }} attempt ${{ github.run_attempt }}"
-          --tag git-${{ github.sha }}
-
-      - name: Deploy the audited artifact
-        id: cloudflare
-        uses: cloudflare/wrangler-action@ebbaa1584979971c8614a24965b4405ff95890e0 # v4
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          wranglerVersion: "4.120.1"
-          workingDirectory: docs
-          command: deploy --strict --message "GitHub Actions ${{ github.sha }} run ${{ github.run_id }} attempt ${{ github.run_attempt }}" --tag git-${{ github.sha }}
-
-      - name: Capture deployment identity and validate production
+      - name: Deploy to Cloudflare Pages
         working-directory: docs
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx --no-install wrangler pages deploy dist --project-name vidchopper --branch main --commit-hash "$GITHUB_SHA"
+
+      - name: Validate production
+        working-directory: docs
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p ../artifacts/cloudflare
-          deployments_json="$(npx wrangler deployments list --name vidchopper --json)"
-          versions_json="$(npx wrangler versions list --name vidchopper --json)"
-          expected_tag="git-$GITHUB_SHA"
-          expected_message="GitHub Actions $GITHUB_SHA run $GITHUB_RUN_ID attempt $GITHUB_RUN_ATTEMPT"
-
-          deployment="$(printf '%s\n' "$deployments_json" | jq -e '
-            if length == 0
-            then error("Cloudflare returned no deployments")
-            else max_by(.created_on)
-            end
-          ')"
-          version="$(printf '%s\n' "$versions_json" | jq -e --arg tag "$expected_tag" --arg message "$expected_message" '[.[] | select(.annotations["workers/tag"] == $tag and .annotations["workers/message"] == $message)] | if length == 1 then .[0] else error("Expected exactly one version for this Actions run") end')"
-          deployment_version_id="$(printf '%s\n' "$deployment" | jq -er '
-            [.versions[] | select(.percentage == 100) | .version_id] |
-            if length == 1
-            then .[0]
-            else error("Latest deployment is not a single 100% version")
-            end
-          ')"
-          version_id="$(printf '%s\n' "$version" | jq -er '.id')"
-          if [[ "$deployment_version_id" != "$version_id" ]]; then
-            echo "Latest deployment does not point to this workflow's version." >&2
-            exit 1
-          fi
-
-          printf '%s\n' "$deployment" | jq '{id, source, strategy, annotations, versions, created_on}' > ../artifacts/cloudflare/deployment.json
-          printf '%s\n' "$version" | jq '{id, number, created_on: .metadata.created_on, source: .metadata.source, has_preview: .metadata.has_preview, annotations}' > ../artifacts/cloudflare/version.json
-
-          : > ../artifacts/cloudflare/live-validation.log
           for attempt in 1 2 3 4 5; do
-            if node scripts/validate-routes.mjs --origin https://vidchopper.app 2>&1 |
-              tee -a ../artifacts/cloudflare/live-validation.log; then
+            if node scripts/validate-routes.mjs --origin https://vidchopper.app; then
               exit 0
             fi
             if [[ "$attempt" == "5" ]]; then
               echo "Production validation failed after five cache-busted attempts." >&2
               exit 1
             fi
-            echo "Production has not converged; retrying in 15 seconds." |
-              tee -a ../artifacts/cloudflare/live-validation.log
+            echo "Production has not converged; retrying in 15 seconds."
             sleep 15
           done
-
-      - name: Retain production evidence
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: cloudflare-production-${{ github.run_id }}-${{ github.run_attempt }}
-          path: artifacts/cloudflare
-          if-no-files-found: warn
-          retention-days: 30

@@ -6,10 +6,10 @@ import path from "node:path";
 import { promisify } from "node:util";
 import {
   assetPath,
-  assetsIgnoreText,
   cacheControl,
   distDirectory,
   expectedHeadersText,
+  expectedRedirectsText,
   fingerprintedAssetRoute,
   htmlCachePolicy,
   htmlPath,
@@ -65,7 +65,6 @@ const observedAssets = new Map();
 const observedHtml = new Map();
 const requestNonce = Date.now().toString(36);
 const deploymentMetadataRoutes = new Set([
-  "/.assetsignore",
   "/_headers",
   "/_redirects",
 ]);
@@ -180,11 +179,8 @@ function parseHeaders(text) {
 const builtHeadersText = pagesMode
   ? expectedHeadersText()
   : await readFile(path.join(distDirectory, "_headers"), "utf8");
-const builtAssetsIgnoreText = pagesMode
-  ? assetsIgnoreText
-  : await readFile(path.join(distDirectory, ".assetsignore"), "utf8");
 if (pagesMode) {
-  for (const file of [".assetsignore", "_headers"]) {
+  for (const file of ["_headers", "_redirects"]) {
     try {
       await stat(path.join(distDirectory, file));
       fail(`Pages artifact must not publish ${file}.`);
@@ -204,8 +200,9 @@ if (pagesMode) {
     "Built _headers bytes do not match the route contract.",
   );
   assert(
-    builtAssetsIgnoreText === assetsIgnoreText,
-    "Built .assetsignore bytes do not match the staging contract.",
+    (await readFile(path.join(distDirectory, "_redirects"), "utf8")) ===
+      expectedRedirectsText(),
+    "Built _redirects bytes do not match the route contract.",
   );
 }
 const builtHeaders = parseHeaders(builtHeadersText);
@@ -256,7 +253,7 @@ async function resolveRequest(route) {
 
   if (routes.htmlRoutes.includes(route)) {
     return {
-      file: htmlPath(distDirectory, route),
+      file: htmlPath(distDirectory, route, pagesMode),
       status: 200,
       contentType: "text/html",
       cacheControl: builtHeaders.get(route)?.get("cache-control"),
@@ -1249,6 +1246,7 @@ try {
 
   if (remoteMode && !pagesMode) {
     await verifyCanonicalRedirect("/docs/", "/docs");
+    await verifyCanonicalRedirect("/docs.html", "/docs");
     await verifyCanonicalRedirect("/docs/index.html", "/docs");
     await verifyCanonicalRedirect("/index.html", "/");
   }

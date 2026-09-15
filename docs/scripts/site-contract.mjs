@@ -41,8 +41,6 @@ export const repositoryRoot = path.dirname(docsDirectory);
 export const distDirectory = path.join(docsDirectory, "dist");
 export const stagedPublicDirectory = path.join(docsDirectory, ".staged-public");
 export const routesPath = path.join(docsDirectory, "routes.json");
-export const assetsIgnoreText =
-  ".assetsignore\n**/.DS_Store\n**/node_modules\n";
 /** Cache policy applied to every pre-rendered HTML document. */
 export const htmlCachePolicy = "revalidate";
 /** Splat covering the Vite bundles, whose file names already pin their bytes. */
@@ -165,8 +163,7 @@ function assertCachePolicy(entry, label) {
 }
 
 function outputPath(route, html) {
-  if (html)
-    return route === "/" ? "index.html" : `${route.slice(1)}/index.html`;
+  if (html) return route === "/" ? "index.html" : `${route.slice(1)}.html`;
   return route.slice(1);
 }
 
@@ -326,9 +323,18 @@ export function assetPath(root, route) {
   return target;
 }
 
-export function htmlPath(root, route) {
+/**
+ * Cloudflare Pages serves `docs.html` at `/docs` and redirects `/docs/` there,
+ * which keeps canonical routes slash-free. A `docs/index.html` would instead
+ * redirect `/docs` to `/docs/`. The GitHub Pages compatibility build keeps
+ * directory indexes.
+ */
+export function htmlPath(root, route, pagesMode = false) {
   if (route === "/") return path.join(root, "index.html");
-  const target = path.join(root, route.replace(/^\/+|\/+$/g, ""), "index.html");
+  const relative = route.replace(/^\/+|\/+$/g, "");
+  const target = pagesMode
+    ? path.join(root, relative, "index.html")
+    : path.join(root, `${relative}.html`);
   assertInside(root, target, `HTML route ${route}`);
   return target;
 }
@@ -351,6 +357,15 @@ export function releaseChannelForVersion(version) {
   );
   if (!match) throw new Error(`Unsupported release version: ${version}`);
   return match[1] ? "prerelease" : "stable";
+}
+
+export function expectedRedirectsText() {
+  // Pages already redirects `/docs/` and `/docs.html` to `/docs`, but an old
+  // directory-index link such as `/docs/index.html` would otherwise 404.
+  const rules = routes.htmlRoutes
+    .filter((route) => route !== "/")
+    .map((route) => `${route}/index.html ${route} 308`);
+  return `${rules.join("\n")}\n`;
 }
 
 export function expectedHeadersText() {
