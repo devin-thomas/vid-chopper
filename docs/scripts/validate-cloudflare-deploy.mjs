@@ -119,15 +119,11 @@ assert(
   ".gitignore must exclude every .wrangler directory",
 );
 
-const canonicalBuildCall =
-  'Invoke-RepoCommand -FilePath $npm -ArgumentList @("run", "build")';
-const pagesBuildCall =
-  'Invoke-RepoCommand -FilePath $npm -ArgumentList @("run", "build:pages")';
-const canonicalBuildIndex = verification.indexOf(canonicalBuildCall);
-const pagesBuildIndex = verification.indexOf(pagesBuildCall);
 assert(
-  canonicalBuildIndex !== -1 && pagesBuildIndex > canonicalBuildIndex,
-  "Docs verification must run the canonical build before the GitHub Pages build",
+  verification.includes(
+    'Invoke-RepoCommand -FilePath $npm -ArgumentList @("run", "build")',
+  ),
+  "Docs verification must run the canonical build",
 );
 
 for (const snippet of [

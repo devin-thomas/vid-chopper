@@ -1,6 +1,5 @@
 {
   "canonicalOrigin": "https://vidchopper.app",
-  "pagesBasePath": "/vid-chopper/",
   "delivery": {
     "htmlHandling": "drop-trailing-slash",
     "notFoundHandling": "404-page"

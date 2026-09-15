@@ -17,8 +17,6 @@ export type SiteLocation = {
   search: string;
 };
 
-export const legacyPagesBuild = import.meta.env.MODE === "pages";
-
 const currentDocsSections = new Map<string, string>(
   docsGuideposts.map((section) => [section.slug, section.path] as const),
 );
@@ -36,20 +34,11 @@ function subscribe(listener: () => void) {
   };
 }
 
-function stripPagesBase(pathname: string) {
-  if (!legacyPagesBuild) return pathname;
-  const base = import.meta.env.BASE_URL.replace(/\/$/, "");
-  if (pathname === base || pathname === `${base}/`) return "/";
-  return pathname.startsWith(`${base}/`)
-    ? pathname.slice(base.length)
-    : pathname;
-}
-
 function snapshot() {
   if (window.location.hash.startsWith("#/")) {
     return `hash:${window.location.hash.slice(1)}`;
   }
-  return `path:${stripPagesBase(window.location.pathname)}${window.location.search}`;
+  return `path:${window.location.pathname}${window.location.search}`;
 }
 
 /**
@@ -151,7 +140,6 @@ export function useSiteLocation(): SiteLocation {
  */
 export function useCanonicalLocation(location: SiteLocation) {
   useEffect(() => {
-    if (legacyPagesBuild) return;
     const canonicalPath = `${location.pathname}${location.search}`;
     const currentPath = `${window.location.pathname}${window.location.search}`;
     if (!window.location.hash.startsWith("#/") && currentPath === canonicalPath) {
@@ -170,13 +158,10 @@ type SiteLinkProps = Omit<ComponentPropsWithoutRef<"a">, "href"> & {
 };
 
 export function SiteLink({ to, onClick, target, ...props }: SiteLinkProps) {
-  const href = legacyPagesBuild ? `${import.meta.env.BASE_URL}#${to}` : to;
-
   const navigate = (event: MouseEvent<HTMLAnchorElement>) => {
     onClick?.(event);
     if (
       event.defaultPrevented ||
-      legacyPagesBuild ||
       event.button !== 0 ||
       event.metaKey ||
       event.ctrlKey ||
@@ -194,5 +179,5 @@ export function SiteLink({ to, onClick, target, ...props }: SiteLinkProps) {
     notifyLocationChanged();
   };
 
-  return <a href={href} target={target} onClick={navigate} {...props} />;
+  return <a href={to} target={target} onClick={navigate} {...props} />;
 }

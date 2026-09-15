@@ -304,7 +304,6 @@ p, li, dd, dt, span { line-height: 1.58; }
 .docs-empty-state h2 { font-size: clamp(1.65rem, 3vw, 2.25rem); }
 .docs-empty-state p { margin: 12px 0 0; color: var(--muted); }
 .docs-empty-state .cta-secondary { margin-top: 18px; }
-.legacy-site-notice { margin: 12px 0 0; padding: 10px 14px; border: 1px solid rgba(109, 224, 176, 0.32); border-radius: 10px; background: rgba(109, 224, 176, 0.06); color: var(--muted); font-size: 0.78rem; }
 .not-found-panel { grid-template-columns: minmax(0, 720px); }
 
 @media (max-width: 1040px) {

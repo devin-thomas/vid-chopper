@@ -52,7 +52,7 @@ src/qt/        Qt 6 Widgets desktop shell. Depends on core; never the reverse.
   src/qt/services/   ffprobe, gpu detection, export orchestration
 tests/         Hand-rolled, dependency-free tests (see §15). fast + slow labels.
 resources/     App icon assets (.ico/.png/.qrc/.rc).
-docs/          Static site published to GitHub Pages.
+docs/          Static site published to vidchopper.app via Cloudflare Pages.
 .devin/skills/ Qt agent-skills (qt-cpp-review, qt-cpp-docs, qt-project).
 AGENTS.md      Connector/AI-agent workflow for branch, PR, formatting, and CI discipline.
 ```

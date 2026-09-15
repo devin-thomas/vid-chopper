@@ -138,8 +138,7 @@ coverage where applicable.
 ### Site and agent skill
 
 The Docs lane runs the deterministic skill contract, `npm ci`, frontend tests, typechecks, canonical route
-build/audit including the Cloudflare Pages deployment contract, and the GitHub Pages compatibility build.
-Production acceptance additionally requires the Cloudflare Pages workflow's cache-busted live validation
+build/audit including the Cloudflare Pages deployment contract. Production acceptance additionally requires the Cloudflare Pages workflow's cache-busted live validation
 described in `knowledge/operations/cloudflare-production.md`.
 
 ### Internal Markdown and public documentation
@@ -171,7 +170,6 @@ canceled by the workflow concurrency group. Never treat a canceled older run as 
 | `gui-build` | `pwsh -NoProfile -File tools/verify.ps1 -CiLane Gui` | Clean Windows 2022, cached Qt 6.9/vcpkg, ffmpeg 7.1.1 |
 | `docs-check` | `pwsh -NoProfile -File tools/verify.ps1 -CiLane Docs` | Clean Node 22 install and npm cache |
 | agent skill matrix | `pwsh -NoProfile -File tools/agent-skill-artifacts.ps1 -Mode Check` | Both Windows and Ubuntu path/ZIP behavior |
-| Pages `deploy` | `pwsh -NoProfile -File tools/verify.ps1 -CiLane Docs` reproduces its build/audit | Pages upload, environment, and deployment identity are remote-only |
 | Cloudflare Pages `deploy` | `pwsh -NoProfile -File tools/verify.ps1 -CiLane Docs` reproduces pre-deploy checks | Credential preflight, Pages upload, and HTTPS acceptance are remote-only |
 | Release `package-windows-candidate` | `pwsh -NoProfile -File tools/verify.ps1 -Tier Release` | Clean Windows packaging and immutable artifact upload |
 | Release `smoke-windows-candidate` | `pwsh -NoProfile -File tools/verify-release-archive.ps1 -Version <version> -ArchivePath <zip>` | A second clean Windows runner and retained JSON evidence |

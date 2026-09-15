@@ -1,8 +1,8 @@
 # Pages Rewrite Brief
 
-This was the Task 10 brief and now serves as the reference for future iteration. VID-51 prepares
-`https://vidchopper.app/docs` as the canonical documentation target; the VID-55 production gate and
-live acceptance remain pending. GitHub Pages remains a legacy mirror with compatible hash routes.
+This was the Task 10 brief and now serves as the reference for future iteration. The site is
+published to `https://vidchopper.app` through Cloudflare Pages. The former GitHub Pages mirror is
+retired; old hash routes such as `/#/docs` still resolve to their canonical pages.
 
 ## Site Role
 

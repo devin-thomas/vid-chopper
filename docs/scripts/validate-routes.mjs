@@ -13,7 +13,6 @@ import {
   fingerprintedAssetRoute,
   htmlCachePolicy,
   htmlPath,
-  isPagesMode,
   releaseChannelForVersion,
   repositoryRoot,
   routes,
@@ -22,18 +21,10 @@ import {
 const execFileAsync = promisify(execFile);
 
 const argumentsList = process.argv.slice(2);
-const pagesMode = isPagesMode(argumentsList);
 let remoteOrigin = null;
 
 for (let index = 0; index < argumentsList.length; index += 1) {
   const argument = argumentsList[index];
-  if (argument === "--mode") {
-    if (argumentsList[index + 1] !== "pages") {
-      throw new Error("--mode supports only the pages value.");
-    }
-    index += 1;
-    continue;
-  }
   if (argument === "--origin") {
     if (remoteOrigin !== null || index + 1 >= argumentsList.length) {
       throw new Error("--origin requires exactly one HTTPS origin.");
@@ -59,7 +50,6 @@ for (let index = 0; index < argumentsList.length; index += 1) {
 }
 
 const remoteMode = remoteOrigin !== null;
-const basePath = pagesMode ? routes.pagesBasePath : "/";
 const routeAssets = new Map(routes.assets.map((asset) => [asset.route, asset]));
 const observedAssets = new Map();
 const observedHtml = new Map();
@@ -124,26 +114,12 @@ function assertHtmlDeclaresUtf8(body, route) {
   }
 }
 
-function requestPath(route) {
-  if (!pagesMode) return route;
-  const base = basePath.replace(/\/$/, "");
-  return route === "/" ? `${base}/` : `${base}${route}`;
-}
-
 function requestUrl(origin, route, cacheBust = true) {
-  const url = new URL(requestPath(route), origin);
+  const url = new URL(route, origin);
   if (remoteMode && cacheBust) {
     url.searchParams.set("vidchopper_verify", requestNonce);
   }
   return url;
-}
-
-function stripBase(pathname) {
-  if (!pagesMode) return pathname;
-  const base = basePath.replace(/\/$/, "");
-  if (pathname === base || pathname === `${base}/`) return "/";
-  if (!pathname.startsWith(`${base}/`)) return null;
-  return pathname.slice(base.length) || "/";
 }
 
 function parseHeaders(text) {
@@ -176,35 +152,19 @@ function parseHeaders(text) {
   return parsed;
 }
 
-const builtHeadersText = pagesMode
-  ? expectedHeadersText()
-  : await readFile(path.join(distDirectory, "_headers"), "utf8");
-if (pagesMode) {
-  for (const file of ["_headers", "_redirects"]) {
-    try {
-      await stat(path.join(distDirectory, file));
-      fail(`Pages artifact must not publish ${file}.`);
-    } catch (error) {
-      if (
-        !(error instanceof Error) ||
-        !("code" in error) ||
-        error.code !== "ENOENT"
-      ) {
-        throw error;
-      }
-    }
-  }
-} else {
-  assert(
-    builtHeadersText === expectedHeadersText(),
-    "Built _headers bytes do not match the route contract.",
-  );
-  assert(
-    (await readFile(path.join(distDirectory, "_redirects"), "utf8")) ===
-      expectedRedirectsText(),
-    "Built _redirects bytes do not match the route contract.",
-  );
-}
+const builtHeadersText = await readFile(
+  path.join(distDirectory, "_headers"),
+  "utf8",
+);
+assert(
+  builtHeadersText === expectedHeadersText(),
+  "Built _headers bytes do not match the route contract.",
+);
+assert(
+  (await readFile(path.join(distDirectory, "_redirects"), "utf8")) ===
+    expectedRedirectsText(),
+  "Built _redirects bytes do not match the route contract.",
+);
 const builtHeaders = parseHeaders(builtHeadersText);
 assert(
   builtHeaders.size === routes.assets.length + routes.htmlRoutes.length + 1,
@@ -232,7 +192,7 @@ function contentType(route, file) {
 }
 
 async function resolveRequest(route) {
-  if (!pagesMode && deploymentMetadataRoutes.has(route)) {
+  if (deploymentMetadataRoutes.has(route)) {
     return {
       file: path.join(distDirectory, "404.html"),
       status: 404,
@@ -253,7 +213,7 @@ async function resolveRequest(route) {
 
   if (routes.htmlRoutes.includes(route)) {
     return {
-      file: htmlPath(distDirectory, route, pagesMode),
+      file: htmlPath(distDirectory, route),
       status: 200,
       contentType: "text/html",
       cacheControl: builtHeaders.get(route)?.get("cache-control"),
@@ -297,11 +257,10 @@ if (!remoteMode) {
         return;
       }
 
-      const pathname = decodeURIComponent(
+      const route = decodeURIComponent(
         new URL(request.url ?? "/", "http://artifact.local").pathname,
       );
-      const route = stripBase(pathname);
-      if (route === null || route.includes("..")) {
+      if (route.includes("..")) {
         response.writeHead(404).end();
         return;
       }
@@ -390,8 +349,8 @@ async function verifyCanonicalRedirect(from, to) {
     `GET ${from}: redirect crossed the canonical origin`,
   );
   assert(
-    destination.pathname === requestPath(to),
-    `GET ${from}: expected redirect to ${requestPath(to)}, got ${destination.pathname}`,
+    destination.pathname === to,
+    `GET ${from}: expected redirect to ${to}, got ${destination.pathname}`,
   );
 }
 
@@ -577,7 +536,7 @@ try {
     );
     const html = assertHtmlDeclaresUtf8(body, route);
     observedHtml.set(route, html);
-    if (remoteMode && !pagesMode) {
+    if (remoteMode) {
       const expectedBody = new Uint8Array(
         await readFile(htmlPath(distDirectory, route)),
       );
@@ -776,7 +735,6 @@ try {
   );
   for (const safeguard of [
     'window.location.hash.startsWith("#/")',
-    "stripPagesBase(window.location.pathname)",
     "routeContract.legacyDocsRoutes",
     "event.defaultPrevented",
     "event.button !== 0",
@@ -1205,7 +1163,7 @@ try {
     "Built root HTML does not reference a hashed asset.",
   );
   const expectedAssetOrigin = new URL(origin).origin;
-  const expectedAssetPrefix = requestPath("/assets/");
+  const expectedAssetPrefix = "/assets/";
   for (const reference of assetReferences) {
     const assetUrl = new URL(reference, origin);
     assert(
@@ -1227,9 +1185,9 @@ try {
       response.status === 200,
       `Built asset ${reference} returned ${response.status}`,
     );
-    const assetRoute = stripBase(assetUrl.pathname);
+    const assetRoute = assetUrl.pathname;
     assert(
-      assetRoute !== null && assetRoute.startsWith("/assets/"),
+      assetRoute.startsWith("/assets/"),
       `Built asset ${reference} could not be mapped to the candidate artifact`,
     );
     const [publishedAsset, candidateAsset] = await Promise.all([
@@ -1244,7 +1202,7 @@ try {
     );
   }
 
-  if (remoteMode && !pagesMode) {
+  if (remoteMode) {
     await verifyCanonicalRedirect("/docs/", "/docs");
     await verifyCanonicalRedirect("/docs.html", "/docs");
     await verifyCanonicalRedirect("/docs/index.html", "/docs");

@@ -1,13 +1,7 @@
-import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
-import {
-  distDirectory,
-  htmlPath,
-  isPagesMode,
-  routes,
-} from "./site-contract.mjs";
+import { distDirectory, htmlPath, routes } from "./site-contract.mjs";
 
-const pagesMode = isPagesMode();
 const sourceHtml = await readFile(
   path.join(distDirectory, "index.html"),
   "utf8",
@@ -39,7 +33,7 @@ function withMetadata(html, route, title) {
 }
 
 for (const route of routes.htmlRoutes) {
-  const destination = htmlPath(distDirectory, route, pagesMode);
+  const destination = htmlPath(distDirectory, route);
   await mkdir(path.dirname(destination), { recursive: true });
   await writeFile(
     destination,
@@ -54,14 +48,4 @@ await writeFile(
   "utf8",
 );
 
-if (pagesMode) {
-  await Promise.all(
-    ["_headers", "_redirects"].map((file) =>
-      rm(path.join(distDirectory, file), { force: true }),
-    ),
-  );
-}
-
-console.log(
-  `Finalized ${routes.htmlRoutes.length} HTML routes for ${pagesMode ? "GitHub Pages compatibility" : "the canonical site"}.`,
-);
+console.log(`Finalized ${routes.htmlRoutes.length} HTML routes.`);

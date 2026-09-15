@@ -44,10 +44,6 @@ Pop-Location
 
 `CLOUDFLARE_ACCOUNT_ID` is required locally when the Wrangler login can see more than one account.
 
-Never upload the `npm run build:pages` output to Cloudflare. That artifact is rooted at
-`/vid-chopper/` for the GitHub Pages mirror, so every script and stylesheet 404s on
-`vidchopper.app` and the site renders blank. A manual upload in September 2026 did exactly that.
-
 ## Previews
 
 Any other branch name creates a preview without touching production:

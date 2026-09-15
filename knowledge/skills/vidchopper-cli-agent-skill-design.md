@@ -92,7 +92,7 @@ make VID-51 through VID-53 testable without turning VID-48 into a second roadmap
 | Portable package notes    | `packaging/windows/README.txt`                                                            | Offline skill pointer and prerequisites                    |
 | Release identity/evidence | `packaging/releases/1.0.0.md` and `knowledge/operations/publishing-and-workflows.md` | Version and digest alignment                               |
 | Human entry points        | `README.md` and the React site in `docs/`                                                 | Canonical docs and onboarding links                        |
-| Legacy public route       | GitHub Pages with Vite base `/vid-chopper/` and hash routing                              | Intentional migration landing, not canonical skill hosting |
+| Legacy public route       | Hash routes such as `/#/docs`; the GitHub Pages mirror is retired                         | Intentional migration landing, not canonical skill hosting |
 
 VID-52 adds the repository skill without duplicating these contracts by hand. References either reuse
 the source files during packaging or are generated and checked against them.
@@ -461,7 +461,7 @@ or upload of the public VOD.
 - Make `/docs` and major sections directly reloadable without hash-only routing.
 - Publish stable and immutable machine-readable schema, sample, and release-metadata routes; use
   `/schemas/chapter-config/v1/schema.json` for schema version `1`.
-- Preserve intentional legacy landing behavior for GitHub Pages/hash URLs.
+- Preserve intentional legacy landing behavior for old hash URLs.
 - Generate physical HTML entries for every supported browser route and use strict custom-`404`
   delivery instead of an unconditional SPA fallback. This keeps direct reloads working without
   turning missing schema, sample, or skill URLs into `200 text/html` responses.

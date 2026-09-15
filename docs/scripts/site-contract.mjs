@@ -26,7 +26,6 @@ const contentTypesByExtension = new Map([
 ]);
 const contractKeys = new Set([
   "canonicalOrigin",
-  "pagesBasePath",
   "delivery",
   "htmlRoutes",
   "htmlTitles",
@@ -172,11 +171,6 @@ function validateContract(contract) {
   assertExactKeys(contract, contractKeys, "root");
   if (contract.canonicalOrigin !== "https://vidchopper.app") {
     fail("canonicalOrigin must be https://vidchopper.app");
-  }
-  if (!/^\/[a-z0-9-]+\/$/.test(contract.pagesBasePath)) {
-    fail(
-      "pagesBasePath must be one lowercase path segment with a trailing slash",
-    );
   }
   assertPlainObject(contract.delivery, "delivery");
   assertExactKeys(
@@ -326,22 +320,13 @@ export function assetPath(root, route) {
 /**
  * Cloudflare Pages serves `docs.html` at `/docs` and redirects `/docs/` there,
  * which keeps canonical routes slash-free. A `docs/index.html` would instead
- * redirect `/docs` to `/docs/`. The GitHub Pages compatibility build keeps
- * directory indexes.
+ * redirect `/docs` to `/docs/`.
  */
-export function htmlPath(root, route, pagesMode = false) {
+export function htmlPath(root, route) {
   if (route === "/") return path.join(root, "index.html");
-  const relative = route.replace(/^\/+|\/+$/g, "");
-  const target = pagesMode
-    ? path.join(root, relative, "index.html")
-    : path.join(root, `${relative}.html`);
+  const target = path.join(root, `${route.replace(/^\/+|\/+$/g, "")}.html`);
   assertInside(root, target, `HTML route ${route}`);
   return target;
-}
-
-export function isPagesMode(argumentsList = process.argv.slice(2)) {
-  const modeIndex = argumentsList.indexOf("--mode");
-  return modeIndex !== -1 && argumentsList[modeIndex + 1] === "pages";
 }
 
 export function cacheControl(cache) {

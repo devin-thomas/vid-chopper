@@ -41,7 +41,7 @@ The 1.2.0 documentation and evidence boundary covers:
 - Cross-platform source and CI contracts for native configuration, external FFmpeg/ffprobe tools, and backend-neutral encoder resolution
 - Automatic preference for HEVC NVENC on Windows/Linux and HEVC VideoToolbox on Apple Silicon only after a usable capability test, with x264 as the universal fallback
 - A staged test suite split into fast unit-level coverage and slower `ffmpeg` integration coverage
-- A Vite + React + TypeScript + Tailwind site in `docs/` for the canonical product, release, and CLI documentation surface, with GitHub Pages retained as a legacy mirror
+- A Vite + React + TypeScript + Tailwind site in `docs/` for the canonical product, release, and CLI documentation surface, published to `vidchopper.app` through Cloudflare Pages
 
 The stable `v1.2.0` release ships the GUI and CLI on one shared cross-platform probe/export engine,
 packages `VidChopperCLI.exe` beside the Windows GUI, and adds the Apple Silicon DMG and standalone CLI.

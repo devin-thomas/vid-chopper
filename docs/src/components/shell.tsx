@@ -2,7 +2,6 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import routeContract from "../../routes.json";
 import appIcon from "../assets/app-icon.png";
 import {
-  docsUrl,
   releasePageUrl,
   repositoryUrl,
   siteUrl,
@@ -13,7 +12,6 @@ import {
   scrollToTop,
 } from "../lib/dom-safety";
 import {
-  legacyPagesBuild,
   SiteLink,
   useSiteLocation,
   useSiteSearchParams,
@@ -136,12 +134,6 @@ export function Shell({ children }: { children: ReactNode }) {
           </a>
         </div>
       </header>
-      {legacyPagesBuild ? (
-        <aside className="legacy-site-notice" aria-label="Legacy site notice">
-          GitHub Pages is the legacy mirror. The canonical documentation home is{" "}
-          <a href={docsUrl}>{docsUrl}</a>.
-        </aside>
-      ) : null}
       {children}
       <footer className="site-footer">
         <div>

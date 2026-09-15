@@ -59,28 +59,15 @@ Behavior:
 6. After approval, the job creates the stable release and attaches the ZIP and SHA-256 file.
 7. The publish job downloads the remote asset again and verifies its digest matches the proven candidate.
 
-## Pages Workflow
-
-File: `.github/workflows/pages.yml`
-
-Behavior:
-
-1. Check out the repo.
-2. Install Node dependencies from `docs/`.
-3. Build the Vite app in `docs/` with the GitHub Pages compatibility base and hash adapter.
-4. Upload `docs/dist`.
-5. Deploy through GitHub Pages.
-
-The default docs build targets the canonical root-hosted site and validates physical HTML routes,
-byte-identical machine assets, `GET`/`HEAD`, content types, cache policy, and strict machine-route
-404s. Canonical HTML routes are flat `route.html` files so Cloudflare Pages serves them without a
-trailing slash, and the root `404.html` keeps Pages from falling back to the SPA shell, which would
-turn missing machine resources into false HTML successes. The GitHub Pages build is a separate
-compatibility artifact; it displays a canonical-site notice.
-
 ## Cloudflare Pages Workflow
 
 File: `.github/workflows/cloudflare.yml`
+
+The docs build targets the root-hosted site and validates physical HTML routes, byte-identical
+machine assets, `GET`/`HEAD`, content types, cache policy, and strict machine-route 404s. HTML
+routes are flat `route.html` files so Cloudflare Pages serves them without a trailing slash, and the
+root `404.html` keeps Pages from falling back to the SPA shell, which would turn missing machine
+resources into false HTML successes.
 
 Every push to `main` that touches site inputs publishes `vidchopper.app` automatically; it can also
 be dispatched manually on `main`. Using the `cloudflare-environment` GitHub environment, it installs
@@ -89,8 +76,7 @@ frontend tests, builds and audits the canonical static artifact, uploads it with
 `wrangler pages deploy`, and runs the cache-busted remote validator.
 
 Credentials, manual deploys, previews, routing, and rollback are documented in
-`knowledge/operations/cloudflare-production.md`. GitHub Pages remains the explicit legacy mirror
-and is not a production fallback.
+`knowledge/operations/cloudflare-production.md`. The former GitHub Pages mirror is retired.
 
 ## Local Validation Reality
 
@@ -109,17 +95,13 @@ cmake --preset windows-gui-release
 cmake --build --preset windows-gui-release
 ```
 
-Pages path:
+Site path:
 
 ```powershell
 cd docs
 npm ci
 npm run build
 npm run preview -- --host 127.0.0.1 --port 4173
-
-# After stopping the canonical preview:
-npm run build:pages
-npm run preview:pages -- --host 127.0.0.1 --port 4174
 ```
 
 The same contract checks any Cloudflare Pages preview or the production origin:
