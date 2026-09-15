@@ -73,18 +73,34 @@ jobs:
             echo "Cloudflare production secrets are missing." >&2
             exit 1
           fi
-          deployments_json="$(npx --no-install wrangler deployments list --name vidchopper --json)"
-          versions_json="$(npx --no-install wrangler versions list --name vidchopper --json)"
-          printf '%s\n' "$deployments_json" | jq -e '
-            type == "array" and
-            length > 0 and
-            all(.[]; (.id | type == "string") and (.created_on | type == "string"))
-          ' > /dev/null
-          printf '%s\n' "$versions_json" | jq -e '
-            type == "array" and
-            length > 0 and
-            all(.[]; (.id | type == "string") and (.metadata.created_on | type == "string"))
-          ' > /dev/null
+          missing_worker=false
+          deployments_error_log="$(mktemp)"
+          versions_error_log="$(mktemp)"
+          if deployments_json="$(npx --no-install wrangler deployments list --name vidchopper --json 2>"$deployments_error_log")"; then
+            printf '%s\n' "$deployments_json" | jq -e '
+              type == "array" and
+              all(.[]; (.id | type == "string") and (.created_on | type == "string"))
+            ' > /dev/null
+          elif grep -q "code: 10007" "$deployments_error_log"; then
+            missing_worker=true
+          else
+            cat "$deployments_error_log" >&2
+            exit 1
+          fi
+          if versions_json="$(npx --no-install wrangler versions list --name vidchopper --json 2>"$versions_error_log")"; then
+            printf '%s\n' "$versions_json" | jq -e '
+              type == "array" and
+              all(.[]; (.id | type == "string") and (.metadata.created_on | type == "string"))
+            ' > /dev/null
+          elif grep -q "code: 10007" "$versions_error_log"; then
+            missing_worker=true
+          else
+            cat "$versions_error_log" >&2
+            exit 1
+          fi
+          if [[ "$missing_worker" == "true" ]]; then
+            echo "Worker vidchopper is not provisioned in this account yet; first deploy will create it."
+          fi
           echo "Cloudflare credential and read-contract preflight passed."
 
       - name: Validate deterministic agent skill artifacts
