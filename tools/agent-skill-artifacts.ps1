@@ -35,7 +35,13 @@ $packageMarker = 'The `v1.0.0` application ZIP'
 if (-not $core.Contains($packageMarker)) {
     throw "Agent skill artifact core no longer contains the expected package-version contract."
 }
-$core = $core.Replace($packageMarker, 'The `v1.2.0` agent-skill package')
+$core = $core.Replace($packageMarker, 'The `v1.2.0` agent-skill package contains this')
+
+$adjacentManifestMarker = 'contains this skill and its adjacent manifest'
+if (-not $core.Contains($adjacentManifestMarker)) {
+    throw "Agent skill artifact core no longer contains the expected adjacent-manifest contract."
+}
+$core = $core.Replace($adjacentManifestMarker, 'skill and its adjacent manifest')
 
 $environmentName = "VIDCHOPPER_AGENT_SKILL_REPO_ROOT"
 $previousRoot = [Environment]::GetEnvironmentVariable($environmentName, [EnvironmentVariableTarget]::Process)
