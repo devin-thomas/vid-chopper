@@ -127,10 +127,31 @@
       "cache": "stable"
     },
     {
-      "source": "packaging/releases/agent-skills/v1.0.0/manifest.json",
+      "source": "packaging/releases/agent-skills/v1.2.0/manifest.json",
       "route": "/agents/vidchopper-cli/manifest.json",
       "contentType": "application/json; charset=utf-8",
       "cache": "stable"
+    },
+    {
+      "source": "packaging/releases/agent-skills/v1.2.0/SKILL.md",
+      "route": "/agents/vidchopper-cli/v1.2.0/SKILL.md",
+      "contentType": "text/markdown; charset=utf-8",
+      "cache": "immutable",
+      "sha256": "b175893fe44ec5ba495ac8cce3adcaeb52a60f1a5e283f59eb6057ad523b200a"
+    },
+    {
+      "source": "packaging/releases/agent-skills/v1.2.0/manifest.json",
+      "route": "/agents/vidchopper-cli/v1.2.0/manifest.json",
+      "contentType": "application/json; charset=utf-8",
+      "cache": "immutable",
+      "sha256": "153b0fdf851b856af5ade62bd1c9a3373e8b45442ad1b0ee755679d9175c5a8d"
+    },
+    {
+      "source": "packaging/releases/agent-skills/v1.2.0/vidchopper-cli.zip",
+      "route": "/agents/vidchopper-cli/v1.2.0/vidchopper-cli.zip",
+      "contentType": "application/zip",
+      "cache": "immutable",
+      "sha256": "a43f79e66f1f57464883db2550c30cd47f4d467f70464b8778dd650596c6b067"
     },
     {
       "source": "packaging/releases/agent-skills/v1.0.0/SKILL.md",
@@ -175,7 +196,7 @@
       "sha256": "15d82b609af3491d7f776a14b0f08b3e59356330f3955953a5b0c08962ed17e3"
     },
     {
-      "source": "packaging/releases/agent-skills/v1.0.0/index.json",
+      "source": "packaging/releases/agent-skills/v1.2.0/index.json",
       "route": "/.well-known/agent-skills/index.json",
       "contentType": "application/json; charset=utf-8",
       "cache": "stable"
