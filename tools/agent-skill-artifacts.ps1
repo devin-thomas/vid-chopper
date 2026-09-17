@@ -12,33 +12,45 @@ if (-not (Test-Path -LiteralPath $corePath -PathType Leaf)) {
 }
 
 $core = [IO.File]::ReadAllText($corePath)
-$patches = @(
-    @('$repoRoot = Split-Path -Parent $PSScriptRoot', '$repoRoot = $env:VIDCHOPPER_AGENT_SKILL_REPO_ROOT'),
-    @('$skillVersion = "1.0.0"', '$skillVersion = "1.2.0"'),
-    @('vidchopper\.cli-version: "1\.0\.0"', 'vidchopper\.cli-version: "1\.2\.0"'),
-    @('The `v1.0.0` application ZIP', 'The `v1.2.0` agent-skill package')
-)
 
-foreach ($patch in $patches) {
-    $from = [string]$patch[0]
-    $to = [string]$patch[1]
-    if (-not $core.Contains($from, [StringComparison]::Ordinal)) {
-        throw "Agent skill artifact core no longer contains the expected 1.0.0 contract text: $from"
-    }
-    $core = $core.Replace($from, $to, [StringComparison]::Ordinal)
+$repoRootMarker = '$repoRoot = Split-Path -Parent $PSScriptRoot'
+if (-not $core.Contains($repoRootMarker)) {
+    throw "Agent skill artifact core no longer contains the expected repo-root contract."
 }
+$core = $core.Replace($repoRootMarker, '$repoRoot = $env:VIDCHOPPER_AGENT_SKILL_REPO_ROOT')
+
+$versionMarker = '$skillVersion = "1.0.0"'
+if (-not $core.Contains($versionMarker)) {
+    throw "Agent skill artifact core no longer contains the expected 1.0.0 version contract."
+}
+$core = $core.Replace($versionMarker, '$skillVersion = "1.2.0"')
+
+$frontmatterMarker = 'vidchopper\.cli-version: "1\.0\.0"'
+if (-not $core.Contains($frontmatterMarker)) {
+    throw "Agent skill artifact core no longer contains the expected frontmatter version contract."
+}
+$core = $core.Replace($frontmatterMarker, 'vidchopper\.cli-version: "1\.2\.0"')
+
+$packageMarker = 'The `v1.0.0` application ZIP'
+if (-not $core.Contains($packageMarker)) {
+    throw "Agent skill artifact core no longer contains the expected package-version contract."
+}
+$core = $core.Replace($packageMarker, 'The `v1.2.0` agent-skill package')
 
 $environmentName = "VIDCHOPPER_AGENT_SKILL_REPO_ROOT"
-$previousRoot = [Environment]::GetEnvironmentVariable($environmentName, "Process")
+$previousRoot = [Environment]::GetEnvironmentVariable($environmentName, [EnvironmentVariableTarget]::Process)
 try {
     [Environment]::SetEnvironmentVariable(
         $environmentName,
         (Split-Path -Parent $PSScriptRoot),
-        "Process"
+        [EnvironmentVariableTarget]::Process
     )
-    $runner = [ScriptBlock]::Create($core)
-    & $runner -Mode $Mode -SourceCommit $SourceCommit
+    & ([ScriptBlock]::Create($core)) -Mode $Mode -SourceCommit $SourceCommit
 }
 finally {
-    [Environment]::SetEnvironmentVariable($environmentName, $previousRoot, "Process")
+    [Environment]::SetEnvironmentVariable(
+        $environmentName,
+        $previousRoot,
+        [EnvironmentVariableTarget]::Process
+    )
 }
