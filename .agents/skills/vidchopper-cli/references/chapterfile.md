@@ -29,7 +29,7 @@ Require 1 to 255 chapters and reject unknown fields. Validate:
 - the final end does not exceed the probed source duration;
 - `crf`/`cq` are `0..51` and `threads` is `0..255`; and
 - `output.folder` uses only `%source%`, while `output.namingPattern` uses only `%index%`, `%name%`,
-  and `%source%`; the `1.0.0` CLI sanitizes but does not reject unknown placeholders.
+  and `%source%`; the `1.2.0` CLI sanitizes but does not reject unknown placeholders.
 
 Validate structure with the schema and timeline rules with the CLI dry-run. A `$schema` value is an
 editor hint and provenance; it is not proof that validation happened.
