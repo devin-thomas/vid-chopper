@@ -14,6 +14,28 @@ namespace {
 
 using Json = nlohmann::json;
 
+inline constexpr auto stderr_tail_limit = size_t {512};
+
+[[nodiscard]] auto text_tail(const std::string& value, const size_t limit) -> std::string {
+    if (value.size() <= limit) {
+        return value;
+    }
+    return value.substr(value.size() - limit);
+}
+
+[[nodiscard]] auto segment_error_text(const RenderedSegment& rendered) -> std::string {
+    if (!rendered.verification_error.empty()) {
+        return rendered.verification_error;
+    }
+    if (!rendered.process.error_message.empty()) {
+        return rendered.process.error_message;
+    }
+    if (!rendered.ok() && !rendered.process.standard_error.empty()) {
+        return text_tail(rendered.process.standard_error, stderr_tail_limit);
+    }
+    return {};
+}
+
 [[nodiscard]] auto csv_escape(const std::string& value) -> std::string {
     auto escaped = std::string {"\""};
     for (const char character : value) {
@@ -44,10 +66,13 @@ using Json = nlohmann::json;
         value["actualDurationMs"] = rendered->actual_duration_ms;
         value["skipped"] = rendered->skipped;
         value["overwroteExisting"] = rendered->overwrote_existing;
-        value["error"] = !rendered->verification_error.empty()
-            ? rendered->verification_error
-            : (rendered->process.error_message.empty() ? rendered->process.standard_error
-                                                       : rendered->process.error_message);
+        const std::string error = segment_error_text(*rendered);
+        if (!error.empty()) {
+            value["error"] = error;
+        }
+        if (!rendered->ok() && !rendered->process.standard_error.empty()) {
+            value["stderrTail"] = text_tail(rendered->process.standard_error, stderr_tail_limit);
+        }
     } else {
         value["processState"] = "planned";
         value["skipped"] = false;
@@ -169,9 +194,7 @@ auto write_csv(const Path& target,
             }
         }
         const std::string state = rendered == nullptr ? "planned" : process_exit_state_name(rendered->process.state);
-        const std::string error = rendered == nullptr
-            ? ""
-            : (!rendered->verification_error.empty() ? rendered->verification_error : rendered->process.error_message);
+        const std::string error = rendered == nullptr ? "" : segment_error_text(*rendered);
         text += std::to_string(planned.chapter_index + 1) + "," + csv_escape(planned.chapter.name) + ","
             + std::to_string(planned.chapter.start_ms) + "," + std::to_string(planned.chapter.end_ms) + ","
             + csv_escape(path_to_utf8(planned.output_path)) + "," + csv_escape(state) + ","
@@ -200,10 +223,7 @@ auto write_aggregate_csv(const Path& target,
             }
             const std::string state =
                 rendered == nullptr ? "planned" : process_exit_state_name(rendered->process.state);
-            const std::string error = rendered == nullptr
-                ? ""
-                : (!rendered->verification_error.empty() ? rendered->verification_error
-                                                         : rendered->process.error_message);
+            const std::string error = rendered == nullptr ? "" : segment_error_text(*rendered);
             text += csv_escape(path_to_utf8(job.metadata.source_path)) + "," + std::to_string(planned.chapter_index + 1)
                 + "," + csv_escape(planned.chapter.name) + "," + std::to_string(planned.chapter.start_ms) + ","
                 + std::to_string(planned.chapter.end_ms) + "," + csv_escape(path_to_utf8(planned.output_path)) + ","
