@@ -166,6 +166,31 @@ auto main() -> int {
             "pattern without placeholder should use literal name");
     }
 
+    // output.folder: absolute and multi-segment paths are refused
+    {
+        const Path source = "/media/source.mp4";
+        auto absolute_settings = ExportSettings {};
+        absolute_settings.output_folder_pattern = "/tmp/vcbug/elsewhere";
+        const std::string absolute_error = output_folder_pattern_error(source, absolute_settings);
+        const bool absolute_names_rule = absolute_error.find("single folder name") != std::string::npos;
+        test_support::expect_true(absolute_names_rule, "absolute output.folder should explain the sibling-name rule");
+        const Path absolute_dir = default_output_directory(source, absolute_settings);
+        test_support::expect_true(
+            absolute_dir.empty(), "absolute output.folder should not be rewritten beside the source");
+
+        auto nested_settings = ExportSettings {};
+        nested_settings.output_folder_pattern = "clips/export";
+        const bool nested_rejected = !output_folder_pattern_error(source, nested_settings).empty();
+        test_support::expect_true(nested_rejected, "multi-segment output.folder should be rejected");
+        const Path nested_dir = default_output_directory(source, nested_settings);
+        test_support::expect_true(nested_dir.empty(), "multi-segment output.folder should not be flattened");
+
+        auto drive_settings = ExportSettings {};
+        drive_settings.output_folder_pattern = "C:/exports";
+        const bool drive_rejected = !output_folder_pattern_error(source, drive_settings).empty();
+        test_support::expect_true(drive_rejected, "drive-prefixed output.folder should be rejected");
+    }
+
     // ValidationResult::ok()
     {
         auto empty_result = ValidationResult {};

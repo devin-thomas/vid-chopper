@@ -557,6 +557,11 @@ constexpr auto chapter_keys = std::to_array<std::string_view>({"name", "start", 
         return ChapterConfigLoadResult {.error_message = std::move(parsed.error_message)};
     }
 
+    const std::string folder_error = output_folder_pattern_error(path_from_utf8("source.mp4"), parsed.config.settings);
+    if (!folder_error.empty()) {
+        return ChapterConfigLoadResult {.error_message = path_to_utf8(path) + ": " + folder_error};
+    }
+
     const ValidationResult validation =
         validate_chapters(parsed.config.chapters, source_duration_ms, parsed.config.settings);
     if (!validation.ok()) {

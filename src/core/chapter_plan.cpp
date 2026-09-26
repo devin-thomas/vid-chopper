@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <format>
 
 namespace vidchopper {
 
@@ -105,10 +106,40 @@ auto validate_chapters(const std::vector<ChapterSegment>& chapters,
     return result;
 }
 
+namespace {
+
+[[nodiscard]] auto is_ascii_letter(const char character) -> bool {
+    const auto value = static_cast<unsigned char>(character);
+    const bool upper = value >= 'A' && value <= 'Z';
+    const bool lower = value >= 'a' && value <= 'z';
+    return upper || lower;
+}
+
+[[nodiscard]] auto resolved_output_folder_name(const Path& source_path, const ExportSettings& settings) -> std::string {
+    return replace_all_copy(settings.output_folder_pattern, "%source%", path_to_utf8(source_path.stem()));
+}
+
+} // namespace
+
+auto output_folder_pattern_error(const Path& source_path, const ExportSettings& settings) -> std::string {
+    const std::string folder_name = resolved_output_folder_name(source_path, settings);
+    const std::string folder = trim_copy(folder_name);
+    const bool blank = folder.empty() || folder == "." || folder == "..";
+    const bool has_separator = folder.find('/') != std::string::npos || folder.find('\\') != std::string::npos;
+    const bool drive_prefixed = folder.size() >= 2 && is_ascii_letter(folder.front()) && folder[1] == ':';
+    const bool absolute = path_from_utf8(folder).is_absolute();
+    if (blank || has_separator || drive_prefixed || absolute) {
+        return std::format("output.folder must be a single folder name beside the source, not '{}'.", folder_name);
+    }
+    return {};
+}
+
 auto default_output_directory(const Path& source_path, const ExportSettings& settings) -> Path {
-    std::string folder_name =
-        replace_all_copy(settings.output_folder_pattern, "%source%", path_to_utf8(source_path.stem()));
-    folder_name = sanitize_file_component(folder_name);
+    if (!output_folder_pattern_error(source_path, settings).empty()) {
+        return {};
+    }
+
+    const std::string folder_name = sanitize_file_component(resolved_output_folder_name(source_path, settings));
     return source_path.parent_path() / folder_name;
 }
 

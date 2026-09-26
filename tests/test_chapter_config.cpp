@@ -281,6 +281,27 @@ chapters:
         "source-duration violation should fail",
         "source duration");
 
+    const Path absolute_folder_path = root / "absolute-folder.json";
+    write_text(absolute_folder_path,
+        R"json({"version": 1, "output": {"folder": "/tmp/vcbug/elsewhere"}, "chapters": [{"name": "A", "start": 0, "end": 2000}]})json");
+    require_failure(load_chapter_config(absolute_folder_path, 60000, ExportSettings {}),
+        "absolute output.folder should fail before export",
+        "single folder name");
+
+    const Path nested_folder_path = root / "nested-folder.yaml";
+    write_text(nested_folder_path,
+        R"yaml(version: 1
+output:
+  folder: clips/export
+chapters:
+  - name: A
+    start: "00:00:00"
+    end: "00:00:02"
+)yaml");
+    require_failure(load_chapter_config(nested_folder_path, 60000, ExportSettings {}),
+        "multi-segment output.folder should fail before export",
+        "single folder name");
+
     std::filesystem::remove_all(root);
     return 0;
 }

@@ -86,5 +86,14 @@ auto main() -> int {
     test_support::expect_true(duplicate_batch.jobs.empty(), "a colliding batch should not expose partial jobs");
     test_support::expect_eq(duplicate_batch.errors.size(), size_t {1}, "batch collision should be reported once");
 
+    auto absolute_folder = make_input("/media/source.mp4");
+    absolute_folder.settings.output_folder_pattern = "/tmp/vcbug/elsewhere";
+    const OutputPlanResult absolute_plan = plan_outputs({absolute_folder});
+    test_support::expect_true(!absolute_plan.ok(), "absolute output.folder should fail planning");
+    test_support::expect_true(absolute_plan.jobs.empty(), "rejected output.folder should not expose a job");
+    const bool names_folder_rule =
+        !absolute_plan.errors.empty() && absolute_plan.errors.front().find("single folder name") != std::string::npos;
+    test_support::expect_true(names_folder_rule, "absolute output.folder should explain the sibling-name rule");
+
     return 0;
 }

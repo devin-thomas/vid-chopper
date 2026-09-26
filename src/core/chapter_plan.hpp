@@ -24,6 +24,7 @@ struct ValidationResult {
 [[nodiscard]] auto build_default_chapters(u64 duration_ms, u8 requested_count) -> std::vector<ChapterSegment>;
 [[nodiscard]] auto validate_chapters(
     const std::vector<ChapterSegment>& chapters, u64 duration_ms, const ExportSettings& settings) -> ValidationResult;
+[[nodiscard]] auto output_folder_pattern_error(const Path& source_path, const ExportSettings& settings) -> std::string;
 [[nodiscard]] auto default_output_directory(const Path& source_path, const ExportSettings& settings) -> Path;
 
 } // namespace vidchopper

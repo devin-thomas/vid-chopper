@@ -35,7 +35,7 @@ Only `chapters` is required. `version` is optional for now, but examples include
 |---|---:|---:|---|
 | `$schema` | string | No | Optional schema hint for editors and validators. |
 | `version` | integer | No | Schema version. Currently only `1` is valid. |
-| `output.folder` | string | No | Overrides the output folder pattern for this config. |
+| `output.folder` | string | No | Single folder name created beside the source. `%source%` is replaced with the source filename stem. Absolute paths, drive prefixes, and names containing `/` or `\` are rejected. |
 | `output.namingPattern` | string | No | Overrides the output file naming pattern for this config. |
 | `encoder.crf` | integer `0..51` | No | x264 CRF override for this config. |
 | `encoder.cq` | integer `0..51` | No | NVENC CQ override for this config. |
@@ -47,6 +47,10 @@ Only `chapters` is required. `version` is optional for now, but examples include
 | `chapters[].outputName` | string | No | Optional per-chapter output-name override. |
 
 Unknown fields are invalid. The loader should reject them with a human-readable validation error instead of silently ignoring misspelled config.
+
+## Output folder
+
+`output.folder` is a single folder name beside the source video, not a destination path. `%source%` is replaced with the source filename stem, and that result must still be one filename component. VidChopper rejects the value before export when it is empty, `.`, `..`, absolute, drive-prefixed (`C:...`), or contains `/` or `\`. Those values are not rewritten into a flattened sibling name.
 
 ## Timestamp policy
 

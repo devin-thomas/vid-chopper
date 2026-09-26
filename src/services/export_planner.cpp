@@ -54,6 +54,15 @@ auto plan_outputs(const std::vector<OutputPlanInput>& inputs) -> OutputPlanResul
             continue;
         }
 
+        if (!input.output_directory.has_value()) {
+            const std::string folder_error = output_folder_pattern_error(input.metadata.source_path, input.settings);
+            if (!folder_error.empty()) {
+                result.errors.push_back(std::format(
+                    "Invalid output plan for source '{}': {}", path_to_utf8(input.metadata.source_path), folder_error));
+                continue;
+            }
+        }
+
         const Path output_directory =
             input.output_directory.value_or(default_output_directory(input.metadata.source_path, input.settings));
         const ResolvedEncoder encoder = resolve_encoder(input.settings, input.environment, input.encoder_selection);
