@@ -45,6 +45,10 @@ auto record_failure(ExportRunResult& result, const ProcessExitState state) -> vo
     };
 }
 
+[[nodiscard]] auto ffmpeg_refused_existing_output(const std::string_view standard_error) -> bool {
+    return standard_error.find("already exists") != std::string_view::npos;
+}
+
 [[nodiscard]] auto bounded_detail(const ProcessResult& process, const size_t limit) -> std::string {
     std::string detail = process.error_message.empty() ? process.standard_error : process.error_message;
     if (detail.size() > limit) {
@@ -356,6 +360,64 @@ auto ExportEngine::run(
                 report_progress(options, completed_duration_ms, batch_duration_ms);
                 continue;
             }
+            auto confirmed_overwrite = false;
+            if (output_exists && job.settings.overwrite_mode == OverwriteMode::Ask) {
+                if (options.confirm_overwrite) {
+                    confirmed_overwrite = options.confirm_overwrite(segment.output_path);
+                }
+                if (!confirmed_overwrite && options.confirm_overwrite) {
+                    auto declined = RenderedSegment {
+                        .source_path = job.metadata.source_path,
+                        .chapter_index = segment.chapter_index,
+                        .chapter_name = segment.chapter.name,
+                        .output_path = segment.output_path,
+                        .process = ProcessResult {.state = ProcessExitState::Success},
+                        .skipped = true,
+                    };
+                    if (options.message) {
+                        options.message("Leaving existing output: " + path_to_utf8(segment.output_path));
+                    }
+                    job_result.segments.push_back(std::move(declined));
+                    if (options.segment_finished) {
+                        options.segment_finished(job_result.segments.back());
+                    }
+                    completed_duration_ms += segment_duration_ms;
+                    report_progress(options, completed_duration_ms, batch_duration_ms);
+                    continue;
+                }
+                if (!confirmed_overwrite) {
+                    auto refused = RenderedSegment {
+                        .source_path = job.metadata.source_path,
+                        .chapter_index = segment.chapter_index,
+                        .chapter_name = segment.chapter.name,
+                        .output_path = segment.output_path,
+                        .process =
+                            ProcessResult {
+                                .state = ProcessExitState::NonzeroExit,
+                                .error_message = std::format(
+                                    "Existing output '{}' was not written because overwrite mode is Ask. Choose Skip "
+                                    "to leave it or Overwrite to replace it.",
+                                    path_to_utf8(segment.output_path)),
+                            },
+                    };
+                    record_failure(result, ProcessExitState::NonzeroExit);
+                    if (options.message) {
+                        options.message(refused.process.error_message);
+                    }
+                    job_result.segments.push_back(std::move(refused));
+                    if (options.segment_finished) {
+                        options.segment_finished(job_result.segments.back());
+                    }
+                    completed_duration_ms += segment_duration_ms;
+                    report_progress(options, completed_duration_ms, batch_duration_ms);
+                    if (stop_on_first_error) {
+                        job_result.stopped_early = index + 1 < job.segments.size();
+                        result.stopped_early = job_result.stopped_early || result.jobs.size() + 1 < jobs.size();
+                        break;
+                    }
+                    continue;
+                }
+            }
             if (output_exists && options.message) {
                 options.message(
                     "Existing output will use the configured overwrite policy: " + path_to_utf8(segment.output_path));
@@ -366,11 +428,22 @@ auto ExportEngine::run(
                 report_progress(
                     options, completed_duration_ms + (std::min)(elapsed_ms, segment_duration_ms), batch_duration_ms);
             }};
+            auto command = segment.command;
+            if (confirmed_overwrite && command.size() > 1 && command[1] == "-n") {
+                command[1] = "-y";
+            }
             ProcessResult process = executor_(make_process_request(
-                segment.command,
+                command,
                 options,
                 [&parser](const std::string_view chunk) { parser.consume(chunk); },
                 ffmpeg_executable));
+            if (process.ok() && ffmpeg_refused_existing_output(process.standard_error)) {
+                process.error_message =
+                    std::format("ffmpeg did not write '{}' because the file already exists (exit code {}).",
+                        path_to_utf8(segment.output_path),
+                        process.exit_code);
+                process.state = ProcessExitState::NonzeroExit;
+            }
             bool succeeded = process.ok();
             auto verification = DurationVerification {};
             if (succeeded) {
@@ -393,7 +466,8 @@ auto ExportEngine::run(
                 .duration_verified = verification.verified,
                 .actual_duration_ms = verification.actual_duration_ms,
                 .verification_error = std::move(verification.error_message),
-                .overwrote_existing = output_exists && job.settings.overwrite_mode == OverwriteMode::Overwrite,
+                .overwrote_existing =
+                    output_exists && (job.settings.overwrite_mode == OverwriteMode::Overwrite || confirmed_overwrite),
             });
             if (options.segment_finished) {
                 options.segment_finished(job_result.segments.back());

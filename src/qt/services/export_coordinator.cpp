@@ -5,6 +5,8 @@
 #include "services/manifest_writer.hpp"
 #include "qt/path_utils.hpp"
 
+#include <QApplication>
+#include <QMessageBox>
 #include <QMetaObject>
 #include <QThread>
 
@@ -160,6 +162,32 @@ auto ExportCoordinator::start_export(const VideoMetadata& metadata,
                     dispatch([text](ExportCoordinator& receiver) {
                         emit receiver.log_message(LogCategory::ExportLifecycle, text);
                     });
+                },
+            .confirm_overwrite =
+                [state](const Path& output_path) {
+                    auto* receiver = static_cast<ExportCoordinator*>(nullptr);
+                    {
+                        const auto lock = std::scoped_lock {state->receiver_mutex};
+                        receiver = state->receiver;
+                    }
+                    if (receiver == nullptr) {
+                        return false;
+                    }
+
+                    auto confirmed = false;
+                    const QString path = path_to_display(output_path);
+                    const bool invoked = QMetaObject::invokeMethod(
+                        receiver,
+                        [&confirmed, path]() {
+                            const auto reply = QMessageBox::question(QApplication::activeWindow(),
+                                QStringLiteral("Overwrite existing file"),
+                                QStringLiteral("Replace existing output?\n%1").arg(path),
+                                QMessageBox::Yes | QMessageBox::No,
+                                QMessageBox::No);
+                            confirmed = reply == QMessageBox::Yes;
+                        },
+                        Qt::BlockingQueuedConnection);
+                    return invoked && confirmed;
                 },
         };
 
