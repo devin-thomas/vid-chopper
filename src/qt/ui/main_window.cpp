@@ -31,6 +31,7 @@
 #include <QMenu>
 #include <QMenuBar>
 #include <QMessageBox>
+#include <QMetaObject>
 #include <QPlainTextEdit>
 #include <QProgressBar>
 #include <QPushButton>
@@ -73,6 +74,22 @@ MainWindow::MainWindow(DemoLaunchOptions demo_options, QWidget* parent)
     , gpu_detector_(new GpuDetector {this})
     , presentation_controller_(new PresentationController {*this, this})
     , demo_controller_(new DemoAutomationController {std::move(demo_options), this}) {
+    export_coordinator_->set_confirm_overwrite([this](const Path& output_path) {
+        auto confirmed = false;
+        const QString path = path_to_display(output_path);
+        const bool invoked = QMetaObject::invokeMethod(
+            this,
+            [&confirmed, path]() {
+                const auto reply = QMessageBox::question(QApplication::activeWindow(),
+                    QStringLiteral("Overwrite existing file"),
+                    QStringLiteral("Replace existing output?\n%1").arg(path),
+                    QMessageBox::Yes | QMessageBox::No,
+                    QMessageBox::No);
+                confirmed = reply == QMessageBox::Yes;
+            },
+            Qt::BlockingQueuedConnection);
+        return invoked && confirmed;
+    });
     setWindowTitle(demo_window_title());
     resize(1280, 860);
 
