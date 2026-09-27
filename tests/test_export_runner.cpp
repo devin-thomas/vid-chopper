@@ -273,6 +273,100 @@ auto main() -> int {
         ProcessExitState::Cancelled,
         "cancelled chapter should retain its process state");
 
+    ResolvedExportJob ask_job = make_job(root / "ask", {chapters().front()});
+    ask_job.settings.overwrite_mode = OverwriteMode::Ask;
+    ask_job.settings.verify_output_durations = true;
+    std::filesystem::create_directories(ask_job.output_directory);
+    std::ofstream {ask_job.segments.front().output_path} << "existing";
+    auto ask_calls = size_t {0};
+    const auto ask_executor = [&ask_calls](const ProcessRequest&) -> ProcessResult {
+        ++ask_calls;
+        return ProcessResult {.state = ProcessExitState::Success};
+    };
+    const ExportRunResult asked = ExportEngine {ask_executor}.run({ask_job});
+    test_support::expect_eq(asked.exit_code, ExportExitCode::ExportFailure, "Ask mode should fail when output exists");
+    test_support::expect_eq(ask_calls, size_t {0}, "Ask mode should not run ffmpeg over an existing file");
+    const RenderedSegment& asked_segment = asked.jobs.front().segments.front();
+    test_support::expect_true(!asked_segment.ok(), "an unwritten Ask segment should not count as exported");
+    test_support::expect_true(!asked_segment.skipped, "Ask mode should not pretend an existing file was skipped");
+    test_support::expect_true(
+        !asked_segment.duration_verified, "Ask mode should not verify a file this run did not write");
+    const bool ask_explains = asked_segment.process.error_message.find("overwrite mode is Ask") != std::string::npos;
+    test_support::expect_true(ask_explains, "Ask mode should explain why the existing file was left unchanged");
+
+    ResolvedExportJob declined_job = make_job(root / "ask-declined", {chapters().front()});
+    declined_job.settings.overwrite_mode = OverwriteMode::Ask;
+    std::filesystem::create_directories(declined_job.output_directory);
+    std::ofstream {declined_job.segments.front().output_path} << "existing";
+    if (declined_job.segments.front().command.size() > 1) {
+        declined_job.segments.front().command[1] = "-n";
+    }
+    auto declined_calls = size_t {0};
+    const auto declined_executor = [&declined_calls](const ProcessRequest&) -> ProcessResult {
+        ++declined_calls;
+        return ProcessResult {.state = ProcessExitState::Success};
+    };
+    const ExportRunOptions declined_options {
+        .confirm_overwrite = [](const Path&) { return false; },
+    };
+    const ExportRunResult declined = ExportEngine {declined_executor}.run({declined_job}, declined_options);
+    test_support::expect_true(declined.ok(), "declining an overwrite prompt should leave the export successful");
+    test_support::expect_eq(declined_calls, size_t {0}, "declining an overwrite prompt should not run ffmpeg");
+    test_support::expect_true(
+        declined.jobs.front().segments.front().skipped, "declined overwrite should be counted as skipped");
+
+    ResolvedExportJob accepted_job = make_job(root / "ask-accepted", {chapters().front()});
+    accepted_job.settings.overwrite_mode = OverwriteMode::Ask;
+    accepted_job.settings.verify_output_durations = false;
+    std::filesystem::create_directories(accepted_job.output_directory);
+    std::ofstream {accepted_job.segments.front().output_path} << "existing";
+    if (accepted_job.segments.front().command.size() > 1) {
+        accepted_job.segments.front().command[1] = "-n";
+    }
+    auto accepted_arguments = std::vector<std::string> {};
+    const auto accepted_executor = [&accepted_arguments](const ProcessRequest& request) -> ProcessResult {
+        accepted_arguments = request.arguments;
+        return ProcessResult {.state = ProcessExitState::Success};
+    };
+    const ExportRunOptions accepted_options {
+        .confirm_overwrite = [](const Path&) { return true; },
+    };
+    const ExportRunResult accepted = ExportEngine {accepted_executor}.run({accepted_job}, accepted_options);
+    test_support::expect_true(accepted.ok(), "accepting an overwrite prompt should export the chapter");
+    test_support::expect_true(
+        accepted.jobs.front().segments.front().overwrote_existing, "accepted overwrite should be marked overwritten");
+    const bool replaced_no_flag = std::ranges::find(accepted_arguments, "-n") == accepted_arguments.end();
+    const bool used_yes_flag = std::ranges::find(accepted_arguments, "-y") != accepted_arguments.end();
+    test_support::expect_true(replaced_no_flag, "accepted overwrite should not keep ffmpeg -n");
+    test_support::expect_true(used_yes_flag, "accepted overwrite should pass ffmpeg -y");
+
+    ResolvedExportJob refused_job = make_job(root / "refused", {chapters().front()});
+    refused_job.settings.verify_output_durations = true;
+    auto refused_calls = size_t {0};
+    const auto refused_executor = [&refused_calls](const ProcessRequest& request) -> ProcessResult {
+        ++refused_calls;
+        if (request.executable.filename() == "ffprobe") {
+            return ProcessResult {
+                .state = ProcessExitState::Success,
+                .standard_output =
+                    R"({"format":{"duration":"2"},"streams":[{"codec_type":"video","avg_frame_rate":"30/1"}],"chapters":[]})",
+            };
+        }
+        return ProcessResult {
+            .state = ProcessExitState::Success,
+            .standard_error = "File 'clip.mp4' already exists. Exiting.\nError opening output file clip.mp4.\n",
+        };
+    };
+    const ExportRunResult refused = ExportEngine {refused_executor}.run({refused_job});
+    test_support::expect_true(!refused.ok(), "ffmpeg already-exists should fail even when the exit code is zero");
+    test_support::expect_eq(
+        refused_calls, size_t {1}, "duration verification should not probe a file ffmpeg refused to write");
+    const RenderedSegment& refused_segment = refused.jobs.front().segments.front();
+    test_support::expect_true(!refused_segment.ok(), "a refused write should not be a successful segment");
+    test_support::expect_true(!refused_segment.duration_verified, "a refused write should not be duration-verified");
+    const bool refused_explains = refused_segment.process.error_message.find("already exists") != std::string::npos;
+    test_support::expect_true(refused_explains, "a refused write should report that the file already exists");
+
     std::filesystem::remove_all(root);
     return 0;
 }

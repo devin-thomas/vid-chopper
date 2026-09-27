@@ -8,6 +8,7 @@
 #include <QStringList>
 
 #include <filesystem>
+#include <functional>
 #include <memory>
 #include <vector>
 
@@ -32,6 +33,7 @@ public:
         const ExportSettings& settings,
         const EncoderEnvironment& environment) -> void;
     auto cancel() -> void;
+    auto set_confirm_overwrite(std::function<bool(const Path&)> confirm_overwrite) -> void;
 
 signals:
     void log_message(LogCategory category, const QString& message);
@@ -47,6 +49,7 @@ private:
         ManifestWriteResult manifest_result) -> void;
 
     ProcessExecutor executor_;
+    std::function<bool(const Path&)> confirm_overwrite_;
     std::shared_ptr<TaskState> state_;
 };
 

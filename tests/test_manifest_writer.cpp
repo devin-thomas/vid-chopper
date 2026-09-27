@@ -99,6 +99,44 @@ auto main() -> int {
         "JSON manifest chapter text should preserve UTF-8");
     json_stream.close();
 
+    const std::string banner_prefix = "ffmpeg version 8.0 Copyright";
+    auto banner = std::string {banner_prefix};
+    banner.append(size_t {4096}, 'x');
+    ExportRunResult noisy_success = successful_run(job);
+    noisy_success.jobs.front().segments.front().process.standard_error = banner;
+    noisy_success.jobs.front().segments.front().duration_verified = true;
+    const ManifestWriteResult noisy = write_manifests({job}, noisy_success);
+    test_support::expect_true(noisy.ok(), "successful segment with ffmpeg stderr should still write");
+    auto noisy_stream = std::ifstream {job.output_directory / "vidchopper-manifest.json", std::ios::binary};
+    const std::string noisy_text {std::istreambuf_iterator<char> {noisy_stream}, std::istreambuf_iterator<char> {}};
+    noisy_stream.close();
+    const bool hides_success_banner = noisy_text.find(banner_prefix) == std::string::npos;
+    test_support::expect_true(hides_success_banner, "successful segment error should not store the ffmpeg banner");
+    const bool omits_success_error = noisy_text.find("\"error\"") == std::string::npos;
+    test_support::expect_true(omits_success_error, "successful verified segment should omit error");
+    const bool omits_success_tail = noisy_text.find("\"stderrTail\"") == std::string::npos;
+    test_support::expect_true(omits_success_tail, "successful segment should omit stderrTail");
+
+    auto failure_banner = std::string {"HEADMARKER"};
+    failure_banner.append(size_t {2000}, 'y');
+    failure_banner += "TAILMARKER";
+    ExportRunResult failed_run = successful_run(job);
+    RenderedSegment& failed_segment = failed_run.jobs.front().segments.front();
+    failed_segment.process.state = ProcessExitState::NonzeroExit;
+    failed_segment.process.exit_code = 1;
+    failed_segment.process.error_message = "encoder failed";
+    failed_segment.process.standard_error = failure_banner;
+    const ManifestWriteResult failed = write_manifests({job}, failed_run);
+    auto failed_stream = std::ifstream {job.output_directory / "vidchopper-manifest.json", std::ios::binary};
+    const std::string failed_text {std::istreambuf_iterator<char> {failed_stream}, std::istreambuf_iterator<char> {}};
+    failed_stream.close();
+    const bool keeps_failure_error = failed_text.find("encoder failed") != std::string::npos;
+    test_support::expect_true(keeps_failure_error, "failed segment should keep its error message");
+    const bool keeps_tail = failed_text.find("TAILMARKER") != std::string::npos;
+    test_support::expect_true(keeps_tail, "failed segment should keep a stderr tail");
+    const bool drops_head = failed_text.find("HEADMARKER") == std::string::npos;
+    test_support::expect_true(drops_head, "stderrTail should stay short");
+
     ResolvedExportJob blocked_job = make_job(root / "blocked");
     std::filesystem::create_directories(blocked_job.output_directory / "vidchopper-manifest.json.tmp");
     const ManifestWriteResult blocked = write_manifests({blocked_job}, successful_run(blocked_job));

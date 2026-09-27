@@ -74,7 +74,12 @@ auto SessionController::reset_output_directory(const ExportSettings& settings) -
         return false;
     }
 
-    set_output_directory(default_output_directory(metadata_->source_path, settings), false);
+    const Path directory = default_output_directory(metadata_->source_path, settings);
+    if (directory.empty()) {
+        return false;
+    }
+
+    set_output_directory(directory, false);
     return true;
 }
 

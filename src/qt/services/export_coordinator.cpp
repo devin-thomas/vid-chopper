@@ -60,6 +60,10 @@ auto ExportCoordinator::busy() const noexcept -> bool {
     return state_ != nullptr;
 }
 
+auto ExportCoordinator::set_confirm_overwrite(std::function<bool(const Path&)> confirm_overwrite) -> void {
+    confirm_overwrite_ = std::move(confirm_overwrite);
+}
+
 auto ExportCoordinator::start_export(const VideoMetadata& metadata,
     const std::vector<ChapterSegment>& chapters,
     const std::filesystem::path& output_directory,
@@ -92,7 +96,11 @@ auto ExportCoordinator::start_export(const VideoMetadata& metadata,
     ProcessExecutor executor = executor_;
     auto jobs = std::move(plan.jobs);
 
-    auto* thread = QThread::create([state, executor = std::move(executor), jobs = std::move(jobs)]() mutable {
+    auto confirm_overwrite = confirm_overwrite_;
+    auto* thread = QThread::create([state,
+                                       executor = std::move(executor),
+                                       jobs = std::move(jobs),
+                                       confirm_overwrite = std::move(confirm_overwrite)]() mutable {
         const auto dispatch = [state](std::function<void(ExportCoordinator&)> callback) {
             const auto lock = std::scoped_lock {state->receiver_mutex};
             if (state->receiver == nullptr) {
@@ -161,6 +169,7 @@ auto ExportCoordinator::start_export(const VideoMetadata& metadata,
                         emit receiver.log_message(LogCategory::ExportLifecycle, text);
                     });
                 },
+            .confirm_overwrite = std::move(confirm_overwrite),
         };
 
         ExportRunResult run_result = ExportEngine {executor}.run(jobs, options);

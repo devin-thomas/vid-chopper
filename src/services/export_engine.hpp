@@ -78,6 +78,8 @@ struct ExportRunOptions {
         segment_started;
     std::function<void(const RenderedSegment&)> segment_finished;
     std::function<void(const std::string&)> message;
+    // Empty means Ask cannot prompt. Existing files then fail instead of being reported as exported.
+    std::function<bool(const Path&)> confirm_overwrite;
 };
 
 struct ExportRunResult {
