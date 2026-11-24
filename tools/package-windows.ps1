@@ -4,6 +4,9 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+# The checksum list, the zip and its .sha256 file come from the ReleaseArtifact module in the public ps-kit
+# repository (https://github.com/uppercut-labs/ps-kit, packages/release-artifact), pinned to 0.1.0.
+Import-Module ReleaseArtifact -RequiredVersion 0.1.0 -ErrorAction Stop
 . (Join-Path $PSScriptRoot "verification-common.ps1")
 
 $repoRoot = Get-RepoRoot
@@ -40,7 +43,8 @@ if ([string]::IsNullOrWhiteSpace($env:VCINSTALLDIR)) {
 $windeployqt = Get-RepoCommand -Name "windeployqt" -Remediation "Add the Qt 6.9 bin directory to PATH."
 $OutputDirectory = [IO.Path]::GetFullPath($OutputDirectory)
 $stageDirectory = Join-Path $OutputDirectory "VidChopper"
-$zipPath = Join-Path $OutputDirectory "VidChopper-$Version-windows-x64.zip"
+$archiveName = "VidChopper-$Version-windows-x64"
+$zipPath = Join-Path $OutputDirectory "$archiveName.zip"
 New-Item -ItemType Directory -Force -Path $OutputDirectory | Out-Null
 if (Test-Path -LiteralPath $stageDirectory) {
     if ([IO.Path]::GetFullPath((Split-Path -Parent $stageDirectory)) -ne $OutputDirectory) {
@@ -98,5 +102,8 @@ Expand-Archive -LiteralPath $skillArchive -DestinationPath $packagedSkillRoot
 Copy-Item -LiteralPath $skillManifest `
     -Destination (Join-Path $stageDirectory ".agents\skills\vidchopper-cli.manifest.json") -Force
 
-Compress-Archive -Path (Join-Path $stageDirectory "*") -DestinationPath $zipPath -Force
-Write-Output $zipPath
+# SHA256SUMS goes into the archive so that the verifier (and an installer) can check every file in it.
+[void](Write-Sha256Sums -Root $stageDirectory)
+# The archive's .sha256 file uses the "<hash> *<name>" form that verify.ps1 and the release workflows compare.
+$archive = New-ReleaseArchive -Stage $stageDirectory -OutputDirectory $OutputDirectory -Name $archiveName -BinaryMarker
+Write-Output $archive.Path

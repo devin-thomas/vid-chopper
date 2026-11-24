@@ -430,10 +430,12 @@ function Invoke-ReleaseTier {
         $assetName = Split-Path -Leaf $zipPath
         $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $zipPath).Hash.ToLowerInvariant()
         $checksumPath = "${zipPath}.sha256"
-        "$hash *$assetName" | Set-Content -LiteralPath $checksumPath -Encoding ascii
+        if (-not (Test-Path -LiteralPath $checksumPath -PathType Leaf)) {
+            throw "Windows package assembly did not write its checksum file."
+        }
         $checksumLine = (Get-Content -Raw -LiteralPath $checksumPath).Trim()
         if ($checksumLine -ne "$hash *$assetName") {
-            throw "Windows package checksum did not round-trip."
+            throw "Windows package checksum did not match the archive."
         }
         & (Join-Path $repoRoot "tools\verify-release-archive.ps1") `
             -Version $version `
