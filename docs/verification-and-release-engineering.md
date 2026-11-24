@@ -156,6 +156,12 @@ mismatch, and does not bundle ffmpeg/ffprobe. `tools/verify-release-archive.ps1`
 isolated workspace, verifies inventory and CLI/skill versions, performs the ChapterBuilder dry-run/export,
 probes rendered outputs, and writes bounded JSON evidence including the archive SHA-256.
 
+Both scripts import the `ReleaseArtifact` module (version 0.1.0, public ps-kit repository,
+`packages/release-artifact`), so it must be installed on the machine or runner that runs them. The package script
+writes `SHA256SUMS` into the archive, then the module zips with forward-slash entry names and writes the
+`<archive>.zip.sha256` file in the `<hash> *<name>` form. The verify script has the module check that file, unpack the
+archive safely, and compare every unpacked file with `SHA256SUMS`.
+
 ## GitHub CI Parity
 
 CI uses path classification to skip only irrelevant jobs. Code paths run Lint, Core, and GUI; docs paths run

@@ -6,6 +6,9 @@ param(
 
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
+# Unpacking the archive and checking its inventory and checksums come from the ReleaseArtifact module in the
+# public ps-kit repository (https://github.com/uppercut-labs/ps-kit, packages/release-artifact), pinned to 0.1.0.
+Import-Module ReleaseArtifact -RequiredVersion 0.1.0 -ErrorAction Stop
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
 # The packaged CLI uses the stable agent skill contract even when the application
@@ -22,11 +25,9 @@ $temporaryRoot = if ([string]::IsNullOrWhiteSpace($env:RUNNER_TEMP)) {
     Join-Path $env:RUNNER_TEMP "vidchopper-release-smoke"
 }
 $workspace = Join-Path $temporaryRoot ([Guid]::NewGuid().ToString("N"))
-$packageRoot = Join-Path $workspace "package"
 $isolatedCliRoot = Join-Path $workspace "isolated-cli"
 $mediaRoot = Join-Path $workspace "media"
-New-Item -ItemType Directory -Force -Path $packageRoot, $isolatedCliRoot, $mediaRoot | Out-Null
-Expand-Archive -LiteralPath $archive -DestinationPath $packageRoot
+New-Item -ItemType Directory -Force -Path $isolatedCliRoot, $mediaRoot | Out-Null
 
 $requiredFiles = @(
     "VidChopper.exe",
@@ -39,21 +40,18 @@ $requiredFiles = @(
     "README.txt",
     "THIRD_PARTY_NOTICES.txt",
     "LICENSE",
-    ".agents\skills\vidchopper-cli\SKILL.md",
-    ".agents\skills\vidchopper-cli.manifest.json"
+    "SHA256SUMS",
+    ".agents/skills/vidchopper-cli/SKILL.md",
+    ".agents/skills/vidchopper-cli.manifest.json"
 )
-foreach ($requiredFile in $requiredFiles) {
-    $requiredPath = Join-Path $packageRoot $requiredFile
-    if (-not (Test-Path -LiteralPath $requiredPath -PathType Leaf)) {
-        throw "Release archive is missing required file: $requiredFile"
-    }
-}
-
-$bundledMediaTools = @(Get-ChildItem -LiteralPath $packageRoot -Recurse -File |
-    Where-Object { $_.Name -in @("ffmpeg.exe", "ffprobe.exe") })
-if ($bundledMediaTools.Count -ne 0) {
-    throw "Release archive must not bundle ffmpeg or ffprobe."
-}
+# Checks the archive against its .sha256 file, unpacks it (refusing unsafe entry names), checks the required
+# files, that ffmpeg and ffprobe are not bundled, and every file against the archive's SHA256SUMS. The folder
+# it unpacked into is kept for the checks below.
+$packageRoot = $null
+[void](Test-ReleaseArchive $archive -Require $requiredFiles -Forbid @("ffmpeg.exe", "ffprobe.exe") -KeepExtracted -Smoke {
+    param($extracted)
+    $script:packageRoot = $extracted
+})
 
 Copy-Item -LiteralPath (Join-Path $packageRoot "VidChopperCLI.exe") -Destination $isolatedCliRoot
 Copy-Item -LiteralPath (Join-Path $packageRoot "yaml-cpp.dll") -Destination $isolatedCliRoot
