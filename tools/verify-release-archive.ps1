@@ -6,6 +6,9 @@ param(
 
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
+# Extraction is done by the DownloadVerified module from the public ps-kit repository
+# (https://github.com/uppercut-labs/ps-kit, packages/download-verified), pinned to 0.1.0.
+Import-Module DownloadVerified -RequiredVersion 0.1.0 -ErrorAction Stop
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
 # The packaged CLI uses the stable agent skill contract even when the application
@@ -26,7 +29,14 @@ $packageRoot = Join-Path $workspace "package"
 $isolatedCliRoot = Join-Path $workspace "isolated-cli"
 $mediaRoot = Join-Path $workspace "media"
 New-Item -ItemType Directory -Force -Path $packageRoot, $isolatedCliRoot, $mediaRoot | Out-Null
-Expand-Archive -LiteralPath $archive -DestinationPath $packageRoot
+# The archive is checked against the .sha256 file written beside it ("<hash> *<name>") when there is one.
+# Without one, the archive's own hash is used, which still gives the safe extraction and the file checks below.
+$checksumPath = "$archive.sha256"
+$archiveSha256 = if (Test-Path -LiteralPath $checksumPath -PathType Leaf) {
+    ((Get-Content -Raw -LiteralPath $checksumPath).Trim() -split '\s+')[0]
+} else {
+    (Get-FileHash -Algorithm SHA256 -LiteralPath $archive).Hash
+}
 
 $requiredFiles = @(
     "VidChopper.exe",
@@ -42,18 +52,8 @@ $requiredFiles = @(
     ".agents\skills\vidchopper-cli\SKILL.md",
     ".agents\skills\vidchopper-cli.manifest.json"
 )
-foreach ($requiredFile in $requiredFiles) {
-    $requiredPath = Join-Path $packageRoot $requiredFile
-    if (-not (Test-Path -LiteralPath $requiredPath -PathType Leaf)) {
-        throw "Release archive is missing required file: $requiredFile"
-    }
-}
-
-$bundledMediaTools = @(Get-ChildItem -LiteralPath $packageRoot -Recurse -File |
-    Where-Object { $_.Name -in @("ffmpeg.exe", "ffprobe.exe") })
-if ($bundledMediaTools.Count -ne 0) {
-    throw "Release archive must not bundle ffmpeg or ffprobe."
-}
+# Release archives must not bundle ffmpeg or ffprobe.
+[void](Expand-VerifiedArchive -Path $archive -Sha256 $archiveSha256 -Destination $packageRoot -Require $requiredFiles -Forbid @("ffmpeg.exe", "ffprobe.exe"))
 
 Copy-Item -LiteralPath (Join-Path $packageRoot "VidChopperCLI.exe") -Destination $isolatedCliRoot
 Copy-Item -LiteralPath (Join-Path $packageRoot "yaml-cpp.dll") -Destination $isolatedCliRoot
